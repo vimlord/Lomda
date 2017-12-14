@@ -49,8 +49,8 @@ Value* ExtendEnv::apply(string id) {
         return NULL;
 }
 
-Environment* EmptyEnv::copy() { return new EmptyEnv(); }
-Environment* ExtendEnv::copy() {
+Environment* EmptyEnv::clone() { return new EmptyEnv(); }
+Environment* ExtendEnv::clone() {
     return new ExtendEnv(*this);
 }
 

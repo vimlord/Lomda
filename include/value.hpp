@@ -12,7 +12,7 @@ class BoolVal : public Value {
         BoolVal(bool = 0);
         bool get();
         std::string toString();
-        BoolVal* copy() { return new BoolVal(val); }
+        BoolVal* clone() { return new BoolVal(val); }
         int set(Value*);
 };
 
@@ -23,7 +23,7 @@ class IntVal : public Value {
         IntVal(int = 0);
         int get();
         std::string toString();
-        IntVal* copy() { return new IntVal(val); }
+        IntVal* clone() { return new IntVal(val); }
         int set(Value*);
 };
 
@@ -37,7 +37,7 @@ class LambdaVal : public Value {
         LambdaVal(std::string*, Expression*, Environment* = NULL);
         std::string toString();
         Value* apply(Value **xs, Environment *e = NULL);
-        LambdaVal* copy() { return new LambdaVal(xs, exp, env->copy()); }
+        LambdaVal* clone() { return new LambdaVal(xs, exp, env->clone()); }
         int set(Value*);
 
         std::string* getArgs() { return xs; }
@@ -59,7 +59,7 @@ class ListVal : public Value {
         ListVal(List<Value*> *l) : list(l) {}
 
         List<Value*>* get() { return list; }
-        ListVal* copy();
+        ListVal* clone();
         int set(Value*);
 
         std::string toString();
@@ -74,13 +74,13 @@ class RealVal : public Value {
         int set(Value*);
 
         std::string toString();
-        RealVal* copy() { return new RealVal(val); }
+        RealVal* clone() { return new RealVal(val); }
 };
 
 class VoidVal : public Value {
     public:
         std::string toString() { return "(void-val)"; }
-        VoidVal* copy() { return new VoidVal; }
+        VoidVal* clone() { return new VoidVal; }
         int set(Value*) {}
 };
 

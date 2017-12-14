@@ -11,7 +11,7 @@ class EmptyEnv : public Environment {
         EmptyEnv();
         Value* apply(std::string);
 
-        Environment* copy();
+        Environment* clone();
         void destroy(int);
 
         std::string toString();
@@ -30,7 +30,7 @@ class ExtendEnv : public Environment {
         std::string topId() { return id; }
         Value* topVal() { return ref; }
 
-        Environment* copy();
+        Environment* clone();
         void destroy(int);
 
         std::string toString();

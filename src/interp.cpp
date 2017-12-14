@@ -223,7 +223,7 @@ Value* LetExp::valueOf(Environment* env) {
         }
         
         // Add it to the environment
-        v = v->copy();
+        v = v->clone();
         env = new ExtendEnv(ids[i], v, env);
 
         // We permit all lambdas to have recursive behavior

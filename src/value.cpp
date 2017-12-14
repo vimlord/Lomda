@@ -43,9 +43,24 @@ LambdaVal::LambdaVal(string *ids, Expression *exp, Environment *env) {
 }
 int LambdaVal::set(Value *v) {
     if (typeid(*v) == typeid(LambdaVal)) {
-        xs = ((LambdaVal*) v)->xs;
-        exp = ((LambdaVal*) v)->exp;
+        LambdaVal *lv = (LambdaVal*) v;
+        int i;
+    
+        // Allocate new memory
+        delete xs, exp;
+        for (i = 0; lv->xs[i] != ""; i++);
+        
+        // Set a new input set
+        xs = new string[i+1];
+        xs[i] = "";
+        while (i--) xs[i] = lv->xs[i];
+        
+        // Set a new expression
+        exp = lv->exp->clone();
+        
+        // Set the environment
         env = ((LambdaVal*) v)->env;
+
         return 0;
     } else return 1;
 }
@@ -73,18 +88,19 @@ void LambdaVal::setEnv(Environment *e) {
     env = e;
 }
 
-ListVal* ListVal::copy() {
+ListVal* ListVal::clone() {
     // Add a copy of each element of the list
-    //Iterator<int, Value*> *it = list->iterator();
+    Iterator<int, Value*> *it = list->iterator();
     ListVal *res = new ListVal(list);
-    /*for (int i = 0; it->hasNext(); i++)
-        res->list->add(i, it->next()->copy());*/
+    for (int i = 0; it->hasNext(); i++)
+        res->list->add(i, it->next());
 
     // Give it back
     return res;
 }
 int ListVal::set(Value *v) {
     if (typeid(*v) == typeid(ListVal)) {
+        delete list;
         list = ((ListVal*) v)->list;
         return 0;
     } else return 1;

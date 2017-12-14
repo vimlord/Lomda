@@ -5,7 +5,7 @@
 
 class Value : public Stringable {
     public:
-        virtual Value* copy() = 0;
+        virtual Value* clone() = 0;
         virtual int set(Value*) = 0;
 };
 
