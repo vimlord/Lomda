@@ -369,7 +369,20 @@ ParsedPrgms parseLetExp(string str, bool ends) {
  * top-level pemdas-exp
  */
 ParsedPrgms parsePemdas(string str, bool ends) {
-    return parseSetExp(str, ends);
+    ParsedPrgms res = parseSetExp(str, ends);
+    
+    // Parse for lambdas
+    ParsedPrgms tmp = parseLambdaExp(str, ends);
+    while (!tmp->isEmpty()) res->add(0, tmp->remove(0));
+    delete tmp;
+
+    // Parse for derivative
+    tmp = parseDerivative(str, ends);
+    while (!tmp->isEmpty()) res->add(0, tmp->remove(0));
+    delete tmp;
+
+
+    return res;
 }
 
 /**

@@ -837,7 +837,7 @@ ParsedPrgms parseParentheses(string str, bool ends) {
  * <primitive> ::= <lambda-exp> | <int-exp> | <var-exp> | <bool-exp>
  */
 ParsedPrgms parsePrimitive(string str, bool ends) {
-    ParsedPrgms res = parseLambdaExp(str, ends);
+    ParsedPrgms res = new LinkedList<parsed_prgm>;
 
     // First, parse for an int-exp
     parsed_int num = parseInt(str);
@@ -880,11 +880,6 @@ ParsedPrgms parsePrimitive(string str, bool ends) {
     // Parse for parenteses
     tmp = parseParentheses(str, ends);
     if (!tmp->isEmpty()) res->add(0, tmp->remove(0));
-    delete tmp;
-
-    // Parse for derivative
-    tmp = parseDerivative(str, ends);
-    while (!tmp->isEmpty()) res->add(0, tmp->remove(0));
     delete tmp;
 
     return res;

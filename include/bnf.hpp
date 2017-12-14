@@ -60,6 +60,9 @@ ParsedPrgms parseLetExp(std::string, bool = true);
 ParsedPrgms parseSetExp(std::string, bool = true);
 ParsedPrgms parsePemdas(std::string, bool = true);
 
+ParsedPrgms parseLambdaExp(std::string, bool = true);
+ParsedPrgms parseDerivative(std::string, bool = true);
+
 ParsedPrgms parseProgram(std::string, bool = true);
 ParsedPrgms parseStatement(std::string, bool = true);
 
