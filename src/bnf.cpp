@@ -22,8 +22,9 @@ inline bool is_keyword(string s) {
         || s == "true" || s == "false" // Booleans
         || s == "lambda" // Lambda calculus
         || s == "d"  // Differential calculus
-        || s == "insert" || s == "into" || s == "at"
-        || s == "remove" || s == "from"
+        || s == "insert" || s == "into" || s == "at" // insertion
+        || s == "remove" || s == "from" // removal
+        || s == "let" // let-exp
     ;
 }
 
