@@ -889,4 +889,58 @@ ParsedPrgms parsePrimitive(string str, bool ends) {
     return res;
 }
 
+/**
+ * <set-exp> ::= <and-exp> '=' <set-exp> | <and-exp>
+ */
+ParsedPrgms parseSetExp(string str, bool ends) {
+    ParsedPrgms res = new LinkedList<parsed_prgm>;
+
+    ParsedPrgms lefts = parseAndExp(str, false);
+    while (!lefts->isEmpty()) {
+        parsed_prgm left = lefts->remove(0);
+
+        string s = str.substr(left.len);
+
+        if (parseSpaces(s) == s.length()) {
+            res->add(0, left);
+            continue;
+        }
+
+        int i = parseLit(s, "=");
+        if (i < 0) {
+            if (!ends) res->add(0, left);
+            else delete left.item;
+            continue;
+        }
+        s = s.substr(i);
+        left.len += i;
+
+        ParsedPrgms rights = parseSetExp(s, ends);
+
+        while (!rights->isEmpty()) {
+            parsed_prgm prog = rights->remove(0);
+            
+            // Build the left and right side
+            Expression **l = new Expression*[2];
+            l[0] = left.item->clone(); l[1] = NULL;
+            Expression **r = new Expression*[2];
+            r[0] = prog.item; r[1] = NULL;
+            
+            // Create the program outcome
+            prog.len += left.len;
+            prog.item = new SetExp(l, r);
+            
+            // Add it
+            res->add(0, prog);
+        }
+        delete rights;
+    }
+    delete lefts;
+
+    return res;
+}
+
+
+
+
 

@@ -28,6 +28,7 @@ Expression* compile(string str) {
             << "syntax tree of given program is ambiguous (found " << res->size() << " versions)\n";
         while (!res->isEmpty()) {
             Expression *e = res->remove(0);
+            std::cout << *e << "\n";
             delete e;
         }
         delete res;

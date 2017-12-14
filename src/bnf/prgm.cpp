@@ -25,11 +25,6 @@ ParsedPrgms parseStatement(string str, bool ends) {
     while (!tmp->isEmpty()) res->add(0, tmp->remove(0));
     delete tmp;
 
-    // set-exp
-    tmp = parseSetExp(str, ends);
-    while (!tmp->isEmpty()) res->add(0, tmp->remove(0));
-    delete tmp;
-
     // insert-exp
     tmp = parseInsertExp(str, ends);
     while (!tmp->isEmpty()) res->add(0, tmp->remove(0));

@@ -369,7 +369,7 @@ ParsedPrgms parseLetExp(string str, bool ends) {
  * top-level pemdas-exp
  */
 ParsedPrgms parsePemdas(string str, bool ends) {
-    return parseAndExp(str, ends);
+    return parseSetExp(str, ends);
 }
 
 /**
@@ -416,52 +416,6 @@ ParsedPrgms parseRemoveExp(string str, bool ends) {
         delete lists;
     }
     delete indices;
-
-    return res;
-}
-
-/**
- * <set-exp> ::= <pemdas> '=' <pemdas>
- */
-ParsedPrgms parseSetExp(string str, bool ends) {
-    ParsedPrgms res = new LinkedList<parsed_prgm>;
-
-    ParsedPrgms lefts = parsePemdas(str, false);
-    while (!lefts->isEmpty()) {
-        parsed_prgm left = lefts->remove(0);
-
-        string s = str.substr(left.len);
-
-        int i = parseLit(s, "=");
-        if (i < 0) {
-            continue;
-        }
-        s = s.substr(i);
-        left.len += i;
-
-        ParsedPrgms rights = parseStatement(s, ends);
-
-        while (!rights->isEmpty()) {
-            parsed_prgm prog = rights->remove(0);
-            
-            // Build the left and right side
-            Expression **l = new Expression*[2];
-            l[0] = left.item; l[1] = NULL;
-            Expression **r = new Expression*[2];
-            r[0] = prog.item; r[1] = NULL;
-            
-            // Create the program outcome
-            prog.len += left.len;
-            prog.item = new SetExp(l, r);
-
-            left.item = left.item->clone();
-            
-            // Add it
-            res->add(0, prog);
-        }
-        delete rights;
-    }
-    delete lefts;
 
     return res;
 }
