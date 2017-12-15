@@ -64,22 +64,24 @@ Value* ApplyExp::valueOf(Environment *env) {
     return y;
 }
 
-Expression* deriveVal(Value *v, int c = 1) {
+Value* deriveVal(Value *v, int c = 1) {
     if (typeid(*v) == typeid(ListVal)) {
         auto it = ((ListVal*) v)->get()->iterator();
-        LinkedList<Expression*> *lst = new LinkedList<Expression*>;
+        LinkedList<Value*> *lst = new LinkedList<Value*>;
         while (it->hasNext()) {
-            Expression *x = deriveVal(it->next());
+            Value *x = deriveVal(it->next());
             lst->add(lst->size(), x);
         }
-        return new ListExp(lst); 
-    } else return new IntExp(c);
+        return new ListVal(lst); 
+    } else return new IntVal(c);
 }
 Value* DerivativeExp::valueOf(Environment* env) {
 
     // Only differentiable functions are differentiated
     if (dynamic_cast<const Differentiable*>(func) != nullptr) {
-        DerivEnv denv = new LinkedList<DenvFrame>;
+        // Base case: we know of nothing
+        Environment *denv = new EmptyEnv;
+
         // Perform initial loading
         LinkedList<ExtendEnv*> env_frames;
         Environment *tmp = env;
@@ -88,57 +90,29 @@ Value* DerivativeExp::valueOf(Environment* env) {
             tmp = tmp->subenvironment();
         }
         
-        DenvFrame f;
-        f.id = var; f.val = new IntExp(1);
-        denv->add(0, f);
-
         while (!env_frames.isEmpty()) {
             ExtendEnv *ee = env_frames.remove(0);
             Value *v = ee->topVal();
-            
-            f.id = ee->topId();
+            string id = ee->topId();
             
             if (typeid(*v) == typeid(LambdaVal)) {
+                LambdaVal *lv = (LambdaVal*) v;
+                LambdaVal *dv = new LambdaVal(lv->getArgs(), new DerivativeExp(lv->getBody(), var), lv->getEnv());
+
                 // Lambda derivative: d/dx lambda (x) f(x) = lambda (x) d/dx f(x)
                 // We will need the derivative for this
-
-                // Get the function and its components
-                LambdaVal *func = (LambdaVal*) v;
-                string *ids = func->getArgs();
-                Expression *body = func->getBody();
-                if (dynamic_cast<const Differentiable*>(body) == nullptr) {
-                    // Using a non-differentiable function is a horrible idea
-                    delete denv;
-                    return NULL;
-                }
-                LambdaExp *exp = new LambdaExp(ids, body);
-                f.val = exp->derivativeOf(denv);
+                denv = new ExtendEnv(id, dv, denv);
             } else {
                 // Trivial derivative: d/dx c = 0
-                f.val = deriveVal(v, f.id == var ? 1 : 0);
+                denv = new ExtendEnv(id, deriveVal(v, id == var ? 1 : 0), denv);
             }
-
-            denv->add(0, f);
         }
 
-        // Get an expression that represents the result
-        Expression *e = ((Differentiable*) func)->derivativeOf(denv);
-        
-        // Perform garbage collection on the derivative environment
-        while (!denv->isEmpty()) delete denv->remove(0).val;
-        delete denv;
-        
-        // And then compute it if possible
-        if (e) {
-            Value *v = e->valueOf(env);
-
-            delete e; // Garbage collection
-
-            return v;
-        } else
-            return NULL;
+        // Now, we have the variable, the environment, and the differentiable
+        // environment. So, we can simply derive and return the result.
+        return ((Differentiable*) func)->derivativeOf(var, env, denv);
     } else {
-        
+        throw_err("runtime", "expression '" + func->toString() + "' is non-differentiable");
         return NULL;
     }
 }
@@ -148,8 +122,11 @@ Value* FalseExp::valueOf(Environment* env) { return new BoolVal(false); }
 Value* ForExp::valueOf(Environment *env) {
     // Evaluate the list
     Value *listExp = set->valueOf(env);
-    if (!listExp || typeid(*listExp) != typeid(ListVal))
+    if (!listExp) return NULL;
+    else if (typeid(*listExp) != typeid(ListVal)) {
+        throw_type_err(set, "list");
         return NULL;
+    }
     List<Value*> *list = ((ListVal*) listExp)->get();
     
     // Gather an iterator

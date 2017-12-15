@@ -19,7 +19,7 @@ class AndExp : public OperatorExp {
     public:
         using OperatorExp::OperatorExp;
         Value* op(Value*, Value*);
-        Expression* derivativeOf(DerivEnv) {
+        Value* derivativeOf(std::string, Environment*, Environment*) {
             throw_err("runtime", "expression '" + toString() + "' is non-differentiable");
             return NULL;
         }
@@ -33,7 +33,7 @@ class DiffExp : public OperatorExp {
         using OperatorExp::OperatorExp;
 
         Value* op(Value*, Value*);
-        Expression* derivativeOf(DerivEnv denv);
+        Value* derivativeOf(std::string, Environment*, Environment*);
         
         Expression* clone() { return new DiffExp(left->clone(), right->clone()); }
         std::string toString();
@@ -43,7 +43,7 @@ class EqualsExp : public OperatorExp {
     public:
         using OperatorExp::OperatorExp;
         Value* op(Value*, Value*);
-        Expression* derivativeOf(DerivEnv) {
+        Value* derivativeOf(std::string, Environment*, Environment*) {
             throw_err("runtime", "expression '" + toString() + "' is non-differentiable");
             return NULL;
         }
@@ -58,7 +58,7 @@ class MultExp : public OperatorExp {
         using OperatorExp::OperatorExp;
 
         Value* op(Value*, Value*);
-        Expression* derivativeOf(DerivEnv denv);
+        Value* derivativeOf(std::string, Environment*, Environment*);
         
         Expression* clone() { return new MultExp(left->clone(), right->clone()); }
         std::string toString();
@@ -70,7 +70,7 @@ class SumExp : public OperatorExp {
         using OperatorExp::OperatorExp;
 
         Value* op(Value*, Value*);
-        Expression* derivativeOf(DerivEnv denv);
+        Value* derivativeOf(std::string, Environment*, Environment*);
         
         Expression* clone() { return new SumExp(left->clone(), right->clone()); }
         std::string toString();

@@ -17,7 +17,7 @@ class ApplyExp : public Differentiable {
         ~ApplyExp() { delete[] args; delete op; }
 
         Value* valueOf(Environment*);
-        Expression *derivativeOf(DerivEnv);
+        Value* derivativeOf(std::string, Environment*, Environment*);
         
         Expression* clone();
         std::string toString();
@@ -46,7 +46,7 @@ class ForExp : public Differentiable {
         ForExp(std::string x, Expression *xs, Expression *e) : id(x), set(xs), body(e) {}
         ~ForExp() { delete set, body; }
         Value* valueOf(Environment*);
-        Expression* derivativeOf(DerivEnv);
+        Value* derivativeOf(std::string, Environment*, Environment*);
 
         Expression* clone() { return new ForExp(id, set->clone(), body->clone()); }
         std::string toString();
@@ -63,7 +63,7 @@ class IfExp : public Differentiable {
         ~IfExp() { delete cond, tExp, fExp; }
 
         Value* valueOf(Environment*);
-        Expression* derivativeOf(DerivEnv);
+        Value* derivativeOf(std::string, Environment*, Environment*);
         
         Expression* clone() { return new IfExp(cond->clone(), tExp->clone(), fExp->clone()); }
         std::string toString();
@@ -80,7 +80,7 @@ class LetExp : public Differentiable {
         ~LetExp() { delete[] exps; delete body, ids; }
 
         Value* valueOf(Environment*);
-        Expression* derivativeOf(DerivEnv);
+        Value* derivativeOf(std::string, Environment*, Environment*);
         
         Expression* clone();
         std::string toString();
@@ -96,7 +96,7 @@ class ListAccessExp : public Differentiable {
         ~ListAccessExp() { delete list, idx; }
 
         Value* valueOf(Environment*);
-        Expression* derivativeOf(DerivEnv);
+        Value* derivativeOf(std::string, Environment*, Environment*);
 
         Expression* clone() { return new ListAccessExp(list->clone(), idx->clone()); }
         std::string toString();
@@ -187,7 +187,7 @@ class SetExp : public Differentiable {
         ~SetExp() { delete[] tgts, exps; }
 
         Value* valueOf(Environment*);
-        Expression* derivativeOf(DerivEnv);
+        Value* derivativeOf(std::string, Environment*, Environment*);
         
         Expression* clone();
         std::string toString();
@@ -204,7 +204,7 @@ class WhileExp : public Differentiable {
         ~WhileExp() { delete cond, body; }
 
         Value* valueOf(Environment*);
-        Expression* derivativeOf(DerivEnv);
+        Value* derivativeOf(std::string, Environment*, Environment*);
 
         Expression* clone() { return new WhileExp(cond->clone(), body->clone(), alwaysEnter); }
         std::string toString();

@@ -20,7 +20,7 @@ class IntExp : public Differentiable {
     public:
         IntExp(int = 0);
         Value* valueOf(Environment*);
-        Expression* derivativeOf(DerivEnv) { return new IntExp; } // d/dx c = 0
+        Value* derivativeOf(std::string, Environment*, Environment*) { return new IntVal(0); } // d/dx c = 0
         
         Expression* clone() { return new IntExp(val); }
         std::string toString();
@@ -35,7 +35,7 @@ class LambdaExp : public Differentiable {
         LambdaExp(std::string*, Expression*);
         ~LambdaExp() { delete xs, exp; }
         Value* valueOf(Environment*);
-        Expression* derivativeOf(DerivEnv);
+        Value* derivativeOf(std::string, Environment*, Environment*);
 
         std::string *getXs() { return xs; }
         
@@ -53,7 +53,7 @@ class ListExp : public Differentiable {
         ListExp(Expression**);
         ListExp(List<Expression*>* l) : list(l) {}
         Value* valueOf(Environment*);
-        Expression* derivativeOf(DerivEnv);
+        Value* derivativeOf(std::string, Environment*, Environment*);
         
         Expression* clone();
         std::string toString();
@@ -66,7 +66,7 @@ class RealExp : public Differentiable {
     public:
         RealExp(float = 0);
         Value* valueOf(Environment*);
-        Expression* derivativeOf(DerivEnv) { return new IntExp; } // d/dx c = 0
+        Value* derivativeOf(std::string, Environment*, Environment*) { return new IntVal(0); } // d/dx c = 0
         
         Expression* clone() { return new RealExp(val); }
         std::string toString();
@@ -89,7 +89,7 @@ class VarExp : public Differentiable {
     public:
         VarExp(std::string s) : id(s) {}
         Value* valueOf(Environment *env);
-        Expression* derivativeOf(DerivEnv);
+        Value* derivativeOf(std::string, Environment*, Environment*);
         
         Expression* clone() { return new VarExp(id); }
         std::string toString() { return id; }
