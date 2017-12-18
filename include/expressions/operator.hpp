@@ -39,16 +39,23 @@ class DiffExp : public OperatorExp {
         std::string toString();
 };
 
-class EqualsExp : public OperatorExp {
+enum CompOp {
+    EQ, NEQ, GT, LT, LEQ, GEQ
+};
+class CompareExp : public OperatorExp {
+    private:
+        CompOp operation;
     public:
-        using OperatorExp::OperatorExp;
+        CompareExp(Expression* l, Expression *r, CompOp op) : OperatorExp(l, r) {
+            operation = op;
+        }
         Value* op(Value*, Value*);
         Value* derivativeOf(std::string, Environment*, Environment*) {
             throw_err("runtime", "expression '" + toString() + "' is non-differentiable");
             return NULL;
         }
         
-        Expression* clone() { return new EqualsExp(left->clone(), right->clone()); }
+        Expression* clone() { return new CompareExp(left->clone(), right->clone(), operation); }
         std::string toString();
 };
 

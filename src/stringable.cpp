@@ -41,8 +41,25 @@ string DerivativeExp::toString() {
 string DiffExp::toString() {
     return left->toString() + " - " + right->toString();
 }
-string EqualsExp::toString() {
-    return left->toString() + " == " + right->toString();
+string CompareExp::toString() {
+    string s = left->toString();
+    
+    switch (operation) {
+        case EQ:
+            s += "=="; break;
+        case NEQ:
+            s += "!="; break;
+        case GT:
+            s += ">"; break;
+        case LT:
+            s += "<"; break;
+        case GEQ:
+            s += ">="; break;
+        case LEQ:
+            s += "<="; break;
+    }
+
+    return s + right->toString();
 }
 string ForExp::toString() {
     return "for " + id + " in " + set->toString() + " " + body->toString();

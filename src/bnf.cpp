@@ -528,11 +528,34 @@ ParsedPrgms parseEquality(string str, bool ends) {
         if (parseSpaces(s) == s.length()) {
             // The parsed expression is complete
             res->add(0, p);
-        } else if (
+            continue;
+        }
+        
+        std::cout << "parse '" << s << "' for comparator\n";
+
+        CompOp op;
+        if (
                 (i = parseLit(s, "==")) >= 0 ||
-                (i = parseLit(s, "is")) >= 0 ||
                 (i = parseLit(s, "equals")) >= 0
-            ) {
+            )
+            op = EQ;
+        else if ((i = parseLit(s, "is")) >= 0) {
+            // Equality may be inequality
+            int j = parseLit(s.substr(j), "not");
+            if (j >= 0) { i += j; op = NEQ; }
+            else op = EQ;
+        }
+        else if ((i = parseLit(s, ">")) >= 0) {
+            if (s[i] == '=') {
+                op = GEQ; i++;
+            } else op = GT;
+        } else if ((i = parseLit(s, "<")) >= 0) {
+            if (s[i] == '=') {
+                op = LEQ; i++;
+            } else op = LT;
+        }
+
+        if (i > 0) {
             // The operation is addition
             s = s.substr(i);
             len += i;
@@ -544,7 +567,7 @@ ParsedPrgms parseEquality(string str, bool ends) {
             auto pit = subps->iterator();
             while (pit->hasNext()) {
                 parsed_prgm prog = pit->next();
-                prog.item = new EqualsExp(exp, prog.item);
+                prog.item = new CompareExp(exp, prog.item, op);
                 prog.len += len;
 
                 exp = exp->clone(); // For distinctiveness

@@ -61,7 +61,7 @@ Value* DiffExp::op(Value *a, Value *b) {
 
 }
 
-Value* EqualsExp::op(Value *a, Value *b) {
+Value* CompareExp::op(Value *a, Value *b) {
 
     // If the two are physically identical, they are equal
     if (a == b)
@@ -90,7 +90,22 @@ Value* EqualsExp::op(Value *a, Value *b) {
         ? ((IntVal*) b)->get() :
         ((RealVal*) b)->get();
 
-    return new BoolVal(A == B);
+    switch (operation) {
+        case EQ:
+            return new BoolVal(A == B);
+        case NEQ:
+            return new BoolVal(A != B);
+        case GT:
+            return new BoolVal(A > B);
+        case LT:
+            return new BoolVal(A < B);
+        case GEQ:
+            return new BoolVal(A >= B);
+        case LEQ:
+            return new BoolVal(A <= B);
+        default:
+            return NULL;
+    }
 }
 
 // Expression for multiplying studd
