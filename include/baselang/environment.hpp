@@ -17,11 +17,12 @@ class Environment : public Stringable {
         // The majority of environments have subenvironments
         Environment* subenv = NULL;
     public:
+        virtual ~Environment() {}
+
         // Applies an identifier to the environment to get its Value.
         virtual Value* apply(std::string) = 0;
 
         virtual Environment* clone() = 0;
-        virtual void destroy(int) = 0;
 
         Environment* subenvironment();
 };

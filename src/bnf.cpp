@@ -153,6 +153,7 @@ LinkedList<struct arglist>* parseArgList(string str, bool ends) {
             auto it = alst.list->iterator();
             while (it->hasNext())
                 lst.list->add(lst.list->size(), it->next());
+            delete it;
             
             // And the new one
             struct arg a;
@@ -170,6 +171,7 @@ LinkedList<struct arglist>* parseArgList(string str, bool ends) {
             }
         }
 
+        delete ps;
         delete alst.list;
     }
     delete options;
@@ -191,10 +193,10 @@ ParsedPrgms parseCodeBlock(string str, bool ends) {
 
     //std::cout << "found " << bodies->size() << " applicable statements\n";
 
-    auto it = bodies->iterator(); while (it->hasNext()) {
+    /*auto it = bodies->iterator(); while (it->hasNext()) {
         parsed_prgm p = it->next();
         //std::cout << " s: '" << *(p.item) << " (len: " << p.len << ")\n";
-    }
+    }*/
 
     // Next, we check for multiline invocations
     if ((i = parseLit(str, "{")) >= 0) {
@@ -204,9 +206,8 @@ ParsedPrgms parseCodeBlock(string str, bool ends) {
 
         ParsedPrgms subps = parseProgram(str, false);
 
-        auto it = subps->iterator();
-        while (it->hasNext()) {
-            parsed_prgm p = it->next();
+        while (!subps->isEmpty()) {
+            parsed_prgm p = subps->remove(0);
             string s = str.substr(p.len);
 
             if ((i = parseLit(s, "}")) < 0) {
@@ -225,7 +226,7 @@ ParsedPrgms parseCodeBlock(string str, bool ends) {
             // The body should be added
             bodies->add(0, p);
         }
-        delete it, subps;
+        delete subps;
     }
 
     return bodies;
@@ -244,11 +245,15 @@ ParsedPrgms parseAccessor(string str, bool ends) {
         parsed_prgm lst = lists->remove(0);
         string s = str.substr(lst.len);
         
-        if (!ends || parseSpaces(s) == s.length())
-            res->add(0, lst);
+        if (!ends || parseSpaces(s) == s.length()) {
+            parsed_prgm p = lst;
+            p.item = p.item->clone();
+            res->add(0, p);
+        }
 
         if (parseSpaces(s) == s.length()) {
             // The entire program was parsed, so we can stop here
+            delete lst.item;
             continue;
         }
 
@@ -291,15 +296,15 @@ ParsedPrgms parseAccessor(string str, bool ends) {
                             lists->add(0, jdx);
                         }
                         delete jndices;
-                    } else
-                        delete idx.item; // If it doesn't happen, the frontal index is not necessary
-                    continue;
-                };
+                    }
 
-                idx.len += i + lst.len;
-                idx.item = new ListAccessExp(lst.item->clone(), idx.item);
+                    delete idx.item; // The frontal index is not necessary
+                } else {
+                    idx.len += i + lst.len;
+                    idx.item = new ListAccessExp(lst.item->clone(), idx.item);
 
-                lists->add(0, idx);
+                    lists->add(0, idx);
+                }
             }
             delete indices;
         } else if ((i = parseLit(s, "(")) >= 0) {
@@ -341,6 +346,8 @@ ParsedPrgms parseAccessor(string str, bool ends) {
 
             delete arglists;
         }
+
+        delete lst.item;
     }
     delete lists;
 
@@ -357,10 +364,9 @@ ParsedPrgms parseAdditive(string str, bool ends) {
     // We won't require them to finish
     ParsedPrgms mult = parseMultiplicative(str, false);
 
-    auto it = mult->iterator();
-    while (it->hasNext()) {
+    while (!mult->isEmpty()) {
         // Get the program branch
-        parsed_prgm p = it->next();
+        parsed_prgm p = mult->remove(0);
         Expression *exp = p.item;
         int len = p.len;
         
@@ -415,7 +421,8 @@ ParsedPrgms parseAdditive(string str, bool ends) {
         }
                 
     }
-    delete it;
+
+    delete mult;
 
     return res;
 }
@@ -427,10 +434,9 @@ ParsedPrgms parseAndExp(string str, bool ends) {
     // We won't require them to finish
     ParsedPrgms mult = parseEquality(str, false);
 
-    auto it = mult->iterator();
-    while (it->hasNext()) {
+    while (!mult->isEmpty()) {
         // Get the program branch
-        parsed_prgm p = it->next();
+        parsed_prgm p = mult->remove(0);
         Expression *exp = p.item;
         int len = p.len;
         
@@ -464,7 +470,7 @@ ParsedPrgms parseAndExp(string str, bool ends) {
             res->add(0, p);
         } else delete exp;
     }
-    delete it;
+    delete mult;
 
     return res;
 }
@@ -513,11 +519,10 @@ ParsedPrgms parseEquality(string str, bool ends) {
     ParsedPrgms res = new LinkedList<parsed_prgm>;
 
     ParsedPrgms mult = parseAdditive(str, false);
-
-    auto it = mult->iterator();
-    while (it->hasNext()) {
+    
+    while (!mult->isEmpty()) {
         // Get the program branch
-        parsed_prgm p = it->next();
+        parsed_prgm p = mult->remove(0);
         Expression *exp = p.item;
         int len = p.len;
         
@@ -579,6 +584,7 @@ ParsedPrgms parseEquality(string str, bool ends) {
         }
                 
     }
+    delete mult;
 
     return res;
 }
@@ -649,6 +655,7 @@ ParsedPrgms parseLambdaExp(string str, bool ends) {
         for (i = 0; xit->hasNext(); i++) {
             ids[i] = xit->next();
         }
+        delete xit;
         ids[i] = "";
         
         // Add the item
@@ -684,9 +691,8 @@ ParsedPrgms parseListExp(string str, bool ends) {
     //std::cout << "list-exp candidates: " << lists->size() << "\n";
     
     // Then, verify each of them
-    auto it = lists->iterator();
-    while (it->hasNext()) {
-        lst = it->next();
+    while (!lists->isEmpty()) {
+        lst = lists->remove(0);
         string s = str.substr(lst.len);
         
         //std::cout << "Check for bracket in '" << s << "'\n";
@@ -714,23 +720,23 @@ ParsedPrgms parseListExp(string str, bool ends) {
         // Add to the list of possible expressions
         Expression **vals = new Expression*[lst.list->size() + 1];
         
-        auto lit = lst.list->iterator();
-        for (i = 0; lit->hasNext(); i++) {
-            struct arg a = lit->next();
+        for (i = 0; !lst.list->isEmpty(); i++) {
+            struct arg a = lst.list->remove(0);
             vals[i] = a.exp;
         }
         vals[i] = NULL;
-        delete lit, lst.list;
+        delete lst.list;
 
         // Here, we will modify a struct to make the changes.
         parsed_prgm prgm;
         prgm.len = lst.len + len;
         prgm.item = new ListExp(vals); // Collapse into target
+        delete[] vals;
         //std::cout << "Found list-exp '" << *(prgm.item) << "' (len: " << prgm.len << ")\n";
         
         // Add the result
         res->add(0, prgm);
-     }
+    }
 
     // Garbage collection
     delete lists;
@@ -748,10 +754,9 @@ ParsedPrgms parseMultiplicative(string str, bool ends) {
     // We won't require them to finish
     ParsedPrgms mult = parseNotExp(str, false);
 
-    auto it = mult->iterator();
-    while (it->hasNext()) {
+    while (!mult->isEmpty()) {
         // Get the program branch
-        parsed_prgm p = it->next();
+        parsed_prgm p = mult->remove(0);
         Expression *exp = p.item;
         int len = p.len;
         
@@ -787,14 +792,17 @@ ParsedPrgms parseMultiplicative(string str, bool ends) {
             delete exp;
         }
     }
-    delete it;
+    delete mult;
 
     return res;
 }
 
 ParsedPrgms parseNotExp(string str, bool ends) {
     int i = parseLit(str, "not");
-    if (i < 0) return parseAccessor(str, ends);
+    if (i < 0) {
+        ParsedPrgms ps = parseAccessor(str, ends);
+        return ps;
+    }
 
     ParsedPrgms res = new LinkedList<parsed_prgm>;
 
@@ -805,13 +813,13 @@ ParsedPrgms parseNotExp(string str, bool ends) {
     ParsedPrgms subps = parseNotExp(str, ends);
     
     // Then, add all of the possible outcomes
-    auto pit = subps->iterator();
-    while (pit->hasNext()) {
-        parsed_prgm prog = pit->next();
+    while (!subps->isEmpty()) {
+        parsed_prgm prog = subps->remove(0);
         prog.len += len;
         prog.item = new NotExp(prog.item);
         res->add(0, prog);
     }
+    delete subps;
 
     return res;
 }

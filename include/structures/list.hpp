@@ -24,6 +24,7 @@ class LinkedList : public List<T> {
                 LLnode<T> *node;
             public:
                 LLiterator(LinkedList *list) : node(list->head) {}
+                ~LLiterator() {}
 
                 bool hasNext() { return node != (void*) 0; }
                 T next() {
@@ -168,7 +169,7 @@ T LinkedList<T>::remove(int idx) {
     else if (idx == 0) {
         T val = head->val;
         LLnode<T> *node = head;
-        head = node->next;
+        head = head->next;
 
         delete node;
 
@@ -186,7 +187,7 @@ T LinkedList<T>::remove(int idx) {
         
         // Get the next node, and verify its existence
         LLnode<T> *n = node->next;
-        if (!node)
+        if (!n)
             throw std::out_of_range(std::to_string(idx));
         
         // Get values and relink

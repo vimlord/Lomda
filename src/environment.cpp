@@ -20,21 +20,21 @@ ExtendEnv::ExtendEnv(string id, Value* val, Environment* env) {
     
     // Setup the reference
     ref = val;
+    if (ref) ref->add_ref();
 }
 
-void EmptyEnv::destroy(int) {}
-void ExtendEnv::destroy(int depth) {
-    // The variable will no longer be in scope. So, we will delete
-    // the value from memory to save some space.
-    delete ref;
-    
-    // Keep destroying
-    if (depth > 0)
-        subenv->destroy(depth-1);
-    else if (depth < 0)
-        subenv->destroy(depth);
+EmptyEnv::~EmptyEnv() {
+    //std::cout << "deleting env " << this << " (" << *this << ")\n";
 }
-
+ExtendEnv::~ExtendEnv() {
+    //std::cout << "deleting env " << this << " (" << *this << ")\n";
+    if (ref) {
+        Value *v = ref;
+        ref = NULL;
+        v->rem_ref();
+    }
+    delete subenv;
+}
 
 Value* EmptyEnv::apply(string id) {
     return NULL;
@@ -51,13 +51,11 @@ Value* ExtendEnv::apply(string id) {
 
 Environment* EmptyEnv::clone() { return new EmptyEnv(); }
 Environment* ExtendEnv::clone() {
-    return new ExtendEnv(*this);
+    return new ExtendEnv(id, ref, subenv->clone());
 }
 
 Environment* Environment::subenvironment() { 
     return this->subenv;
 }
-
-
 
 

@@ -26,8 +26,6 @@ int testcase(Expression *exp, Environment *env, string expect) {
     cout << "\x1b[0m\n";
     
     delete exp;
-    
-    env->destroy(-1);
     delete env;
 
     delete v;

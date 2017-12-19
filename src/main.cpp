@@ -6,15 +6,25 @@ using namespace std;
 #include <iostream>
 #include <fstream>
 
+#include <cstddef>
+#include <cstring>
+
 void execute(string program) {
     Value *v = run(program);
     if (v) {
+        if (VERBOSITY()) cout << "(" << v << ") ";
         cout << *v << "\n";
-        delete v;
+        v->rem_ref();
     }
 }
 
 void print_version() { cout << "Lambda 0.1.0\n"; }
+
+void display_config() {
+    std::cout << "The following configuration is in use:\n";
+    std::cout << "verbosity: " << VERBOSITY() << " (default: 0)\n";
+    std::cout << "werror:    " << WERROR() << " (default: 0)\n";
+}
 
 /**
  * Runs the interpreted form of the program.
@@ -23,7 +33,8 @@ void print_version() { cout << "Lambda 0.1.0\n"; }
 int interpret() {
     // Print relevant information
     print_version();
-    cout << "enter a program and press <enter> to execute, or one of the following:\n";
+    display_config();
+    cout << "Enter a program and press <enter> to execute, or one of the following:\n";
     cout << "'exit' - exit the interpreter\n";
 
     string program;
@@ -43,17 +54,18 @@ int interpret() {
     }
 }
 
-int main(int argc, char *argv[]) {
-
+int main(int argc, char *argv[]) { 
     string filename = "";
 
     int i;
     for (i = 1; argv[i]; i++) {
-        if (argv[i] == "--version") {
+        if (!strcmp(argv[i], "--version")) {
             print_version(); return 0;
-        } else if (argv[i] == "--werror") {
+        } else if (!strcmp(argv[i], "-v") || !strcmp(argv[i], "--verbose")) {
+            set_verbosity(true);
+        } else if (!strcmp(argv[i], "--werror"))
             set_werror(true);
-        } else {
+        else {
             filename = argv[i];
             break;
         }
@@ -65,6 +77,7 @@ int main(int argc, char *argv[]) {
     else if (filename.length() < 5 || filename.substr(filename.length()-4) != ".lom") {
         // Files must be .lom files
         cerr << "\x1b[31m\x1b[1merror:\x1b[0m file '" << filename << "' does not have extension '.lom'\n";
+        return 1;
     }
 
     // Attempt to open the file
@@ -87,6 +100,10 @@ int main(int argc, char *argv[]) {
         if (i++) program += "\n";
         program += s;
     } while (file);
+
+    file.close();
+
+    display_config();
     
     // Parse and execute the program.
     execute(program);

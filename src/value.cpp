@@ -1,9 +1,40 @@
 #include "value.hpp"
 #include "environment.hpp"
+#include "config.hpp"
 
 using namespace std;
 
 #include <string>
+
+void Value::add_ref() {
+    ++refs;
+    
+    if (VERBOSITY()) {
+        std::cout << "\x1b[34m\x1b[1mmem_mgt:\x1b[0m "
+                  << "ref count of " << this
+                  //<< " (" << toString() << ")"
+                  << " up to "
+                  << refs << "\n";
+    }
+}
+
+void Value::rem_ref() {
+    if (refs == 0) return;
+
+    --refs;
+
+    if (VERBOSITY()) {
+        std::cout << "\x1b[34m\x1b[1mmem_mgt:\x1b[0m "
+                  << "ref count of " << this
+                  //<< " (" << toString() << ")"
+                  << " down to "
+                  << refs << "\n";
+    }
+
+    if (refs == 0) {
+        delete this;
+    }
+}
 
 // Booleans
 BoolVal::BoolVal(bool n) { val = n; }
@@ -46,8 +77,8 @@ int LambdaVal::set(Value *v) {
         LambdaVal *lv = (LambdaVal*) v;
         int i;
     
-        // Allocate new memory
-        delete xs, exp;
+        // Allocate new memory for the input
+        delete[] xs;
         for (i = 0; lv->xs[i] != ""; i++);
         
         // Set a new input set
@@ -56,17 +87,37 @@ int LambdaVal::set(Value *v) {
         while (i--) xs[i] = lv->xs[i];
         
         // Set a new expression
+        delete exp;
         exp = lv->exp->clone();
         
         // Set the environment
+        Environment *e = env;
         env = ((LambdaVal*) v)->env;
+        delete e;
 
         return 0;
     } else return 1;
 }
+LambdaVal::~LambdaVal() {
+    delete[] xs;
+    delete exp;
+    delete env;
+}
+LambdaVal* LambdaVal::clone() {
+    int argc;
+    for (argc = 0; xs[argc] != ""; argc++);
 
+    string *ids = new string[argc+1];
+    ids[argc] = "";
+    while (argc--) ids[argc] = xs[argc];
+
+    return new LambdaVal(ids, exp->clone(), env->clone());
+}
 Value* LambdaVal::apply(Value **argv, Environment *e) {
     Environment *E = e ? e : env;
+
+    // We will use a clone in order to preserve previously allocated memory blocks
+    E = E->clone();
 
     // Verify that the correct number of arguments have been provided
     for (int i = 0; argv[i] || xs[i] != ""; i++)
@@ -80,14 +131,23 @@ Value* LambdaVal::apply(Value **argv, Environment *e) {
 
     // Compute the result
     Value *res = exp->valueOf(E);
+    
+    // Garbage collection
+    delete E;
 
     // Return it
     return res;
 }
 void LambdaVal::setEnv(Environment *e) {
+    Environment *tmp = env;
     env = e;
+    delete tmp;
 }
 
+ListVal::~ListVal() {
+    while (!list->isEmpty()) list->remove(0)->rem_ref();
+    delete list;
+}
 ListVal* ListVal::clone() {
     // Add a copy of each element of the list
     Iterator<int, Value*> *it = list->iterator();
@@ -100,8 +160,25 @@ ListVal* ListVal::clone() {
 }
 int ListVal::set(Value *v) {
     if (typeid(*v) == typeid(ListVal)) {
-        delete list;
-        list = ((ListVal*) v)->list;
+        auto lst = list;
+
+        list = new LinkedList<Value*>;
+        
+        // Add each value to the new list
+        auto vs = ((ListVal*) v)->list;
+        auto it = vs->iterator();
+        while (it->hasNext()) {
+            // New references have been added
+            auto v = it->next();
+            v->add_ref();
+            list->add(list->size(), v);
+        }
+        delete it;
+        
+        // Garbage collection
+        while (!lst->isEmpty()) lst->remove(0)->rem_ref();
+        delete lst;
+
         return 0;
     } else return 1;
 }

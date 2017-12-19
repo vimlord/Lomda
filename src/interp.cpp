@@ -16,7 +16,8 @@ Value* run(string program) {
         // A tree was successfully parsed, so run it.
         Environment *env = new EmptyEnv();
         Value *val = exp->valueOf(env);
-        delete exp, env;
+        delete exp;
+        delete env;
         //if (!val) throw_err("runtime", "could not evaluate expression");
         return val;
     } else {
@@ -42,13 +43,18 @@ Value* ApplyExp::valueOf(Environment *env) {
     while (args[argc]) argc++;
 
     // Operate on each argument under the given environment
-    Value **xs = (Value**) malloc((argc+1) * sizeof(Value*));
-    for (int i = 0; i < argc; i++) {
+    Value **xs = new Value*[argc+1];
+    int i;
+    for (i = 0; i < argc; i++) {
         // Evanuate the argument
         xs[i] = args[i]->valueOf(env);
 
         // Success test (every argument must successfully parse
         if (xs[i] == NULL) {
+            // Garbage collect the list
+            while (i--) xs[i]->rem_ref();
+            delete xs;
+
             // An argument failed to parse, so clean up
             return NULL;
         }
@@ -59,7 +65,8 @@ Value* ApplyExp::valueOf(Environment *env) {
     Value *y = F->apply(xs);
     
     // Garbage collection on the array
-    free(xs);
+    while (i--) xs[i]->rem_ref();
+    delete xs;
 
     return y;
 }
@@ -110,7 +117,13 @@ Value* DerivativeExp::valueOf(Environment* env) {
 
         // Now, we have the variable, the environment, and the differentiable
         // environment. So, we can simply derive and return the result.
-        return ((Differentiable*) func)->derivativeOf(var, env, denv);
+        Value *res = ((Differentiable*) func)->derivativeOf(var, env, denv);
+
+        // Garbage collection
+        delete denv;
+
+        return res;
+
     } else {
         throw_err("runtime", "expression '" + func->toString() + "' is non-differentiable");
         return NULL;
@@ -140,14 +153,10 @@ Value* ForExp::valueOf(Environment *env) {
         Value *x = it->next();
         
         // Build an environment
-        Environment *e = new ExtendEnv(id, x, env);
-        
-        v = body->valueOf(e);
+        Environment *e = new ExtendEnv(id, x, env->clone());
 
-        if (!v) {
-            delete it;
-            return NULL;
-        }
+        v->rem_ref();
+        v = body->valueOf(e);
 
     }
 
@@ -167,6 +176,9 @@ Value* IfExp::valueOf(Environment *env) {
     BoolVal *B = (BoolVal*) b;
     bool bRes = B->get();
 
+    // Conditional garbage collection
+    b->rem_ref();
+
     if (bRes)
         return tExp->valueOf(env);
     else
@@ -178,10 +190,20 @@ Value* IntExp::valueOf(Environment *env) {
 }
 
 Value* LambdaExp::valueOf(Environment *env) {
-    return new LambdaVal(xs, exp, env);
+    int argc;
+    for (argc = 0; xs[argc] != ""; argc++);
+
+    string *ids = new string[argc+1];
+    ids[argc] = "";
+    while (argc--) ids[argc] = xs[argc];
+
+    return new LambdaVal(ids, exp->clone(), env->clone());
 }
 
 Value* LetExp::valueOf(Environment* env) {
+    // We will operate on a clone
+    env = env->clone();
+
     int argc = 0;
     for (; exps[argc]; argc++);
 
@@ -195,31 +217,40 @@ Value* LetExp::valueOf(Environment* env) {
         Value *v = exps[i]->valueOf(env);
         if (!v) {
             // Garbage collection will happen here
-            while (i--) env = env->subenvironment();
+            delete env;
             return NULL;
         }
         
         // Add it to the environment
-        v = v->clone();
-        env = new ExtendEnv(ids[i], v, env);
+        Value *x = v->clone();
+        env = new ExtendEnv(ids[i], x, env);
+        
+        // Drop references
+        v->rem_ref();
+        x->rem_ref();
 
         // We permit all lambdas to have recursive behavior
-        if (typeid(*v) == typeid(LambdaVal)) {
-            lambdas.add(0, (LambdaVal*) v);
+        if (typeid(*x) == typeid(LambdaVal)) {
+            lambdas.add(0, (LambdaVal*) x);
         }
+
     }
     
     // Apply recursive principles
     while (!lambdas.isEmpty()) {
         LambdaVal *v = lambdas.remove(0);
-        v->setEnv(env);
+        v->setEnv(env->clone());
+
+        // Although the environment contains itself, a self-reference
+        // doesn't really count. In fact, it's a bitch to deal with.
+        v->rem_ref();
     }
 
     // Compute the result
     Value *y = body->valueOf(env);
-    
+
     // Garbage collection
-    // Not implemented yet
+    delete env;
         
     // Return the result
     return y;
@@ -236,10 +267,14 @@ Value* ListExp::valueOf(Environment *env) {
         // Compute the value of each item
         Value *v = it->next()->valueOf(env);
         if (!v) {
+            // Garbage collection on the iterator and the value
             delete it;
+            delete val;
+
             return NULL;
-        } else
+        } else {
             val->get()->add(i, v);
+        }
     }
 
     delete it;
@@ -335,17 +370,19 @@ Value* ListSliceExp::valueOf(Environment *env) {
         return NULL;
     else if (typeid(*lst) != typeid(ListVal)) {
         throw_type_err(list, "list");
+        lst->rem_ref(); // Garbage collection
         return NULL;
     }
     
     // The list
     List<Value*> *vals = ((ListVal*) lst)->get();
-    
+
     // Get the index
     Value *f = from->valueOf(env);
     if (!f) return NULL;
     else if (typeid(*f) != typeid(IntVal)) {
         throw_type_err(from, "integer");
+        lst->rem_ref(); // Garbage collection
         return NULL;
     }
     int i = ((IntVal*) f)->get();
@@ -355,6 +392,7 @@ Value* ListSliceExp::valueOf(Environment *env) {
     if (!t) return NULL;
     else if (typeid(*t) != typeid(IntVal)) {
         throw_type_err(to, "integer");
+        lst->rem_ref(); // Garbage collection
         return NULL;
     }
     int j = ((IntVal*) t)->get();
@@ -365,7 +403,16 @@ Value* ListSliceExp::valueOf(Environment *env) {
     auto it = vals->iterator();
     int x;
     for (x = 0; x < i; x++) it->next();
-    for (;x < j && it->hasNext(); x++) vs->add(x-i, it->next());
+    for (;x < j && it->hasNext(); x++) {
+        // Add the value and a reference to it
+        Value *v = it->next();
+        vs->add(x-i, v);
+        v->add_ref();
+    }
+    
+    // Garbage collection
+    lst->rem_ref();
+    delete it;
 
     return new ListVal(vs);
 
@@ -378,10 +425,14 @@ Value* NotExp::valueOf(Environment* env) {
         return NULL;
     else if (typeid(*v) != typeid(BoolVal)) {
         throw_type_err(exp, "boolean");
+        v->rem_ref(); // Garbage
         return NULL;
     } else {
         BoolVal *B = (BoolVal*) v;
         bool b = B->get();
+        
+        // Garbage
+        v->rem_ref();
 
         return new BoolVal(!b);
     }
@@ -392,7 +443,8 @@ Value* OperatorExp::valueOf(Environment *env) {
     Value *b = right->valueOf(env);
 
     if (!a || !b) {
-        delete a, b;
+        a->rem_ref();
+        b->rem_ref();
         return NULL;
     } else
         return op(a, b);
@@ -407,7 +459,10 @@ Value* SequenceExp::valueOf(Environment *env) {
 
     if (!v) return NULL;
     else if (!post) return v;
-    else return post->valueOf(env);
+    else {
+        v->rem_ref();
+        return post->valueOf(env);
+    }
 }
 
 Value* SetExp::valueOf(Environment *env) {
@@ -443,6 +498,9 @@ Value* TrueExp::valueOf(Environment* env) { return new BoolVal(true); }
 Value* VarExp::valueOf(Environment *env) {
     Value *res = env->apply(id);
     if (!res) throw_err("runtime", "variable '" + id + "' was not recognized");
+    else res->add_ref(); // This necessarily creates a new reference. So, we must track it.
+    
+
     return res;
 }
 

@@ -9,6 +9,7 @@
 class EmptyEnv : public Environment {
     public:
         EmptyEnv();
+        ~EmptyEnv();
         Value* apply(std::string);
 
         Environment* clone();
@@ -25,6 +26,7 @@ class ExtendEnv : public Environment {
         Value* ref;
     public:
         ExtendEnv(std::string, Value*, Environment* = NULL);
+        ~ExtendEnv();
         Value* apply(std::string);
 
         std::string topId() { return id; }

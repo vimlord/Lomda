@@ -14,7 +14,10 @@ class ApplyExp : public Differentiable {
         Expression **args;
     public:
         ApplyExp(Expression*, Expression**);
-        ~ApplyExp() { delete[] args; delete op; }
+        ~ApplyExp() {
+            for (int i = 0; args[i]; i++) delete args[i];
+            delete[] args; delete op;
+        }
 
         Value* valueOf(Environment*);
         Value* derivativeOf(std::string, Environment*, Environment*);
@@ -44,7 +47,7 @@ class ForExp : public Differentiable {
         Expression *body;
     public:
         ForExp(std::string x, Expression *xs, Expression *e) : id(x), set(xs), body(e) {}
-        ~ForExp() { delete set, body; }
+        ~ForExp() { delete set; delete body; }
         Value* valueOf(Environment*);
         Value* derivativeOf(std::string, Environment*, Environment*);
 
@@ -60,7 +63,7 @@ class IfExp : public Differentiable {
         Expression *fExp;
     public:
         IfExp(Expression*, Expression*, Expression*);
-        ~IfExp() { delete cond, tExp, fExp; }
+        ~IfExp() { delete cond; delete tExp; delete fExp; }
 
         Value* valueOf(Environment*);
         Value* derivativeOf(std::string, Environment*, Environment*);
@@ -77,7 +80,12 @@ class LetExp : public Differentiable {
         Expression *body;
     public:
         LetExp(std::string*, Expression**, Expression*);
-        ~LetExp() { delete[] exps; delete body, ids; }
+        ~LetExp() {
+            for (int i = 0; exps[i]; i++) delete exps[i];
+            delete[] exps;
+            delete body;
+            delete[] ids;
+        }
 
         Value* valueOf(Environment*);
         Value* derivativeOf(std::string, Environment*, Environment*);
@@ -93,7 +101,7 @@ class ListAccessExp : public Differentiable {
         Expression *idx;
     public:
         ListAccessExp(Expression* x, Expression* i) : list(x), idx(i) {}
-        ~ListAccessExp() { delete list, idx; }
+        ~ListAccessExp() { delete list; delete idx; }
 
         Value* valueOf(Environment*);
         Value* derivativeOf(std::string, Environment*, Environment*);
@@ -110,7 +118,7 @@ class ListAddExp : public Expression {
         Expression *elem;
     public:
         ListAddExp(Expression *x, Expression *i, Expression *e) : list(x), idx(i), elem(e) {}
-        ~ListAddExp() { delete list, idx, elem; }
+        ~ListAddExp() { delete list; delete idx; delete elem; }
 
         Value* valueOf(Environment*);
 
@@ -125,7 +133,7 @@ class ListRemExp : public Expression {
         Expression *idx;
     public:
         ListRemExp(Expression* x, Expression* i) : list(x), idx(i) {}
-        ~ListRemExp() { delete list, idx; }
+        ~ListRemExp() { delete list; delete idx; }
 
         Value* valueOf(Environment*);
 
@@ -141,7 +149,7 @@ class ListSliceExp : public Expression {
         Expression *to;
     public:
         ListSliceExp(Expression* x, Expression* i, Expression* j) : list(x), from(i), to(j) {}
-        ~ListSliceExp() { delete list, from, to; }
+        ~ListSliceExp() { delete list; delete from; delete to; }
 
         Value* valueOf(Environment*);
 
@@ -169,7 +177,7 @@ class SequenceExp : public Expression {
         Expression *post;
     public:
         SequenceExp(Expression*, Expression* = NULL);
-        ~SequenceExp() { delete pre, post; }
+        ~SequenceExp() { delete pre; delete post; }
 
         Value* valueOf(Environment*);
         
@@ -184,7 +192,10 @@ class SetExp : public Differentiable {
         Expression **exps;
     public:
         SetExp(Expression**, Expression**);
-        ~SetExp() { delete[] tgts, exps; }
+        ~SetExp() {
+            for (int i = 0; tgts[i]; i++) { delete tgts[i]; delete exps[i]; }
+            delete[] tgts; delete[] exps;
+        }
 
         Value* valueOf(Environment*);
         Value* derivativeOf(std::string, Environment*, Environment*);
@@ -201,7 +212,7 @@ class WhileExp : public Differentiable {
     public:
         WhileExp(Expression *c, Expression *b, bool enter = false)
                 : cond(c), body(b), alwaysEnter(enter) {}
-        ~WhileExp() { delete cond, body; }
+        ~WhileExp() { delete cond; delete body; }
 
         Value* valueOf(Environment*);
         Value* derivativeOf(std::string, Environment*, Environment*);

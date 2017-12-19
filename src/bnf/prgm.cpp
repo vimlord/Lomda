@@ -79,27 +79,23 @@ ParsedPrgms parseSequence(string str, bool ends) {
 ParsedPrgms parseProgram(string str, bool ends) {
     ParsedPrgms res = new LinkedList<parsed_prgm>;
     ParsedPrgms prgms;
-    Iterator<int, parsed_prgm> *it;
 
     // First, parse for a let expression
     prgms = parseLetExp(str, ends);
-    it = prgms->iterator();
-    while (it->hasNext())
-        res->add(0, it->next());
-    delete it;
+    while (!prgms->isEmpty())
+        res->add(0, prgms->remove(0));
+    delete prgms;
     
     // Then, we will simply parse for statements
     prgms = parseStatement(str, ends);
-    it = prgms->iterator();
-    while (it->hasNext())
-        res->add(0, it->next());
-    delete it;
+    while (!prgms->isEmpty())
+        res->add(0, prgms->remove(0));
+    delete prgms;
     
     prgms = parseSequence(str, ends);
-    it = prgms->iterator();
-    while (it->hasNext())
-        res->add(0, it->next());
-    delete it;
+    while (!prgms->isEmpty())
+        res->add(0, prgms->remove(0));
+    delete prgms;
 
     return res;
 

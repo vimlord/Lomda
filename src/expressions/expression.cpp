@@ -9,7 +9,7 @@ using namespace std;
 
 
 void throw_warning(string form, string mssg) {
-    if (werror) throw_err(form, mssg);
+    if (WERROR()) throw_err(form, mssg);
     else std::cerr << "\x1b[31m\x1b[1m" << (form == "" ? "" : (form + " "))
                    << "warning:\x1b[0m " << mssg << "\n";
 }
@@ -17,10 +17,14 @@ void throw_err(string form, string mssg) {
     std::cerr << "\x1b[31m\x1b[1m" << (form == "" ? "" : (form + " "))
             << "error:\x1b[0m " << mssg << "\n";
 }
+void throw_debug(string form, string mssg) {
+    if (VERBOSITY())
+        std::cout << "\x1b[34m\x1b[1m" << (form == "" ? "debug" : form)
+                  << ":\x1b[0m " << mssg << "\n";
+}
 void throw_type_err(Expression *exp, std::string type) {
     throw_err("runtime", "expression '" + exp->toString() + "' does not evaluate as " + type);
 }
-
 
 
 ApplyExp::ApplyExp(Expression *f, Expression **xs) {
@@ -42,8 +46,8 @@ LambdaExp::LambdaExp(string *ids, Expression *rator) {
     exp = rator;
 }
 
-LetExp::LetExp(string *ids, Expression **xs, Expression *y) {
-    this->ids = ids;
+LetExp::LetExp(string *vs, Expression **xs, Expression *y) {
+    ids = vs;
     exps = xs;
     body = y;
 }

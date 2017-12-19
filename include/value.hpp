@@ -35,9 +35,10 @@ class LambdaVal : public Value {
         Environment *env;
     public:
         LambdaVal(std::string*, Expression*, Environment* = NULL);
+        ~LambdaVal();
         std::string toString();
         Value* apply(Value **xs, Environment *e = NULL);
-        LambdaVal* clone() { return new LambdaVal(xs, exp, env->clone()); }
+        LambdaVal* clone();
         int set(Value*);
 
         std::string* getArgs() { return xs; }
@@ -57,6 +58,7 @@ class ListVal : public Value {
     public:
         ListVal() { list = new LinkedList<Value*>(); }
         ListVal(List<Value*> *l) : list(l) {}
+        ~ListVal();
 
         List<Value*>* get() { return list; }
         ListVal* clone();

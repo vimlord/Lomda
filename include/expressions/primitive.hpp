@@ -33,7 +33,7 @@ class LambdaExp : public Differentiable {
         Expression *exp;
     public:
         LambdaExp(std::string*, Expression*);
-        ~LambdaExp() { delete xs, exp; }
+        ~LambdaExp() { delete[] xs; delete exp; }
         Value* valueOf(Environment*);
         Value* derivativeOf(std::string, Environment*, Environment*);
 
@@ -48,7 +48,10 @@ class ListExp : public Differentiable {
         List<Expression*> *list;
     public:
         ListExp() : list(new LinkedList<Expression*>) {}
-        ~ListExp() { while (!list->isEmpty()) delete list->remove(0); delete list; }
+        ~ListExp() {
+            while (!list->isEmpty()) delete list->remove(0);
+            delete list;
+        }
 
         ListExp(Expression**);
         ListExp(List<Expression*>* l) : list(l) {}

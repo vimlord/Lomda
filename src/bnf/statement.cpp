@@ -251,7 +251,7 @@ ParsedPrgms parseLetExp(string str, bool ends) {
             len += i;
         }
         
-        //std::cout << "Searching for let-exp arg equality\n";
+        //std::cout << "Searching for let-exp args in '" << s << "'\n";
 
         // Parse all possible expressions
         ParsedPrgms args = parsePemdas(s, false);
@@ -260,14 +260,14 @@ ParsedPrgms parseLetExp(string str, bool ends) {
 
         if (args->isEmpty()) {
             // No possible way to parse arguments
-            delete args, lst.list;
+            delete args;
+            delete lst.list;
             continue;
         }
 
         // Act on each possible branch
-        Iterator<int, parsed_prgm> *it = args->iterator();
-        while (it->hasNext()) {
-            parsed_prgm prgm = it->next();
+        while (!args->isEmpty()) {
+            parsed_prgm prgm = args->remove(0);
 
             struct arglist newlst;
             newlst.len = lst.len + len + prgm.len;
@@ -316,15 +316,15 @@ ParsedPrgms parseLetExp(string str, bool ends) {
             }
         }
 
-        delete it, lst.list;
+        delete args;
+        delete lst.list;
 
     }
 
     //std::cout << "let-exp candidates: " << lists.size() << "\n";
     
-    Iterator<int, struct arglist> *it = lists.iterator();
-    while (it->hasNext()) {
-        lst = it->next();
+    while (!lists.isEmpty()) {
+        lst = lists.remove(0);
         string s = str.substr(lst.len);
         //std::cout << "must evaluate expression for '" << s << "'\n";
 
@@ -333,8 +333,10 @@ ParsedPrgms parseLetExp(string str, bool ends) {
 
         //std::cout << "let-body candidates: " << bodies->size() << "\n";
 
-        auto eit = bodies->iterator();
-        while (eit->hasNext()) {
+        while (!bodies->isEmpty()) {
+            // Here, we will modify a struct to make the changes.
+            parsed_prgm prgm = bodies->remove(0);
+
             // Add to the list of possible expressions
             string *ids = new string[lst.list->size() + 1];
             Expression **vals = new Expression*[lst.list->size() + 1];
@@ -343,13 +345,11 @@ ParsedPrgms parseLetExp(string str, bool ends) {
             for (i = 0; lit->hasNext(); i++) {
                 struct arg a = lit->next();
                 ids[i] = a.id;
-                vals[i] = a.exp;
+                vals[i] = a.exp->clone();
             }
             ids[i] = ""; vals[i] = NULL;
             delete lit;
 
-            // Here, we will modify a struct to make the changes.
-            parsed_prgm prgm = eit->next();
             prgm.len += lst.len;
             prgm.item = new LetExp(ids, vals, prgm.item); // Collapse into target
             //std::cout << "Found let-exp '" << *(prgm.item) << "'\n";
@@ -359,7 +359,13 @@ ParsedPrgms parseLetExp(string str, bool ends) {
         }
 
         // Garbage collection
-        delete eit, bodies, lst.list;
+        delete bodies;
+
+        while (!lst.list->isEmpty()) {
+            Expression *v = lst.list->remove(0).exp;
+            delete v;
+        }
+        delete lst.list;
     }
 
     return res;
@@ -370,7 +376,7 @@ ParsedPrgms parseLetExp(string str, bool ends) {
  */
 ParsedPrgms parsePemdas(string str, bool ends) {
     ParsedPrgms res = parseSetExp(str, ends);
-    
+
     // Parse for lambdas
     ParsedPrgms tmp = parseLambdaExp(str, ends);
     while (!tmp->isEmpty()) res->add(0, tmp->remove(0));

@@ -2,7 +2,10 @@
 #define _CONFIG_HPP_
 
 // Werror operates the same as in gcc; all warnings become errors
-static bool werror = false;
-static void set_werror(bool b) { werror = b; }
+bool WERROR();
+void set_werror(bool b);
+
+bool VERBOSITY();
+void set_verbosity(bool b);
 
 #endif

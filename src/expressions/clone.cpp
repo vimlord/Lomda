@@ -52,6 +52,7 @@ Expression* ListExp::clone() {
     auto it = list->iterator();
     while (it->hasNext())
         exps->add(exps->size(), it->next()->clone());
+    delete it;
 
     return new ListExp(exps);
 
