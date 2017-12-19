@@ -531,8 +531,6 @@ ParsedPrgms parseEquality(string str, bool ends) {
             continue;
         }
         
-        std::cout << "parse '" << s << "' for comparator\n";
-
         CompOp op;
         if (
                 (i = parseLit(s, "==")) >= 0 ||

@@ -1,6 +1,7 @@
 #include "expressions/operator.hpp"
 
 #include "value.hpp"
+#include "config.hpp"
 
 #include <string>
 
@@ -61,21 +62,17 @@ Value* DiffExp::op(Value *a, Value *b) {
 
 }
 
-Value* CompareExp::op(Value *a, Value *b) {
+Value* CompareExp::op(Value *a, Value *b) { 
 
-    // If the two are physically identical, they are equal
-    if (a == b)
-        return new BoolVal(true);
-   
     // Lambdas cannot be compared
     if (typeid(*a) == typeid(LambdaVal)) {
-        throw_warning("runtime", "equality checking is not defined on lambdas\nsee:\n" + left->toString());
-        return new BoolVal(false);
+        throw_err("runtime", "equality checking is not defined on lambdas\nsee:\n" + left->toString());
+        return NULL;
     } else if(typeid(*b) == typeid(LambdaVal)) {
-        throw_warning("runtime", "equality checking is not defined on lambdas\nsee:\n" + right->toString());
-        return new BoolVal(false);
+        throw_err("runtime", "equality checking is not defined on lambdas\nsee:\n" + right->toString());
+        return NULL;
     }
-    
+
     auto A =
         typeid(*a) == typeid(BoolVal)
         ? ((BoolVal*) a)->get() :

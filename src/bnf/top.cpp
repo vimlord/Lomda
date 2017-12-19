@@ -1,4 +1,5 @@
 #include "bnf.hpp"
+#include "config.hpp"
 
 using namespace std;
 
@@ -23,16 +24,24 @@ Expression* compile(string str) {
         delete res;
         return NULL;
     } else if (res->size() > 1) {
-        // The given program is ambiguous; display error
-        cerr << "\x1b[31m\x1b[1merror:\x1b[0m " 
-            << "syntax tree of given program is ambiguous (found " << res->size() << " versions)\n";
+        // The given program is ambiguous; display error if werror enabled
+        if (werror)
+            cerr << "\x1b[31m\x1b[1merror:\x1b[0m ";
+        else
+            cerr << "\x1b[33m\x1b[1mwarning:\x1b[0m ";
+
+        cerr << "syntax tree of given program is ambiguous (found " << res->size() << " versions)\n";
+        
+        // We will return the last interpretation of the program if we allow
+        // an ambiguous statement to be parsed
+        Expression *exp = werror ? NULL : res->remove(0);
         while (!res->isEmpty()) {
             Expression *e = res->remove(0);
             std::cout << *e << "\n";
             delete e;
         }
         delete res;
-        return NULL;
+        return exp;
     } else {
         // There is only one interpretation; returning it
         Expression *exp = res->remove(0);

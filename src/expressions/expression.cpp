@@ -1,6 +1,7 @@
 #include "expression.hpp"
 
 #include "value.hpp"
+#include "config.hpp"
 
 #include <string>
 
@@ -8,8 +9,9 @@ using namespace std;
 
 
 void throw_warning(string form, string mssg) {
-    std::cerr << "\x1b[31m\x1b[1m" << (form == "" ? "" : (form + " "))
-            << "warning:\x1b[0m " << mssg << "\n";
+    if (werror) throw_err(form, mssg);
+    else std::cerr << "\x1b[31m\x1b[1m" << (form == "" ? "" : (form + " "))
+                   << "warning:\x1b[0m " << mssg << "\n";
 }
 void throw_err(string form, string mssg) {
     std::cerr << "\x1b[31m\x1b[1m" << (form == "" ? "" : (form + " "))
