@@ -375,19 +375,25 @@ ParsedPrgms parseLetExp(string str, bool ends) {
  * top-level pemdas-exp
  */
 ParsedPrgms parsePemdas(string str, bool ends) {
-    ParsedPrgms res = parseSetExp(str, ends);
-
     // Parse for lambdas
-    ParsedPrgms tmp = parseLambdaExp(str, ends);
-    while (!tmp->isEmpty()) res->add(0, tmp->remove(0));
-    delete tmp;
+    ParsedPrgms res = parseLambdaExp(str, ends);
+    
+    //std::cout << "pemdas program '" << str << "' " << (ends ? "should" : "need not") << " end\n";
+
+    //std::cout << "found " << res->size() << " possible lambdas in '" << str << "'\n";
+    if (!res->isEmpty()) return res;
 
     // Parse for derivative
-    tmp = parseDerivative(str, ends);
-    while (!tmp->isEmpty()) res->add(0, tmp->remove(0));
-    delete tmp;
+    delete res;
+    res = parseDerivative(str, ends);
 
+    //std::cout << "found " << res->size() << " possible differentials in '" << str << "'\n";
+    if (!res->isEmpty()) return res;
 
+    delete res;
+    res = parseSetExp(str, ends);
+
+    //std::cout << "found " << res->size() << " possible base exps in '" << str << "'\n";
     return res;
 }
 

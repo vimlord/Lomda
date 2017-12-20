@@ -14,10 +14,7 @@ class ApplyExp : public Differentiable {
         Expression **args;
     public:
         ApplyExp(Expression*, Expression**);
-        ~ApplyExp() {
-            for (int i = 0; args[i]; i++) delete args[i];
-            delete[] args; delete op;
-        }
+        ~ApplyExp();
 
         Value* valueOf(Environment*);
         Value* derivativeOf(std::string, Environment*, Environment*);

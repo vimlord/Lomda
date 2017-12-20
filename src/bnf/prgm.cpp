@@ -4,41 +4,45 @@
 using namespace std;
 
 ParsedPrgms parseStatement(string str, bool ends) {
-    ////std::cout << "Searching for statement in '" << str << "'\n";
-    ParsedPrgms tmp;
-    
-    // parse pemdas-exp
-    ParsedPrgms res = parsePemdas(str, ends);    
+    // We only need to find a single set of working paths. All but
+    // pemdas-exp begin with a keyword, hence only one of these
+    // calls should return a value.
+    ParsedPrgms res;
     
     // if-exp
-    tmp = parseIfExp(str, ends);
-    while (!tmp->isEmpty()) res->add(0, tmp->remove(0));
-    delete tmp;
+    res = parseIfExp(str, ends);
+    if (!res->isEmpty()) return res;
 
     // while-exp
-    tmp = parseWhileExp(str, ends);
-    while (!tmp->isEmpty()) res->add(0, tmp->remove(0));
-    delete tmp;
+    delete res;
+    res = parseWhileExp(str, ends);
+    if (!res->isEmpty()) return res;
 
     // for-exp
-    tmp = parseForExp(str, ends);
-    while (!tmp->isEmpty()) res->add(0, tmp->remove(0));
-    delete tmp;
+    delete res;
+    res = parseForExp(str, ends);
+    if (!res->isEmpty()) return res;
 
     // insert-exp
-    tmp = parseInsertExp(str, ends);
-    while (!tmp->isEmpty()) res->add(0, tmp->remove(0));
-    delete tmp;
+    delete res;
+    res = parseInsertExp(str, ends);
+    if (!res->isEmpty()) return res;
 
     // remove-exp
-    tmp = parseRemoveExp(str, ends);
-    while (!tmp->isEmpty()) res->add(0, tmp->remove(0));
-    delete tmp;
-    
+    delete res;
+    res = parseRemoveExp(str, ends);
+    if (!res->isEmpty()) return res;
+
+    // pemdas-exp
+    delete res;
+    res = parsePemdas(str, ends);    
+
     return res;
 }
 
-
+/**
+ * <sequence-exp> ::= <statement> ';' <program> | <statement>
+ */
 ParsedPrgms parseSequence(string str, bool ends) {
     // Parse the first line
     ParsedPrgms res = new LinkedList<parsed_prgm>;
@@ -51,7 +55,10 @@ ParsedPrgms parseSequence(string str, bool ends) {
         
         int i = parseLit(s, ";");
         if (i < 0) {
-            delete left.item;
+            if (!ends || parseSpaces(s) == s.length())
+                res->add(0, left);
+            else
+                delete left.item;
             continue;
         }
         s = s.substr(i);
@@ -74,30 +81,18 @@ ParsedPrgms parseSequence(string str, bool ends) {
 }
 
 /**
- * <program> ::= <let-exp> | <sequence-exp> | <statement>
+ * <program> ::= <let-exp> | <sequence-exp>
  */
 ParsedPrgms parseProgram(string str, bool ends) {
-    ParsedPrgms res = new LinkedList<parsed_prgm>;
     ParsedPrgms prgms;
 
     // First, parse for a let expression
     prgms = parseLetExp(str, ends);
-    while (!prgms->isEmpty())
-        res->add(0, prgms->remove(0));
-    delete prgms;
-    
-    // Then, we will simply parse for statements
-    prgms = parseStatement(str, ends);
-    while (!prgms->isEmpty())
-        res->add(0, prgms->remove(0));
-    delete prgms;
-    
-    prgms = parseSequence(str, ends);
-    while (!prgms->isEmpty())
-        res->add(0, prgms->remove(0));
-    delete prgms;
-
-    return res;
+    if (prgms->isEmpty()) {
+        delete prgms;
+        prgms = parseSequence(str, ends);
+    }
+    return prgms;
 
 }
 

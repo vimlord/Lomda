@@ -10,7 +10,7 @@ Expression* ApplyExp::clone() {
     a[i] = 0;
 
     while (i--) {
-        a[i] = args[i];
+        a[i] = args[i]->clone();
     }
 
     return new ApplyExp(op->clone(), a);

@@ -31,6 +31,12 @@ ApplyExp::ApplyExp(Expression *f, Expression **xs) {
     op = f;
     args = xs;
 }
+ApplyExp::~ApplyExp() {
+    for (int i = 0; args[i]; i++)
+        delete args[i];
+    delete[] args;
+    delete op;
+}
 
 IfExp::IfExp(Expression *b, Expression *t, Expression *f) {
     cond = b;

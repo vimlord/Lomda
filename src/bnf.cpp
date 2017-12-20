@@ -237,27 +237,22 @@ ParsedPrgms parseCodeBlock(string str, bool ends) {
  */
 ParsedPrgms parseAccessor(string str, bool ends) {
     ParsedPrgms res = new LinkedList<parsed_prgm>;
-    
+
     // The possible expansions
     ParsedPrgms lists = parsePrimitive(str, false);
 
     while (!lists->isEmpty()) {
         parsed_prgm lst = lists->remove(0);
         string s = str.substr(lst.len);
+        int i;
         
         if (!ends || parseSpaces(s) == s.length()) {
-            parsed_prgm p = lst;
-            p.item = p.item->clone();
+            parsed_prgm p;
+            p.len = lst.len;
+            p.item = lst.item->clone();
             res->add(0, p);
         }
 
-        if (parseSpaces(s) == s.length()) {
-            // The entire program was parsed, so we can stop here
-            delete lst.item;
-            continue;
-        }
-
-        int i;
         if ((i = parseLit(s, "[")) >= 0) {
             // This is a list accessor
             lst.len += i;
@@ -346,7 +341,7 @@ ParsedPrgms parseAccessor(string str, bool ends) {
 
             delete arglists;
         }
-
+        
         delete lst.item;
     }
     delete lists;
