@@ -418,6 +418,31 @@ Value* ListSliceExp::valueOf(Environment *env) {
 
 }
 
+Value* MagnitudeExp::valueOf(Environment *env) {
+    Value *v = exp->valueOf(env);
+    Value *res = NULL;
+
+    if (!v) return NULL;
+    else if (typeid(*v) == typeid(IntVal)) {
+        // Magnitude of number is its absolute value
+        int val = ((IntVal*) v)->get();
+        res = new IntVal(val > 0 ? val : -val);
+    } else if (typeid(*v) == typeid(RealVal)) {
+        // Magnitude of number is its absolute value
+        int val = ((RealVal*) v)->get();
+        res = new RealVal(val > 0 ? val : -val);
+    } else if (typeid(*v) == typeid(ListVal)) {
+        // Magnitude of list is its length
+        int val = ((ListVal*) v)->get()->size();
+        res = new IntVal(val > 0 ? val : -val);
+    }
+    
+    // Garbage collection
+    v->rem_ref();
+
+    return res;
+}
+
 Value* NotExp::valueOf(Environment* env) {
     Value *v = exp->valueOf(env);
     

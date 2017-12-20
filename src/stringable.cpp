@@ -130,6 +130,9 @@ string ListRemExp::toString() {
 string ListSliceExp::toString() {
     return list->toString() + "[" + from->toString() + ":" + to->toString() + "]";
 }
+string MagnitudeExp::toString() {
+    return "|" + exp->toString() + "|";
+}
 string MultExp::toString() {
     return left->toString() + " * " + right->toString();
 }

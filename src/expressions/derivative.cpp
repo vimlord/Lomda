@@ -281,6 +281,40 @@ Value* ListAccessExp::derivativeOf(string x, Environment *env, Environment *denv
 
 }
 
+Value* MagnitudeExp::derivativeOf(string x, Environment *env, Environment *denv) {
+    if (!is_differentiable(exp)) return NULL;
+
+    Value *res = NULL;
+    
+    Value *v = exp->valueOf(env);
+
+    if (!v) return NULL;
+    else if (typeid(*v) == typeid(IntVal) || typeid(*v) == typeid(RealVal)) {
+        auto val = (typeid(*v) == typeid(IntVal))
+                ? ((IntVal*) v)->get()
+                : ((RealVal*) v)->get();
+
+        v->rem_ref();
+
+        Value *dv = ((Differentiable*) exp)->derivativeOf(x, env, denv);
+        if (dv) {
+            if (typeid(*dv) == typeid(IntVal))
+                res = new IntVal((val >= 0 ? 1 : -1) * ((IntVal*) dv)->get());
+            else if (typeid(*dv) == typeid(RealVal))
+                res = new IntVal((val >= 0 ? 1 : -1) * ((IntVal*) dv)->get());
+            else
+                throw_err("runtime", "expression '" + v->toString() + "' does not differentiate to numerical type");
+        }
+
+        dv->rem_ref();
+    } else {
+        throw_err("runtime", "expression '" + v->toString() + "' is not of numerical type");
+        v->rem_ref();
+    }
+
+    return res;
+}
+
 Value* MultExp::derivativeOf(string x, Environment *env, Environment *denv) { 
     if (is_differentiable(left)) return NULL;
     if (is_differentiable(right)) return NULL;

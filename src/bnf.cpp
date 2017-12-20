@@ -797,6 +797,47 @@ ParsedPrgms parseMultiplicative(string str, bool ends) {
     return res;
 }
 
+ParsedPrgms parseMagnitude(string str, bool ends) {
+    ParsedPrgms res = new LinkedList<parsed_prgm>;
+
+    int len = parseLit(str, "|");
+    if (len < 0) return res;
+
+    str = str.substr(len);
+
+    ParsedPrgms statements = parsePemdas(str, false);
+
+    while (!statements->isEmpty()) {
+        parsed_prgm p = statements->remove(0);
+
+        string s = str.substr(p.len);
+
+        int i = parseLit(s, "|");
+        if (i < 0) {
+            delete p.item;
+            continue;
+        }
+        
+        p.len += len + i;
+        s = s.substr(i);
+
+        if (ends && s.length() != parseSpaces(s)) {
+            delete p.item;
+            continue;
+        }
+
+        // Set up absolute value
+        p.item = new MagnitudeExp(p.item);
+
+        res->add(0, p);
+
+    }
+    delete statements;
+
+    return res;
+
+}
+
 ParsedPrgms parseNotExp(string str, bool ends) {
     int i = parseLit(str, "not");
     if (i < 0) {
@@ -908,6 +949,11 @@ ParsedPrgms parsePrimitive(string str, bool ends) {
     
     // Parse for parenteses
     tmp = parseParentheses(str, ends);
+    if (!tmp->isEmpty()) res->add(0, tmp->remove(0));
+    delete tmp;
+
+    // Parse for parenteses
+    tmp = parseMagnitude(str, ends);
     if (!tmp->isEmpty()) res->add(0, tmp->remove(0));
     delete tmp;
 

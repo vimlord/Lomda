@@ -157,6 +157,20 @@ class ListSliceExp : public Expression {
         std::string toString();
 };
 
+class MagnitudeExp : public Differentiable {
+    private:
+        Expression *exp;
+    public:
+        MagnitudeExp(Expression *e) : exp(e) {}
+        ~MagnitudeExp() { delete exp; }
+        Expression* clone() { return new MagnitudeExp(exp->clone()); }
+
+        Value* valueOf(Environment*);
+        Value* derivativeOf(std::string, Environment*, Environment*);
+
+        std::string toString();
+};
+
 // Bool -> Bool expression that negates booleans
 class NotExp : public Expression {
     private:
