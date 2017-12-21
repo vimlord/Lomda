@@ -106,16 +106,17 @@ Value* DiffExp::derivativeOf(string x, Environment *env, Environment *denv) {
     if (!is_differentiable(right)) return NULL;
 
     Value *a = ((Differentiable*) left)->derivativeOf(x, env, denv);
+    if (!a) return NULL;
+
     Value *b = ((Differentiable*) right)->derivativeOf(x, env, denv);
+    if (!b) {
+        a->rem_ref();
+        return NULL;
+    }
 
-    // d/dx a - b = da/dx - db/dx
-    Value *c = (a && b)
-            ? op(a, b)
-            : NULL;
-
-    a->rem_ref();
-    b->rem_ref();
-
+    Value *c = op(a, b);
+    
+    a->rem_ref(); b->rem_ref();
     return c;
 }
 
