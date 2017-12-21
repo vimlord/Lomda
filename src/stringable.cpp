@@ -200,7 +200,8 @@ string LambdaVal::toString() {
         s += xs[i];
     }
     
-    s += "." + exp->toString() + " | " + env->toString(); 
+    s += "." + exp->toString();
+    s += " | " + env->toString(); 
 
     return s;
 }

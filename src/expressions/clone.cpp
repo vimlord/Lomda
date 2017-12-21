@@ -31,7 +31,7 @@ Expression* LambdaExp::clone() {
 
 Expression* LetExp::clone() {
     int argc;
-    for (int argc = 0; exps[argc]; argc++);
+    for (argc = 0; exps[argc]; argc++);
     
     string *ps = new string[argc+1];
     Expression **es = new Expression*[argc+1];

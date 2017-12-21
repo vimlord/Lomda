@@ -9,7 +9,7 @@ class OperatorExp : public Differentiable {
         Expression *right;
     public:
         OperatorExp(Expression*, Expression*);
-        ~OperatorExp() { delete left, right; }
+        ~OperatorExp();
         Value* valueOf(Environment*);
         
         virtual Value* op(Value*, Value*) = 0;

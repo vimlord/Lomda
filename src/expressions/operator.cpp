@@ -7,6 +7,11 @@
 
 using namespace std;
 
+OperatorExp::~OperatorExp() {
+    delete left;
+    delete right;
+}
+
 // Expression for adding stuff
 Value* AndExp::op(Value *a, Value *b) {
     

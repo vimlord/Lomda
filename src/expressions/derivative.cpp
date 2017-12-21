@@ -82,7 +82,7 @@ Value* ApplyExp::derivativeOf(string x, Environment *env, Environment *denv) {
         // We must apply the ith argument to the derivative
         Expression *comp = new MultExp(
             new ApplyExp(
-                new DerivativeExp(op, func->getArgs()[i]),
+                new DerivativeExp(op->clone(), func->getArgs()[i]),
                 xs
             ),
             new DerivativeExp(args[i], x)
@@ -102,18 +102,21 @@ Value* ApplyExp::derivativeOf(string x, Environment *env, Environment *denv) {
 }
 
 Value* DiffExp::derivativeOf(string x, Environment *env, Environment *denv) {
-    if (is_differentiable(left)) return NULL;
-    if (is_differentiable(right)) return NULL;
+    if (!is_differentiable(left)) return NULL;
+    if (!is_differentiable(right)) return NULL;
 
     Value *a = ((Differentiable*) left)->derivativeOf(x, env, denv);
     Value *b = ((Differentiable*) right)->derivativeOf(x, env, denv);
 
     // d/dx a - b = da/dx - db/dx
-    if (!a || !b) {
-        delete a, b;
-        return NULL;
-    } else
-        return op(a, b);
+    Value *c = (a && b)
+            ? op(a, b)
+            : NULL;
+
+    a->rem_ref();
+    b->rem_ref();
+
+    return c;
 }
 
 Value* ForExp::derivativeOf(string x, Environment *env, Environment *denv) {
@@ -183,7 +186,15 @@ Value* IfExp::derivativeOf(string x, Environment *env, Environment *denv) {
 }
 
 Value* LambdaExp::derivativeOf(string x, Environment *env, Environment *denv) {
-    return new LambdaVal(xs, new DerivativeExp(exp, x), env);
+    int argc;
+    for (argc = 0; xs[argc] != ""; argc++);
+
+    string *ids = new string[argc+1];
+    ids[argc] = "";
+    while (argc--)
+        ids[argc] = xs[argc];
+
+    return new LambdaVal(ids, new DerivativeExp(exp->clone(), x), env->clone());
 }
 
 Value* LetExp::derivativeOf(string x, Environment *env, Environment *denv) {
@@ -316,8 +327,8 @@ Value* MagnitudeExp::derivativeOf(string x, Environment *env, Environment *denv)
 }
 
 Value* MultExp::derivativeOf(string x, Environment *env, Environment *denv) { 
-    if (is_differentiable(left)) return NULL;
-    if (is_differentiable(right)) return NULL;
+    if (!is_differentiable(left)) return NULL;
+    if (!is_differentiable(right)) return NULL;
 
 
     Expression *a = reexpress(((Differentiable*) left)->derivativeOf(x, env, denv));
@@ -327,7 +338,7 @@ Value* MultExp::derivativeOf(string x, Environment *env, Environment *denv) {
         delete a, b;
         return NULL;
     } else {
-        Expression *exp = new SumExp(new MultExp(left, b), new MultExp(right, a));
+        Expression *exp = new SumExp(new MultExp(left->clone(), b), new MultExp(right->clone(), a));
         Value *c = exp->valueOf(env);
 
         delete exp;
@@ -374,17 +385,22 @@ Value* SetExp::derivativeOf(string x, Environment *env, Environment *denv) {
 }
 
 Value* SumExp::derivativeOf(string x, Environment *env, Environment *denv) {
-    if (is_differentiable(left)) return NULL;
-    if (is_differentiable(right)) return NULL;
+    if (!is_differentiable(left)) return NULL;
+    if (!is_differentiable(right)) return NULL;
 
     Value *a = ((Differentiable*) left)->derivativeOf(x, env, denv);
+    if (!a) return NULL;
+
     Value *b = ((Differentiable*) right)->derivativeOf(x, env, denv);
-
-    if (!a || !b) {
-        delete a, b;
+    if (!b) {
+        a->rem_ref();
         return NULL;
-    } else return op(a, b);
+    }
 
+    Value *c = op(a, b);
+    
+    a->rem_ref(); b->rem_ref();
+    return c;
 }
 
 Value* VarExp::derivativeOf(string x, Environment *env, Environment *denv) {
