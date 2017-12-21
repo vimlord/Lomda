@@ -457,6 +457,7 @@ ParsedPrgms parseWhileExp(string str, bool ends) {
     str = str.substr(len);
 
     ParsedPrgms conditions = parsePemdas(str, false);
+
     while (!conditions->isEmpty()) {
         parsed_prgm cond = conditions->remove(0);
 
@@ -472,6 +473,7 @@ ParsedPrgms parseWhileExp(string str, bool ends) {
             string st = s.substr(body.len);
             
             body.item = new WhileExp(cond.item, body.item);
+            body.len += length;
             
             res->add(0, body);
         }
