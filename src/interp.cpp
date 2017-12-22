@@ -104,14 +104,27 @@ Value* DerivativeExp::valueOf(Environment* env) {
             
             if (typeid(*v) == typeid(LambdaVal)) {
                 LambdaVal *lv = (LambdaVal*) v;
-                LambdaVal *dv = new LambdaVal(lv->getArgs(), new DerivativeExp(lv->getBody(), var), lv->getEnv());
+                int i;
+                for (i = 0; lv->getArgs()[i] != ""; i++);
+
+                string *ids = new string[i+1];
+                ids[i] = "";
+                while (i--) ids[i] = lv->getArgs()[i];
+
+                LambdaVal *dv = new LambdaVal(ids, 
+                                new DerivativeExp(
+                                        lv->getBody()->clone(), var
+                                ), lv->getEnv()->clone());
 
                 // Lambda derivative: d/dx lambda (x) f(x) = lambda (x) d/dx f(x)
                 // We will need the derivative for this
                 denv = new ExtendEnv(id, dv, denv);
+                dv->rem_ref(); // The derivative exists only within the environment
             } else {
                 // Trivial derivative: d/dx c = 0
-                denv = new ExtendEnv(id, deriveVal(v, id == var ? 1 : 0), denv);
+                Value *c = deriveVal(v, id == var ? 1 : 0);
+                denv = new ExtendEnv(id, c, denv);
+                c->rem_ref(); // The derivative exists only within the environment
             }
         }
 
@@ -465,14 +478,19 @@ Value* NotExp::valueOf(Environment* env) {
 
 Value* OperatorExp::valueOf(Environment *env) {
     Value *a = left->valueOf(env);
+    if (!a) return NULL;
+
     Value *b = right->valueOf(env);
 
-    if (!a || !b) {
+    if (!b) {
+        a->rem_ref();
+        return NULL;
+    } else {
+        Value *res = op(a, b);
         a->rem_ref();
         b->rem_ref();
-        return NULL;
-    } else
-        return op(a, b);
+        return res;
+    }
 }
 
 Value* RealExp::valueOf(Environment *env) {

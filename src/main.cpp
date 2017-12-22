@@ -12,7 +12,7 @@ using namespace std;
 void execute(string program) {
     Value *v = run(program);
     if (v) {
-        if (VERBOSITY()) cout << "(" << v << ") ";
+        if (VERBOSITY()) cout << "(" << v << ")\n==> ";
         cout << *v << "\n";
         v->rem_ref();
     }

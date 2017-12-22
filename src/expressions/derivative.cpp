@@ -410,6 +410,8 @@ Value* VarExp::derivativeOf(string x, Environment *env, Environment *denv) {
     Value *dv = denv->apply(id);
     if (!dv)
         throw_err("runtime", "derivative of variable '" + id + "' is not known within this context");
+    else
+        dv->add_ref();
 
     return dv;
 }

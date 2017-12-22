@@ -539,7 +539,7 @@ ParsedPrgms parseEquality(string str, bool ends) {
             op = EQ;
         else if ((i = parseLit(s, "is")) >= 0) {
             // Equality may be inequality
-            int j = parseLit(s.substr(j), "not");
+            int j = parseLit(s.substr(i), "not");
             if (j >= 0) { i += j; op = NEQ; }
             else op = EQ;
         }

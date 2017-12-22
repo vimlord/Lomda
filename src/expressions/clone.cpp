@@ -7,7 +7,7 @@ Expression* ApplyExp::clone() {
     for (i = 0; args[i]; i++);
 
     Expression **a = new Expression*[i+1];
-    a[i] = 0;
+    a[i] = NULL;
 
     while (i--) {
         a[i] = args[i]->clone();
