@@ -85,7 +85,7 @@ Value* ApplyExp::derivativeOf(string x, Environment *env, Environment *denv) {
                 new DerivativeExp(op->clone(), func->getArgs()[i]),
                 xs
             ),
-            new DerivativeExp(args[i], x)
+            new DerivativeExp(args[i]->clone(), x)
         );
 
         if (i) deriv = new SumExp(deriv, comp);
