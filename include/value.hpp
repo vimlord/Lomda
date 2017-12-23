@@ -5,6 +5,8 @@
 #include "baselang/expression.hpp"
 #include "baselang/environment.hpp"
 
+#include "linalg/matrix.hpp"
+
 class BoolVal : public Value {
     private:
         bool val;
@@ -65,6 +67,19 @@ class ListVal : public Value {
         int set(Value*);
 
         std::string toString();
+};
+
+class MatrixVal : public Value {
+    private:
+        Matrix val;
+    public:
+        MatrixVal(Matrix m) : val(m) {}
+        
+        int set(Value*);
+        Matrix get();
+
+        std::string toString();
+        MatrixVal* clone() { return new MatrixVal(val); }
 };
 
 class RealVal : public Value {

@@ -2,6 +2,7 @@
 #define _EXPRESSIONS_PRIMITIVE_HPP_
 
 #include "expressions/derivative.hpp"
+#include "linalg/matrix.hpp"
 
 // Generates false
 class FalseExp : public Expression {
@@ -59,6 +60,19 @@ class ListExp : public Differentiable {
         Value* derivativeOf(std::string, Environment*, Environment*);
         
         Expression* clone();
+        std::string toString();
+};
+
+class MatrixExp : public Expression {
+    private:
+        Expression *list;
+    public:
+        MatrixExp(Expression *m) : list(m) {};
+        ~MatrixExp() { delete list; }
+
+        Value* valueOf(Environment*);
+
+        Expression* clone() { return new MatrixExp(list->clone()); }
         std::string toString();
 };
 

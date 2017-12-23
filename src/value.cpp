@@ -56,6 +56,15 @@ int IntVal::set(Value *v) {
     } else return 1;
 }
 
+// Matrices
+Matrix MatrixVal::get() { return val; }
+int MatrixVal::set(Value *v) {
+    if (typeid(*v) == typeid(MatrixVal)) {
+        val = ((MatrixVal*) v)->val;
+        return 0;
+    } else return 1;
+}
+
 // Decimals
 RealVal::RealVal(float n) { val = n; }
 float RealVal::get() { return val; }

@@ -462,6 +462,94 @@ Value* MagnitudeExp::valueOf(Environment *env) {
     return res;
 }
 
+Value* MatrixExp::valueOf(Environment *env) {
+    Value *v = list->valueOf(env);
+    if (!v) return NULL;
+    else if (typeid(*v) != typeid(ListVal)) {
+        v->rem_ref();
+        return NULL;
+    }
+    ListVal *array = (ListVal*) v;
+
+    if (array->get()->size() == 0) {
+        // We will not permit arrays with 0 rows
+        v->rem_ref();
+        return NULL;
+    }
+
+    List<Value*> *arr = array->get();
+    int R = array->get()->size();
+    int C = 0;
+    
+    // We must verify that the outcome is authentic
+    auto it = arr->iterator();
+    for (int i = 0; i < R; i++) {
+        v = it->next(); // Get the next "row"
+        if (typeid(*v) != typeid(ListVal)) {
+            // Ensure that the list is a 2D list
+            array->rem_ref();
+            delete it;
+            return NULL;
+        }
+        
+        List<Value*> *row = ((ListVal*) v)->get();
+        if (i && row->size() != C) {
+            // Ensure the array is square
+            array->rem_ref();
+            delete it;
+            return NULL;
+        } else if (!i) {
+            C = ((ListVal*) v)->get()->size();
+            if (C == 0) {
+                array->rem_ref();
+                delete it;
+                return NULL;
+            }
+        }
+        
+        // Verify that the row only contains numbers
+        auto jt = row->iterator();
+        while (jt->hasNext()) {
+            v = jt->next();
+            if (typeid(*v) != typeid(RealVal) && typeid(*v) != typeid(IntVal)) {
+                delete it;
+                delete jt;
+                array->rem_ref();
+                return NULL;
+            }
+        }
+
+    }
+    delete it;
+
+    float *vals = new float[R*C];
+
+    int k = 0;
+    it = arr->iterator();
+    for (int i = 0; i < R; i++) {
+        ListVal *rowval = ((ListVal*) it->next());
+        List<Value*> *row = rowval->get();
+
+        auto jt = row->iterator();
+        for (int j = 0; j < C; j++, k++) {
+            Value *f = jt->next();
+
+            if (typeid(*f) == typeid(RealVal)) vals[k] = ((RealVal*) f)->get();
+            else if (typeid(*f) == typeid(IntVal)) vals[k] = (float) ((IntVal*) f)->get();
+        }
+        delete jt;
+    }
+    delete it;
+
+    array->rem_ref();
+
+    Matrix m(R, C, vals);
+    
+    v = new MatrixVal(m);
+
+    return v;
+}
+
 Value* NotExp::valueOf(Environment* env) {
     Value *v = exp->valueOf(env);
     

@@ -130,6 +130,9 @@ string ListRemExp::toString() {
 string ListSliceExp::toString() {
     return list->toString() + "[" + from->toString() + ":" + to->toString() + "]";
 }
+string MatrixExp::toString() {
+    return "matrix from " + list->toString();
+}
 string MagnitudeExp::toString() {
     return "|" + exp->toString() + "|";
 }
@@ -215,6 +218,9 @@ string ListVal::toString() {
 
     s += "]";
     return s;
+}
+string MatrixVal::toString() {
+    return val.toString();
 }
 string RealVal::toString() { return to_string(val); }
 

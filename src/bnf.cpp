@@ -902,7 +902,24 @@ ParsedPrgms parseParentheses(string str, bool ends) {
  * <primitive> ::= <lambda-exp> | <int-exp> | <var-exp> | <bool-exp>
  */
 ParsedPrgms parsePrimitive(string str, bool ends) {
-    ParsedPrgms res = new LinkedList<parsed_prgm>;
+    ParsedPrgms tmp;
+
+    // Parse for parentheses
+    tmp = parseParentheses(str, ends);
+    if (!tmp->isEmpty()) { return tmp; }
+    delete tmp;
+
+    // Parse for magnitude
+    tmp = parseMagnitude(str, ends);
+    if (!tmp->isEmpty()) { return tmp; }
+    delete tmp;
+
+    ParsedPrgms res = new LinkedList<parsed_prgm>; 
+
+    // Parse for list-exp
+    tmp = parseListExp(str, ends);
+    if (!tmp->isEmpty()) return tmp;
+    delete tmp;
 
     // First, parse for an int-exp
     parsed_int num = parseInt(str);
@@ -912,9 +929,34 @@ ParsedPrgms parsePrimitive(string str, bool ends) {
         prgm.len = ends ? str.length() : num.len;
         prgm.item = new IntExp(num.item);
         res->add(0, prgm);
-
+        return res;
     }
-
+    
+    // Parse for true-exp
+    int i = parseLit(str, "true");
+    if (i > 0  && (!ends || i + parseSpaces(str.substr(i)) == str.length())) {
+        parsed_prgm b; b.len = i; b.item = new TrueExp; res->add(0, b); return res;
+    }
+    // Parse for false-exp
+    i = parseLit(str, "false");
+    if (i > 0 && (!ends || i + parseSpaces(str.substr(i)) == str.length())) {
+        parsed_prgm b; b.len = i; b.item = new FalseExp; res->add(0, b); return res;
+    }
+    // Parse for matrix-exp
+    i = parseLit(str, "matrix");
+    if (i > 0) {
+        string s = str.substr(i);
+        tmp = parseListExp(s, ends);
+        while (!tmp->isEmpty()) {
+            parsed_prgm b = tmp->remove(0);
+            b.len += i;
+            b.item = new MatrixExp(b.item);
+            res->add(0, b);
+        }
+        delete tmp;
+        return res;
+    }
+    
     // Then, we parse for a var-exp
     parsed_id id = parseId(str);
     if (id.len > 0 && (!ends || id.len + parseSpaces(str.substr(id.len)) == str.length())) {
@@ -923,35 +965,9 @@ ParsedPrgms parsePrimitive(string str, bool ends) {
         prgm.len = ends ? str.length() : id.len;
         prgm.item = new VarExp(id.item);
         res->add(0, prgm);
-
-    }
-
-    // Parse for list-exp
-    ParsedPrgms tmp = parseListExp(str, ends);
-    while (!tmp->isEmpty()) res->add(0, tmp->remove(0));
-    delete tmp;
-    
-    // Parse for true-exp
-    int i = parseLit(str, "true");
-    if (i > 0  && (!ends || i + parseSpaces(str.substr(i)) == str.length())) {
-        parsed_prgm b; b.len = i; b.item = new TrueExp; res->add(0, b);
-    }
-    // Parse for false-exp
-    i = parseLit(str, "false");
-    if (i > 0 && (!ends || i + parseSpaces(str.substr(i)) == str.length())) {
-        parsed_prgm b; b.len = i; b.item = new FalseExp; res->add(0, b);
+        return res;
     }
     
-    // Parse for parenteses
-    tmp = parseParentheses(str, ends);
-    if (!tmp->isEmpty()) res->add(0, tmp->remove(0));
-    delete tmp;
-
-    // Parse for parenteses
-    tmp = parseMagnitude(str, ends);
-    if (!tmp->isEmpty()) res->add(0, tmp->remove(0));
-    delete tmp;
-
     return res;
 }
 

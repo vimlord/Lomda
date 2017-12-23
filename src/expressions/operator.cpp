@@ -41,11 +41,25 @@ Value* DiffExp::op(Value *a, Value *b) {
         typeid(*a) == typeid(LambdaVal)) {
         throw_err("runtime", "subtraction is not defined on lambdas or booleans\nsee:\n" + left->toString());
         return NULL;
-    }
-    if (typeid(*b) == typeid(BoolVal) ||
+    } else if (typeid(*b) == typeid(BoolVal) ||
         typeid(*b) == typeid(LambdaVal)) {
         throw_err("runtime", "subtraction is not defined on lambdas or booleans\nsee:\n" + right->toString());
         return NULL;
+    } else if (typeid(*a) == typeid(MatrixVal)) {
+        if (typeid(*b) == typeid(MatrixVal)) {
+            Matrix A = ((MatrixVal*) a)->get();
+            Matrix B = ((MatrixVal*) b)->get();
+            
+            if (A.R == B.R && A.C == B.C)
+                return new MatrixVal(A-B);
+            else {
+                throw_err("runtime", "subtraction is not defined between " + to_string(A.R) + "x" + to_string(A.C) + "matrix and " + to_string(B.R) + "x" + to_string(B.C) + " matrix");
+                return NULL;
+            }
+        } else {
+            throw_err("runtime", "type of '" + left->toString() + "' and '" + right->toString() + "' do not properly match\n");
+            return NULL;
+        }
     }
 
     auto x = 
@@ -117,11 +131,22 @@ Value* MultExp::op(Value *a, Value *b) {
         typeid(*a) == typeid(LambdaVal)) {
         throw_err("runtime", "multiplication is not defined on lambdas or booleans\nsee:\n" + left->toString());
         return NULL;
-    }
-    if (typeid(*b) == typeid(BoolVal) ||
+    } else if (typeid(*b) == typeid(BoolVal) ||
         typeid(*b) == typeid(LambdaVal)) {
         throw_err("runtime", "multiplication is not defined on lambdas or booleans\nsee:\n" + right->toString());
         return NULL;
+    } else if (typeid(*a) == typeid(MatrixVal)) {
+        if (typeid(*b) == typeid(MatrixVal)) {
+            Matrix A = ((MatrixVal*) a)->get();
+            Matrix B = ((MatrixVal*) b)->get();
+            
+            if (A.C == B.R)
+                return new MatrixVal(A*B);
+            else {
+                throw_err("runtime", "multiplication is not defined between " + to_string(A.R) + "x" + to_string(A.C) + "matrix and " + to_string(B.R) + "x" + to_string(B.C) + " matrix");
+                return NULL;
+            }
+        }
     }
 
     auto x = 
@@ -145,7 +170,7 @@ Value* MultExp::op(Value *a, Value *b) {
 
 // Expression for adding stuff
 Value* SumExp::op(Value *a, Value *b) {
-    
+
     if (typeid(*a) == typeid(BoolVal) ||
         typeid(*a) == typeid(LambdaVal)) {
         throw_err("runtime", "addition is not defined on lambdas or booleans\nsee:\n" + left->toString());
@@ -156,22 +181,40 @@ Value* SumExp::op(Value *a, Value *b) {
         throw_err("runtime", "addition is not defined on lambdas or booleans\nsee:\n" + right->toString());
         return NULL;
     }
-    if (typeid(*a) == typeid(ListVal) &&
-        typeid(*b) == typeid(ListVal)) {
-        // Concatenate the two lists
-        List<Value*> *A = ((ListVal*) a)->get();
-        List<Value*> *B = ((ListVal*) b)->get();
-        List<Value*> *C = new LinkedList<Value*>;
-        
-        auto it = B->iterator();
-        for (int i = 0; it->hasNext(); i++) C->add(i, it->next());
-        delete it;
-        it = A->iterator();
-        for (int i = 0; it->hasNext(); i++) C->add(i, it->next());
-        delete it;
+    if (typeid(*a) == typeid(ListVal)) {
+        if (typeid(*b) == typeid(ListVal)) {
+            // Concatenate the two lists
+            List<Value*> *A = ((ListVal*) a)->get();
+            List<Value*> *B = ((ListVal*) b)->get();
+            List<Value*> *C = new LinkedList<Value*>;
+            
+            auto it = B->iterator();
+            for (int i = 0; it->hasNext(); i++) C->add(i, it->next());
+            delete it;
+            it = A->iterator();
+            for (int i = 0; it->hasNext(); i++) C->add(i, it->next());
+            delete it;
 
-        return new ListVal(C);
-
+            return new ListVal(C);
+        } else {
+            throw_err("runtime", "type of '" + left->toString() + "' and '" + right->toString() + "' do not properly match\n");
+            return NULL;
+        }
+    } else if (typeid(*a) == typeid(MatrixVal)) {
+        if (typeid(*b) == typeid(MatrixVal)) {
+            Matrix A = ((MatrixVal*) a)->get();
+            Matrix B = ((MatrixVal*) b)->get();
+            
+            if (A.R == B.R && A.C == B.C)
+                return new MatrixVal(A+B);
+            else {
+                throw_err("runtime", "addition is not defined between " + to_string(A.R) + "x" + to_string(A.C) + "matrix and " + to_string(B.R) + "x" + to_string(B.C) + " matrix");
+                return NULL;
+            }
+        } else {
+            throw_err("runtime", "type of '" + left->toString() + "' and '" + right->toString() + "' do not properly match\n");
+            return NULL;
+        }
     }
 
     auto x = 
