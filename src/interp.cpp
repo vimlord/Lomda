@@ -54,6 +54,9 @@ Value* ApplyExp::valueOf(Environment *env) {
             // Garbage collect the list
             while (i--) xs[i]->rem_ref();
             delete xs;
+            
+            // And the function
+            F->rem_ref();
 
             // An argument failed to parse, so clean up
             return NULL;
@@ -66,7 +69,10 @@ Value* ApplyExp::valueOf(Environment *env) {
     
     // Garbage collection on the array
     while (i--) xs[i]->rem_ref();
-    delete xs;
+    delete[] xs;
+
+    // And the function
+    F->rem_ref();
 
     return y;
 }
