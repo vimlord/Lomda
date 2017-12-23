@@ -86,7 +86,14 @@ Value* deriveVal(Value *v, int c = 1) {
             lst->add(lst->size(), x);
         }
         return new ListVal(lst); 
-    } else return new IntVal(c);
+    } else if (typeid(*v) == typeid(MatrixVal)) {
+        Matrix M(((MatrixVal*) v)->get().R, ((MatrixVal*) v)->get().C);
+        for (int i = 0; i < M.R; i++)
+            for (int j = 0; j < M.C; j++)
+                M(i, j) = c;
+        return new MatrixVal(M);
+    } else
+        return new IntVal(c);
 }
 Value* DerivativeExp::valueOf(Environment* env) {
 

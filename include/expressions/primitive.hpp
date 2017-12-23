@@ -63,7 +63,7 @@ class ListExp : public Differentiable {
         std::string toString();
 };
 
-class MatrixExp : public Expression {
+class MatrixExp : public Differentiable {
     private:
         Expression *list;
     public:
@@ -71,6 +71,7 @@ class MatrixExp : public Expression {
         ~MatrixExp() { delete list; }
 
         Value* valueOf(Environment*);
+        Value* derivativeOf(std::string, Environment*, Environment*);
 
         Expression* clone() { return new MatrixExp(list->clone()); }
         std::string toString();
