@@ -454,6 +454,9 @@ Value* MagnitudeExp::valueOf(Environment *env) {
         // Magnitude of list is its length
         int val = ((ListVal*) v)->get()->size();
         res = new IntVal(val > 0 ? val : -val);
+    } else if (typeid(*v) == typeid(MatrixVal)) {
+        float val = ((MatrixVal*) v)->get().determinant();
+        res = new RealVal(val);
     }
     
     // Garbage collection

@@ -73,6 +73,34 @@ Matrix Matrix::operator*(Matrix& other) {
     return M;
 }
 
+Matrix Matrix::operator*(float c) {
+    Matrix M(R, C);
+
+    for (int i = 0; i < R; i++)
+        for (int j = 0; j < C; j++) {
+            M(i, j) = (*this)(i, j) * c;
+        }
+
+    return M;
+}
+
+Matrix operator*(float c, Matrix M) {
+    return M * c;
+}
+
+Matrix Matrix::operator/(Matrix& B) {
+    Matrix C = B.inverse();
+    return (*this) * C;
+}
+
+Matrix Matrix::operator/(float f) {
+    return (*this) * (1.0 / f);
+}
+
+Matrix operator/(float f, Matrix m) {
+    return f * m.inverse();
+}
+
 bool Matrix::operator==(Matrix &other) {
     if (R != other.R || C != other.C) return false;
     else for (int i = R*C-1; i >= 0; i--)
@@ -84,7 +112,9 @@ bool Matrix::operator==(Matrix &other) {
 
 float Matrix::determinant() {
     assert(R == C);
-
+    
+    if (R == 1)
+        return vals[0];
     if (R == 2)
         return vals[0] * vals[3] - vals[1] * vals[2];
     else {
@@ -168,7 +198,7 @@ Matrix Matrix::gaussian() {
 
 Matrix Matrix::inverse() {
     assert(R == C);
-    Matrix AI(R, R);
+    Matrix AI(R, 2*R);
     for (int i = 0; i < R; i++)
         for (int j = 0; j < C; j++) {
             AI(i, j) = (*this)(i, j);

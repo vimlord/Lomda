@@ -81,6 +81,70 @@ Value* DiffExp::op(Value *a, Value *b) {
 
 }
 
+// Expression for multiplying studd
+Value* DivExp::op(Value *a, Value *b) {
+    
+    if (typeid(*a) == typeid(BoolVal) ||
+        typeid(*a) == typeid(LambdaVal)) {
+        throw_err("runtime", "division is not defined on lambdas or booleans\nsee:\n" + left->toString());
+        return NULL;
+    } else if (typeid(*b) == typeid(BoolVal) ||
+        typeid(*b) == typeid(LambdaVal)) {
+        throw_err("runtime", "division is not defined on lambdas or booleans\nsee:\n" + right->toString());
+        return NULL;
+    } else if (typeid(*a) == typeid(MatrixVal)) {
+        Matrix A = ((MatrixVal*) a)->get();
+
+        if (typeid(*b) == typeid(MatrixVal)) {
+            Matrix B = ((MatrixVal*) b)->get();
+            
+            if (B.R != B.C) {
+                throw_err("runtime", "non-square matrix '" + b->toString() + "' cannot be inverted");
+                return NULL;
+            } else if (A.C != B.R) {
+                throw_err("runtime", "division is not defined between " + to_string(A.R) + "x" + to_string(A.C) + "matrix and " + to_string(B.R) + "x" + to_string(B.C) + " matrix");
+                return NULL;
+            } else return new MatrixVal(A/B);
+
+        } else if (typeid(*b) == typeid(IntVal) || typeid(*b) == typeid(RealVal)) {
+            return new MatrixVal(A/(typeid(*b) == typeid(IntVal) ? ((IntVal*) b)->get() : ((RealVal*) b)->get()));
+        } else {
+            throw_err("runtime", "division is not defined between '" + a->toString() + "' and '" + b->toString() + "'");
+            return NULL;
+        }
+    }
+    
+    // The lhs is numerical
+    auto x = 
+        typeid(*a) == typeid(IntVal)
+        ? ((IntVal*) a)->get() :
+          ((RealVal*) a)->get();
+    
+    if (typeid(*b) == typeid(MatrixVal)) {
+        if (((MatrixVal*) b)->get().R != ((MatrixVal*) b)->get().C) {
+            throw_err("runtime", "non-square matrix '" + b->toString() + "' cannot be inverted");
+            return NULL;
+        } else {
+            // rhs is a matrix
+            Matrix M = ((MatrixVal*) b)->get();
+            return new MatrixVal(x/M);
+        }
+    } else {
+        // rhs is numerical
+        auto y = 
+            typeid(*b) == typeid(IntVal)
+            ? ((IntVal*) b)->get() :
+              ((RealVal*) b)->get();
+
+        // Compute the result
+        auto z = x / y;
+        if (typeid(*a) == typeid(RealVal) || typeid(*b) == typeid(RealVal))
+            return new RealVal(z);
+        else
+            return new IntVal(z);
+    }
+}
+
 Value* CompareExp::op(Value *a, Value *b) { 
 
     // Lambdas cannot be compared
@@ -136,36 +200,47 @@ Value* MultExp::op(Value *a, Value *b) {
         throw_err("runtime", "multiplication is not defined on lambdas or booleans\nsee:\n" + right->toString());
         return NULL;
     } else if (typeid(*a) == typeid(MatrixVal)) {
+        Matrix A = ((MatrixVal*) a)->get();
+
         if (typeid(*b) == typeid(MatrixVal)) {
-            Matrix A = ((MatrixVal*) a)->get();
             Matrix B = ((MatrixVal*) b)->get();
             
-            if (A.C == B.R)
-                return new MatrixVal(A*B);
-            else {
+            if (A.C != B.R) {
                 throw_err("runtime", "multiplication is not defined between " + to_string(A.R) + "x" + to_string(A.C) + "matrix and " + to_string(B.R) + "x" + to_string(B.C) + " matrix");
                 return NULL;
-            }
+            } else return new MatrixVal(A*B);
+
+        } else if (typeid(*b) == typeid(IntVal) || typeid(*b) == typeid(RealVal)) {
+            return new MatrixVal(A*(typeid(*b) == typeid(IntVal) ? ((IntVal*) b)->get() : ((RealVal*) b)->get()));
+        } else {
+            throw_err("runtime", "multiplication is not defined between '" + a->toString() + "' and '" + b->toString() + "'");
+            return NULL;
         }
     }
-
+    
+    // The lhs is numerical
     auto x = 
         typeid(*a) == typeid(IntVal)
         ? ((IntVal*) a)->get() :
           ((RealVal*) a)->get();
+    
+    if (typeid(*b) == typeid(MatrixVal)) {
+        // rhs is a matrix
+        return new MatrixVal(x*((MatrixVal*) b)->get());
+    } else {
+        // rhs is numerical
+        auto y = 
+            typeid(*b) == typeid(IntVal)
+            ? ((IntVal*) b)->get() :
+              ((RealVal*) b)->get();
 
-    auto y = 
-        typeid(*b) == typeid(IntVal)
-        ? ((IntVal*) b)->get() :
-          ((RealVal*) b)->get();
-
-    // Compute the result
-    auto z = x * y;
-    if (typeid(*a) == typeid(RealVal) || typeid(*b) == typeid(RealVal))
-        return new RealVal(z);
-    else
-        return new IntVal(z);
-
+        // Compute the result
+        auto z = x * y;
+        if (typeid(*a) == typeid(RealVal) || typeid(*b) == typeid(RealVal))
+            return new RealVal(z);
+        else
+            return new IntVal(z);
+    }
 }
 
 // Expression for adding stuff

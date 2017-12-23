@@ -120,6 +120,32 @@ Value* DiffExp::derivativeOf(string x, Environment *env, Environment *denv) {
     return c;
 }
 
+Value* DivExp::derivativeOf(string x, Environment *env, Environment *denv) { 
+    if (!is_differentiable(left)) return NULL;
+    if (!is_differentiable(right)) return NULL;
+
+
+    Expression *a = reexpress(((Differentiable*) left)->derivativeOf(x, env, denv));
+    Expression *b = reexpress(((Differentiable*) right)->derivativeOf(x, env, denv));
+
+    if (!a || !b) {
+        delete a, b;
+        return NULL;
+    } else {
+        // d/dx a/b = (ba' - ab') / (b^2)
+        Expression *exp = new DivExp(
+                            new DiffExp(
+                                new MultExp(right->clone(), a),
+                                new MultExp(left->clone(), b)),
+                            new MultExp(right->clone(), right->clone()));
+        Value *c = exp->valueOf(env);
+
+        delete exp;
+        return c;
+    }
+
+}
+
 Value* ForExp::derivativeOf(string x, Environment *env, Environment *denv) {
 
     if (!is_differentiable(body)) {

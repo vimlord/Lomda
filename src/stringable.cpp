@@ -41,6 +41,9 @@ string DerivativeExp::toString() {
 string DiffExp::toString() {
     return left->toString() + " - " + right->toString();
 }
+string DivExp::toString() {
+    return left->toString() + " / " + right->toString();
+}
 string CompareExp::toString() {
     string s = left->toString();
     

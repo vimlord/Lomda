@@ -39,6 +39,17 @@ class DiffExp : public OperatorExp {
         std::string toString();
 };
 
+class DivExp : public OperatorExp {
+    public:
+        using OperatorExp::OperatorExp;
+
+        Value* op(Value*, Value*);
+        Value* derivativeOf(std::string, Environment*, Environment*);
+        
+        Expression* clone() { return new DivExp(left->clone(), right->clone()); }
+        std::string toString();
+};
+
 enum CompOp {
     EQ, NEQ, GT, LT, LEQ, GEQ
 };
@@ -59,7 +70,7 @@ class CompareExp : public OperatorExp {
         std::string toString();
 };
 
-// Expression for adding numbers.
+// Expression for multiplying numbers.
 class MultExp : public OperatorExp {
     public:
         using OperatorExp::OperatorExp;
@@ -69,7 +80,7 @@ class MultExp : public OperatorExp {
         
         Expression* clone() { return new MultExp(left->clone(), right->clone()); }
         std::string toString();
-};;
+};
 
 // Expression for adding numbers.
 class SumExp : public OperatorExp {

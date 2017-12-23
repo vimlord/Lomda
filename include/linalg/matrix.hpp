@@ -31,6 +31,10 @@ class Matrix : public Stringable {
         Matrix operator-(Matrix& other);
 
         Matrix operator*(Matrix& other);
+        Matrix operator*(float other);
+
+        Matrix operator/(Matrix&);
+        Matrix operator/(float);
 
         bool operator==(Matrix& other);
 
@@ -45,5 +49,9 @@ class Matrix : public Stringable {
         std::string toString();
         
 };
+
+// Extra matrix operations
+Matrix operator*(float, Matrix);
+Matrix operator/(float, Matrix);
 
 #endif
