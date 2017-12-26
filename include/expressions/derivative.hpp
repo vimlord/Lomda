@@ -4,7 +4,7 @@
 #include "baselang/expression.hpp"
 #include "environment.hpp"
 
-class Differentiable : public Expression {
+class Differentiable {
     public:
         /**
          * Computes the derivative of an expression.

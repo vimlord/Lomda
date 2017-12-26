@@ -3,7 +3,7 @@
 
 #include "expressions/derivative.hpp"
 
-class OperatorExp : public Differentiable {
+class OperatorExp : public Expression {
     protected:
         Expression *left;
         Expression *right;
@@ -19,16 +19,12 @@ class AndExp : public OperatorExp {
     public:
         using OperatorExp::OperatorExp;
         Value* op(Value*, Value*);
-        Value* derivativeOf(std::string, Environment*, Environment*) {
-            throw_err("runtime", "expression '" + toString() + "' is non-differentiable");
-            return NULL;
-        }
         
         Expression* clone() { return new AndExp(left->clone(), right->clone()); }
         std::string toString();
 };
 
-class DiffExp : public OperatorExp {
+class DiffExp : public OperatorExp, public Differentiable {
     public:
         using OperatorExp::OperatorExp;
 
@@ -39,7 +35,7 @@ class DiffExp : public OperatorExp {
         std::string toString();
 };
 
-class DivExp : public OperatorExp {
+class DivExp : public OperatorExp, public Differentiable {
     public:
         using OperatorExp::OperatorExp;
 
@@ -61,17 +57,13 @@ class CompareExp : public OperatorExp {
             operation = op;
         }
         Value* op(Value*, Value*);
-        Value* derivativeOf(std::string, Environment*, Environment*) {
-            throw_err("runtime", "expression '" + toString() + "' is non-differentiable");
-            return NULL;
-        }
         
         Expression* clone() { return new CompareExp(left->clone(), right->clone(), operation); }
         std::string toString();
 };
 
 // Expression for multiplying numbers.
-class MultExp : public OperatorExp {
+class MultExp : public OperatorExp, public Differentiable {
     public:
         using OperatorExp::OperatorExp;
 
@@ -83,7 +75,7 @@ class MultExp : public OperatorExp {
 };
 
 // Expression for adding numbers.
-class SumExp : public OperatorExp {
+class SumExp : public OperatorExp, public Differentiable {
     public:
         using OperatorExp::OperatorExp;
 

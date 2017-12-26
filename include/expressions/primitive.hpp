@@ -15,7 +15,7 @@ class FalseExp : public Expression {
 };
 
 // Expression for an integer.
-class IntExp : public Differentiable {
+class IntExp : public Expression, public Differentiable {
     private:
         int val;
     public:
@@ -28,7 +28,7 @@ class IntExp : public Differentiable {
 };
 
 // Expression that yields closures (lambdas)
-class LambdaExp : public Differentiable {
+class LambdaExp : public Expression, public Differentiable {
     private:
         std::string *xs;
         Expression *exp;
@@ -44,7 +44,7 @@ class LambdaExp : public Differentiable {
         std::string toString();
 };
 
-class ListExp : public Differentiable {
+class ListExp : public Expression, public Differentiable {
     private:
         List<Expression*> *list;
     public:
@@ -63,7 +63,7 @@ class ListExp : public Differentiable {
         std::string toString();
 };
 
-class MatrixExp : public Differentiable {
+class MatrixExp : public Expression, public Differentiable {
     private:
         Expression *list;
     public:
@@ -78,7 +78,7 @@ class MatrixExp : public Differentiable {
 };
 
 // Expression for a real number.
-class RealExp : public Differentiable {
+class RealExp : public Expression, public Differentiable {
     private:
         float val;
     public:
@@ -101,7 +101,7 @@ class TrueExp : public Expression {
 };
 
 // Get the value of a variable
-class VarExp : public Differentiable {
+class VarExp : public Expression, public Differentiable {
     private:
         std::string id;
     public:
