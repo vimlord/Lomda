@@ -97,7 +97,6 @@ string LetExp::toString() {
         if (i) s += ", ";
         s += ids[i] + " = " + exps[i]->toString();
     }
-    
     s += "; " + body->toString();
     return s;
 }
@@ -144,6 +143,13 @@ string MultExp::toString() {
 }
 string NotExp::toString() {
     return "not " + exp->toString();
+}
+string PrintExp::toString() {
+    string s = "print";
+    for (int i = 0; args[i]; i++)
+        s += " " + args[i]->toString();
+
+    return s;
 }
 string RealExp::toString() {
     return to_string(val) + "f";

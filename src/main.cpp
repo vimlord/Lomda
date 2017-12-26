@@ -12,8 +12,8 @@ using namespace std;
 void execute(string program) {
     Value *v = run(program);
     if (v) {
-        if (VERBOSITY()) cout << "(" << v << ")\n==> ";
-        cout << *v << "\n";
+        if (VERBOSITY()) cout << "(" << v << ")\n==> " << *v;
+        else if (typeid(*v) != typeid(VoidVal)) cout << *v << "\n";
         v->rem_ref();
     }
 }

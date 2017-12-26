@@ -23,6 +23,11 @@ ParsedPrgms parseStatement(string str, bool ends) {
     res = parseForExp(str, ends);
     if (!res->isEmpty()) return res;
 
+    // print-exp
+    delete res;
+    res = parsePrintExp(str, ends);
+    if (!res->isEmpty()) return res;
+
     // insert-exp
     delete res;
     res = parseInsertExp(str, ends);

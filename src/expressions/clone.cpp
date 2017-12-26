@@ -58,6 +58,17 @@ Expression* ListExp::clone() {
 
 }
 
+Expression* PrintExp::clone() {
+    int i;
+    for (i = 0; args[i]; i++);
+
+    Expression **list = new Expression*[i+1];
+    list[i] = NULL;
+    while (i--) list[i] = args[i]->clone();
+
+    return new PrintExp(list);
+}
+
 Expression* SetExp::clone() {
     int i;
     for (i = 0; exps[i]; i++);

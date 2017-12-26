@@ -96,7 +96,7 @@ class RealVal : public Value {
 
 class VoidVal : public Value {
     public:
-        std::string toString() { return "(void-val)"; }
+        std::string toString() { return "void"; }
         VoidVal* clone() { return new VoidVal; }
         int set(Value*) {}
 };

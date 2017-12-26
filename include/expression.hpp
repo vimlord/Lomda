@@ -182,6 +182,19 @@ class NotExp : public Expression {
         std::string toString();
 };
 
+class PrintExp : public Expression {
+    private:
+        Expression **args;
+    public:
+        PrintExp(Expression **l) : args(l) {}
+        ~PrintExp() { for (int i = 0; args[i]; i++) delete args[i]; delete[] args; }
+
+        Value* valueOf(Environment*);
+
+        Expression* clone();
+        std::string toString();
+};
+
 class SequenceExp : public Expression {
     private:
         Expression *pre;

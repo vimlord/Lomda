@@ -397,6 +397,36 @@ ParsedPrgms parsePemdas(string str, bool ends) {
     return res;
 }
 
+ParsedPrgms parsePrintExp(string str, bool ends) {
+    ParsedPrgms res = new LinkedList<parsed_prgm>;
+
+    int i;
+    int len = parseLit(str, "print");
+    if (len < 0) return res;
+
+    str = str.substr(len);
+
+    LinkedList<struct arglist> *arglists = parseArgList(str, ends);
+    while (!arglists->isEmpty()) {
+        struct arglist alst = arglists->remove(0);
+
+        Expression **args = new Expression*[alst.list->size() + 1];
+        for (i = 0; !alst.list->isEmpty(); i++)
+            args[i] = alst.list->remove(0).exp;
+        args[i] = NULL;
+        delete alst.list; // The list is empty and useless (destroy it)
+
+        parsed_prgm p;
+        p.item = new PrintExp(args);
+        p.len = alst.len + len;
+
+        res->add(0, p);
+    }
+    delete arglists;
+    
+    return res;
+}
+
 /**
  * <remove-exp> ::= 'remove' <pemdas> 'from' <pemdas>
  */

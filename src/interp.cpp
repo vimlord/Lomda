@@ -597,6 +597,24 @@ Value* OperatorExp::valueOf(Environment *env) {
     }
 }
 
+Value* PrintExp::valueOf(Environment *env) {
+    string s = "";
+    
+    for (int i = 0; args[i]; i++) {
+        Value *v = args[i]->valueOf(env);
+        if (!v)
+            return NULL;
+
+        if (i) s += " ";
+        s += v->toString();
+        
+        v->rem_ref();
+    }
+
+    std::cout << s << "\n";
+    return new VoidVal;
+}
+
 Value* RealExp::valueOf(Environment *env) {
     return new RealVal(val);
 }
