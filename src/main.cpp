@@ -97,9 +97,11 @@ int main(int argc, char *argv[]) {
         string s;
         getline(file, s);
 
-        if (i++) program += "\n";
+        if (i++) program += " ";
         program += s;
     } while (file);
+
+    std::cout << "program:\n" << program << "\n";
 
     file.close();
 

@@ -119,6 +119,9 @@ int parseSpaces(string str) {
     return i;
 }
 
+/**
+ * <arglist> ::= <pemdas-exp> (',' <pemdas-exp>)*
+ */
 LinkedList<struct arglist>* parseArgList(string str, bool ends) {
     int i;
  
@@ -238,8 +241,12 @@ ParsedPrgms parseCodeBlock(string str, bool ends) {
 ParsedPrgms parseAccessor(string str, bool ends) {
     ParsedPrgms res = new LinkedList<parsed_prgm>;
 
+    //std::cout << "searching '" << str << "' for subaccessors\n";
+
     // The possible expansions
     ParsedPrgms lists = parsePrimitive(str, false);
+
+    //std::cout << "found " << lists->size() << " subaccessors in '" << str << "'\n";
 
     while (!lists->isEmpty()) {
         parsed_prgm lst = lists->remove(0);
@@ -257,6 +264,8 @@ ParsedPrgms parseAccessor(string str, bool ends) {
             // This is a list accessor
             lst.len += i;
             s = s.substr(i);
+
+            //std::cout << "found open bracket; may be array access in '" << s << "'\n";
 
             ParsedPrgms indices = parsePemdas(s, false);
             while (!indices->isEmpty()) {
@@ -307,7 +316,12 @@ ParsedPrgms parseAccessor(string str, bool ends) {
             lst.len += i;
             s = s.substr(i);
 
+            //std::cout << "found open parenthesis; there may be more in '" << s << "'\n";
+
             LinkedList<struct arglist> *arglists = parseArgList(s, false);
+
+            //std::cout << "possible arglists: " << arglists->size() << "\n";
+
             while (!arglists->isEmpty()) {
                 struct arglist alst = arglists->remove(0);
 
@@ -316,6 +330,7 @@ ParsedPrgms parseAccessor(string str, bool ends) {
 
                 i = parseLit(st, ")");
                 if (i < 0) {
+                    std::cout << "option failed! leaves '" << st << "'\n";
                     // Garbage collection on the useless argument list
                     while (!alst.list->isEmpty())
                         delete alst.list->remove(0).exp;
@@ -335,6 +350,8 @@ ParsedPrgms parseAccessor(string str, bool ends) {
                 parsed_prgm p;
                 p.item = new ApplyExp(lst.item->clone(), args);
                 p.len = alst.len + lst.len;
+
+                //std::cout << "found apply-exp: '" << *(p.item) << "'\n";
 
                 lists->add(0, p);
             }
@@ -675,6 +692,19 @@ ParsedPrgms parseListExp(string str, bool ends) {
         return res;
     }
     str = str.substr(len);
+
+    if ((i = parseLit(str, "]")) >= 0) {
+        // Empty list
+        parsed_prgm p;
+
+        LinkedList<Expression*> *vals = new LinkedList<Expression*>;
+        p.item = new ListExp(vals);
+
+        p.len = len + i;
+
+        res->add(0, p);
+        return res;
+    }
 
     //std::cout << "perhaps a list: '" << str << "'\n";
 
