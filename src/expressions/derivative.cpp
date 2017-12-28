@@ -102,7 +102,10 @@ Value* ApplyExp::derivativeOf(string x, Environment *env, Environment *denv) {
     
     Value *v = deriv->valueOf(env);
 
+    o->rem_ref();
+
     delete deriv;
+
     return v;
 }
 
