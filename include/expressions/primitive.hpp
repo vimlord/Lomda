@@ -15,7 +15,7 @@ class FalseExp : public Expression {
 };
 
 // Expression for an integer.
-class IntExp : public Expression, public Differentiable {
+class IntExp : public Differentiable {
     private:
         int val;
     public:
@@ -28,7 +28,7 @@ class IntExp : public Expression, public Differentiable {
 };
 
 // Expression that yields closures (lambdas)
-class LambdaExp : public Expression, public Differentiable {
+class LambdaExp : public Differentiable {
     private:
         std::string *xs;
         Expression *exp;
@@ -44,7 +44,7 @@ class LambdaExp : public Expression, public Differentiable {
         std::string toString();
 };
 
-class ListExp : public Expression, public Differentiable {
+class ListExp : public Differentiable {
     private:
         List<Expression*> *list;
     public:
@@ -63,7 +63,7 @@ class ListExp : public Expression, public Differentiable {
         std::string toString();
 };
 
-class MatrixExp : public Expression, public Differentiable {
+class MatrixExp : public Differentiable {
     private:
         Expression *list;
     public:
@@ -78,7 +78,7 @@ class MatrixExp : public Expression, public Differentiable {
 };
 
 // Expression for a real number.
-class RealExp : public Expression, public Differentiable {
+class RealExp : public Differentiable {
     private:
         float val;
     public:
@@ -87,6 +87,18 @@ class RealExp : public Expression, public Differentiable {
         Value* derivativeOf(std::string, Environment*, Environment*) { return new IntVal(0); } // d/dx c = 0
         
         Expression* clone() { return new RealExp(val); }
+        std::string toString();
+};
+
+class StringExp : public Expression {
+    private:
+        std::string val;
+    public:
+        StringExp(std::string s) : val(s) {}
+
+        Value* valueOf(Environment*) { return new StringVal(val); }
+
+        Expression* clone() { return new StringExp(val); }
         std::string toString();
 };
 
@@ -101,16 +113,18 @@ class TrueExp : public Expression {
 };
 
 // Get the value of a variable
-class VarExp : public Expression, public Differentiable {
+class VarExp : public Differentiable {
     private:
         std::string id;
     public:
         VarExp(std::string s) : id(s) {}
+
         Value* valueOf(Environment *env);
-        Value* derivativeOf(std::string, Environment*, Environment*);
         
         Expression* clone() { return new VarExp(id); }
-        std::string toString() { return id; }
+        std::string toString();
+
+        Value* derivativeOf(std::string, Environment*, Environment*);
 };
 
 #endif

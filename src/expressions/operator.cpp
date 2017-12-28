@@ -245,6 +245,10 @@ Value* MultExp::op(Value *a, Value *b) {
 
 // Expression for adding stuff
 Value* SumExp::op(Value *a, Value *b) {
+    // Handle strings
+    if (typeid(*a) == typeid(StringVal) ||
+        typeid(*b) == typeid(StringVal))
+        return new StringVal(a->toString() + b->toString());
 
     if (typeid(*a) == typeid(BoolVal) ||
         typeid(*a) == typeid(LambdaVal)) {

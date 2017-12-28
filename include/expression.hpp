@@ -8,7 +8,7 @@
 #include "expressions/derivative.hpp"
 
 // Calling functions; {a->b, a} -> b
-class ApplyExp : public Expression, public Differentiable {
+class ApplyExp : public Differentiable {
     private:
         Expression *op;
         Expression **args;
@@ -37,7 +37,7 @@ class DerivativeExp : public Expression {
         std::string toString();
 };
 
-class ForExp : public Expression, public Differentiable {
+class ForExp : public Differentiable {
     private:
         std::string id;
         Expression *set;
@@ -53,7 +53,7 @@ class ForExp : public Expression, public Differentiable {
 };
 
 // Condition expression that chooses paths
-class IfExp : public Expression, public Differentiable {
+class IfExp : public Differentiable {
     private:
         Expression *cond;
         Expression *tExp;
@@ -70,7 +70,7 @@ class IfExp : public Expression, public Differentiable {
 };
 
 // Expression for defining variables
-class LetExp : public Expression, public Differentiable {
+class LetExp : public Differentiable {
     private:
         std::string *ids;
         Expression **exps;
@@ -92,7 +92,7 @@ class LetExp : public Expression, public Differentiable {
 };
 
 // For accessing an element of an array (theoretically, can be used to get or set)
-class ListAccessExp : public Expression, public Differentiable {
+class ListAccessExp : public Differentiable {
     private:
         Expression *list;
         Expression *idx;
@@ -154,7 +154,7 @@ class ListSliceExp : public Expression {
         std::string toString();
 };
 
-class MagnitudeExp : public Expression, public Differentiable {
+class MagnitudeExp : public Differentiable {
     private:
         Expression *exp;
     public:
@@ -210,7 +210,7 @@ class SequenceExp : public Expression {
 };
 
 // Expression for redefining values in a store
-class SetExp : public Expression, public Differentiable {
+class SetExp : public Differentiable {
     private:
         Expression **tgts;
         Expression **exps;
@@ -228,7 +228,7 @@ class SetExp : public Expression, public Differentiable {
         std::string toString();
 };
 
-class WhileExp : public Expression, public Differentiable {
+class WhileExp : public Differentiable {
     private:
         Expression *cond;
         Expression *body;

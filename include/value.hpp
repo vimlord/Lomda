@@ -94,6 +94,19 @@ class RealVal : public Value {
         RealVal* clone() { return new RealVal(val); }
 };
 
+class StringVal : public Value {
+    private:
+        std::string val;
+    public:
+        StringVal(std::string s) : val(s) {}
+
+        std::string get() { return val; }
+        int set(Value*);
+
+        std::string toString();
+        StringVal* clone() { return new StringVal(val); }
+};
+
 class VoidVal : public Value {
     public:
         std::string toString() { return "void"; }

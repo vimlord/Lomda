@@ -78,7 +78,11 @@ Value* ApplyExp::valueOf(Environment *env) {
 }
 
 Value* deriveVal(Value *v, int c = 1) {
-    if (typeid(*v) == typeid(ListVal)) {
+    if (typeid(*v) == typeid(StringVal) ||
+        typeid(*v) == typeid(BoolVal))
+        // Certain types are non-differentiable
+        return NULL;
+    else if (typeid(*v) == typeid(ListVal)) {
         auto it = ((ListVal*) v)->get()->iterator();
         LinkedList<Value*> *lst = new LinkedList<Value*>;
         while (it->hasNext()) {
@@ -136,14 +140,20 @@ Value* DerivativeExp::valueOf(Environment* env) {
             } else {
                 // Trivial derivative: d/dx c = 0
                 Value *c = deriveVal(v, id == var ? 1 : 0);
-                denv = new ExtendEnv(id, c, denv);
-                c->rem_ref(); // The derivative exists only within the environment
+
+                if (c) {
+                    // The value is of a differentiable type
+                    denv = new ExtendEnv(id, c, denv);
+                    c->rem_ref(); // The derivative exists only within the environment
+                }
             }
         }
 
         // Now, we have the variable, the environment, and the differentiable
         // environment. So, we can simply derive and return the result.
-        Value *res = ((Differentiable*) func)->derivativeOf(var, env, denv);
+        //std::cout << "compute d/d" << var << " | env ::= " << *env << ", denv ::= " << *denv << "\n";
+        Differentiable *df = (Differentiable*) func;
+        Value *res = df->derivativeOf(var, env, denv);
 
         // Garbage collection
         delete denv;

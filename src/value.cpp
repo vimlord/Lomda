@@ -75,6 +75,13 @@ int RealVal::set(Value *v) {
     } else return 1;
 }
 
+int StringVal::set(Value *v) {
+    if (typeid(*v) == typeid(StringVal)) {
+        val = ((StringVal*) v)->get();
+        return 0;
+    } else return 1;
+}
+
 // Lambdas
 LambdaVal::LambdaVal(string *ids, Expression *exp, Environment *env) {
     this->xs = ids;

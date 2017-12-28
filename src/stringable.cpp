@@ -173,8 +173,14 @@ string SetExp::toString() {
 
     return s;
 }
+string StringExp::toString() {
+    return "\"" + val + "\"";
+}
 string SumExp::toString() {
     return left->toString() + " + " + right->toString();
+}
+string VarExp::toString() {
+    return id;
 }
 string WhileExp::toString() {
     if (alwaysEnter)
@@ -232,5 +238,5 @@ string MatrixVal::toString() {
     return val.toString();
 }
 string RealVal::toString() { return to_string(val); }
-
+string StringVal::toString() { return val; }
 

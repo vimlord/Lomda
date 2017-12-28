@@ -46,6 +46,11 @@ Expression* reexpress(Value* v) {
         return NULL;
 }
 
+Value* AndExp::derivativeOf(string x, Environment *env, Environment *denv) {
+    throw_calc_err(this);
+    return NULL;
+}
+
 Value* ApplyExp::derivativeOf(string x, Environment *env, Environment *denv) {
     // d/dx f(u1(x), u2(x), ...) = df/du1 * du1/dx + df/du2 * du2/dx + ...
 
@@ -99,6 +104,11 @@ Value* ApplyExp::derivativeOf(string x, Environment *env, Environment *denv) {
 
     delete deriv;
     return v;
+}
+
+Value* CompareExp::derivativeOf(string, Environment*, Environment*) {
+    throw_calc_err(this);
+    return NULL;
 }
 
 Value* DiffExp::derivativeOf(string x, Environment *env, Environment *denv) {

@@ -12,7 +12,7 @@ using namespace std;
 void execute(string program) {
     Value *v = run(program);
     if (v) {
-        if (VERBOSITY()) cout << "(" << v << ")\n==> " << *v;
+        if (VERBOSITY()) cout << "(" << v << ")\n==> " << *v << "\n";
         else if (typeid(*v) != typeid(VoidVal)) cout << *v << "\n";
         v->rem_ref();
     }
@@ -101,7 +101,7 @@ int main(int argc, char *argv[]) {
         program += s;
     } while (file);
 
-    std::cout << "program:\n" << program << "\n";
+    //std::cout << "program:\n" << program << "\n";
 
     file.close();
 

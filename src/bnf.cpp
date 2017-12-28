@@ -330,7 +330,6 @@ ParsedPrgms parseAccessor(string str, bool ends) {
 
                 i = parseLit(st, ")");
                 if (i < 0) {
-                    std::cout << "option failed! leaves '" << st << "'\n";
                     // Garbage collection on the useless argument list
                     while (!alst.list->isEmpty())
                         delete alst.list->remove(0).exp;
@@ -1003,6 +1002,27 @@ ParsedPrgms parsePrimitive(string str, bool ends) {
             res->add(0, b);
         }
         delete tmp;
+        return res;
+    }
+    
+    // Parse for string literal
+    i = parseLit(str, "\"");
+    if (i > 0) {
+        string s = str.substr(i);
+
+        // Find the closing quote
+        int j;
+        for (j = 0; s[j] && s[j] != '"'; j++);
+
+        if (s[j]) {
+            string val = s.substr(0, j);
+
+            parsed_prgm p;
+            p.len = i + j + 1;
+            p.item = new StringExp(val);
+
+            res->add(0, p);
+        }
         return res;
     }
     
