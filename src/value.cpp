@@ -166,10 +166,14 @@ ListVal::~ListVal() {
 }
 ListVal* ListVal::clone() {
     // Add a copy of each element of the list
-    Iterator<int, Value*> *it = list->iterator();
-    ListVal *res = new ListVal(list);
-    for (int i = 0; it->hasNext(); i++)
-        res->list->add(i, it->next());
+    auto it = list->iterator();
+    ListVal *res = new ListVal;
+    
+    for (int i = 0; it->hasNext(); i++) {
+        Value *v = it->next();
+        res->list->add(i, v);
+        v->add_ref();
+    }
 
     // Give it back
     return res;

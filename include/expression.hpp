@@ -168,6 +168,21 @@ class MagnitudeExp : public Differentiable {
         std::string toString();
 };
 
+class MapExp : public Differentiable {
+    private:
+        Expression *func;
+        Expression *list;
+    public:
+        MapExp(Expression *l, Expression *f) : func(f), list(l) {}
+        ~MapExp() { delete func; delete list; }
+        Expression* clone() { return new MapExp(list->clone(), func->clone()); }
+
+        Value* valueOf(Environment*);
+        Value* derivativeOf(std::string, Environment*, Environment*);
+        
+        std::string toString();
+};
+
 // Bool -> Bool expression that negates booleans
 class NotExp : public Expression {
     private:

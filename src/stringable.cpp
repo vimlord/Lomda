@@ -132,11 +132,14 @@ string ListRemExp::toString() {
 string ListSliceExp::toString() {
     return list->toString() + "[" + from->toString() + ":" + to->toString() + "]";
 }
-string MatrixExp::toString() {
-    return "matrix from " + list->toString();
-}
 string MagnitudeExp::toString() {
     return "|" + exp->toString() + "|";
+}
+string MapExp::toString() {
+    return "map " + list->toString() + " to " + func->toString();
+}
+string MatrixExp::toString() {
+    return "matrix from " + list->toString();
 }
 string MultExp::toString() {
     return left->toString() + " * " + right->toString();

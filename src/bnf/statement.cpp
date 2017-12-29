@@ -372,28 +372,76 @@ ParsedPrgms parseLetExp(string str, bool ends) {
 }
 
 /**
+ * <map-exp> ::= 'map' <pemdas> 'to' <pemdas>
+ */
+ParsedPrgms parseMapExp(string str, bool ends) {
+    
+    int len, i;
+    ParsedPrgms res = new LinkedList<parsed_prgm>;
+
+    len = parseLit(str, "map");
+    if (len < 0) return res;
+    str = str.substr(len);
+    
+    // The possible indices
+    ParsedPrgms sets = parsePemdas(str, false);
+    
+    while (!sets->isEmpty()) {
+        parsed_prgm set = sets->remove(0);
+
+        string s = str.substr(set.len);
+        int length = len + set.len;
+        
+        if ((i = parseLit(s, "to")) < 0) {
+            delete set.item;
+            continue;
+        }
+
+        s = s.substr(i);
+        length += i;
+
+        // Now, parse for the truth body
+        ParsedPrgms lambdas = parsePemdas(s, ends);
+        
+        while (!lambdas->isEmpty()) {
+            parsed_prgm fn = lambdas->remove(0);
+            fn.len += length;
+            
+            fn.item = new MapExp(set.item, fn.item);
+            res->add(0, fn);
+
+            set.item = set.item->clone();
+        }
+        delete lambdas;
+    }
+    delete sets;
+
+    return res;
+}
+
+/**
  * top-level pemdas-exp
  */
 ParsedPrgms parsePemdas(string str, bool ends) {
     // Parse for lambdas
-    ParsedPrgms res = parseLambdaExp(str, ends);
+    ParsedPrgms res;
     
-    //std::cout << "pemdas program '" << str << "' " << (ends ? "should" : "need not") << " end\n";
-
-    //std::cout << "found " << res->size() << " possible lambdas in '" << str << "'\n";
+    res = parseLambdaExp(str, ends);
+    if (!res->isEmpty()) return res;
+    
+    // Parse for map expression
+    delete res;
+    res = parseMapExp(str, ends);
     if (!res->isEmpty()) return res;
 
     // Parse for derivative
     delete res;
     res = parseDerivative(str, ends);
-
-    //std::cout << "found " << res->size() << " possible differentials in '" << str << "'\n";
     if (!res->isEmpty()) return res;
 
     delete res;
     res = parseSetExp(str, ends);
 
-    //std::cout << "found " << res->size() << " possible base exps in '" << str << "'\n";
     return res;
 }
 

@@ -303,7 +303,7 @@ Value* ListExp::derivativeOf(string x, Environment *env, Environment *denv) {
     ListVal *val = new ListVal();
     
     // Add each item
-    Iterator<int, Expression*> *it = list->iterator();
+    auto it = list->iterator();
     for(int i = 0; it->hasNext(); i++) {
         // Compute the value of each item
         Expression *exp = it->next();
@@ -311,7 +311,7 @@ Value* ListExp::derivativeOf(string x, Environment *env, Environment *denv) {
             delete it;
             return NULL;
         }
-        Value *v = ((Differentiable*) exp)->derivativeOf(x,env, denv);
+        Value *v = ((Differentiable*) exp)->derivativeOf(x, env, denv);
         if (!v) {
             delete it;
             return NULL;
@@ -320,7 +320,8 @@ Value* ListExp::derivativeOf(string x, Environment *env, Environment *denv) {
     }
 
     delete it;
-    return val;}
+    return val;
+}
 
 Value* ListAccessExp::derivativeOf(string x, Environment *env, Environment *denv) {
     if (!is_differentiable(list)) {
@@ -365,6 +366,148 @@ Value* MagnitudeExp::derivativeOf(string x, Environment *env, Environment *denv)
 
     return res;
 }
+
+Value* MapExp::derivativeOf(string x, Environment *env, Environment *denv) {
+    if (!is_differentiable(list)) return NULL;
+    if (!is_differentiable(func)) return NULL;
+
+    Value *vs = list->valueOf(env);
+    if (!vs) return NULL;
+
+    Value *dvs = ((Differentiable*) list)->derivativeOf(x, env, denv);
+    if (!dvs) {
+        // The list could not be differentiated
+        vs->rem_ref();
+        return NULL;
+    }
+
+    Value *f = ((Differentiable*) func)->derivativeOf(x, env, denv);
+    if (!f) {
+        vs->rem_ref();
+        dvs->rem_ref();
+        return NULL;
+    }
+
+    if (typeid(*f) != typeid(LambdaVal)) {
+        throw_type_err(func, "lambda");
+        vs->rem_ref();
+        dvs->rem_ref();
+        f->rem_ref();
+        return NULL;
+    }
+
+    // Extract the function... require that it have one argument
+    LambdaVal *fn = (LambdaVal*) f;
+    if (fn->getArgs()[0] == "" || fn->getArgs()[1] != "") {
+        throw_err("runtime", "map function '" + fn->toString() + "' does not take exactly one argument");
+        fn->rem_ref();
+        vs->rem_ref();
+        dvs->rem_ref();
+        return NULL;
+    }
+
+    if (typeid(*vs) == typeid(ListVal)) {
+        // Given a list, map each element of the list
+        ListVal *vals = (ListVal*) vs;
+        ListVal *dvals = (ListVal*) dvs;
+
+        ListVal *res = new ListVal;
+        
+        auto it = vals->get()->iterator();
+        auto dit = dvals->get()->iterator();
+        while (it->hasNext()) {
+            Value *v = it->next();
+            Value *dv = dit->next();
+
+            Value **xs = new Value*[2];
+            xs[0] = v;
+            xs[1] = NULL;
+
+            Value *elem = fn->apply(xs);
+
+            if (!elem) {
+                fn->rem_ref();
+                vals->rem_ref();
+                dvals->rem_ref();
+                res->rem_ref();
+                return NULL;
+            } else {
+                // Compute the other part
+                Expression *cell = new MultExp(
+                    reexpress(elem), reexpress(dv)
+                );
+                elem->rem_ref();
+
+                elem = cell->valueOf(env);
+                delete cell;
+
+                if (elem)
+                    // Compute the answer
+                    res->get()->add(res->get()->size(), elem);
+                else {
+                    // The product could not be computed; collect garbage and quit
+                    fn->rem_ref();
+                    vals->rem_ref();
+                    dvals->rem_ref();
+                    res->rem_ref();
+                    return NULL;
+                }
+            }
+        }
+        delete it;
+        delete dit;
+        
+        // Garbage collection
+        fn->rem_ref();
+        vals->rem_ref();
+        dvals->rem_ref();
+
+        return res;
+
+    } else if (typeid(*vs) == typeid(MatrixVal)) {
+        Matrix v = ((MatrixVal*) vs)->get();
+        Matrix M(v.R, v.C);
+
+        Value *xs[2];
+        xs[1] = NULL;
+        
+        for (int r = 0; r < M.R; r++)
+        for (int c = 0; c < M.C; c++) {
+            xs[0] = new RealVal(v(r, c));
+
+            Value *elem = fn->apply(xs);
+            
+            // Garbage collection
+            xs[0]->rem_ref();
+
+            if (!elem) {
+                // The matrix is non-computable, so failure!
+                fn->rem_ref();
+                vs->rem_ref();
+                return NULL;
+            } else if (typeid(*elem) == typeid(RealVal)) {
+                M(r, c) = ((RealVal*) elem)->get();
+            } else if (typeid(*elem) == typeid(IntVal)) {
+                M(r, c) = (float) (((IntVal*) elem)->get());
+            } else {
+                elem->rem_ref();
+                fn->rem_ref();
+                vs->rem_ref();
+                return NULL;
+            }
+        }
+
+        fn->rem_ref();
+        vs->rem_ref();
+        return new MatrixVal(M);
+
+    } else {
+        vs->rem_ref();
+        fn->rem_ref();
+        return NULL;
+    }
+}
+
 
 Value* MatrixExp::derivativeOf(string x, Environment *env, Environment *denv) {
     if (!is_differentiable(list)) return NULL;

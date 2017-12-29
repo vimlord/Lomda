@@ -295,10 +295,10 @@ Value* LetExp::valueOf(Environment* env) {
 
 Value* ListExp::valueOf(Environment *env) {
     // Generate a blank list
-    ListVal *val = new ListVal();
+    ListVal *val = new ListVal;
     
     // Add each item
-    Iterator<int, Expression*> *it = list->iterator();
+    auto it = list->iterator();
     for(int i = 0; it->hasNext(); i++) {
         // Compute the value of each item
         Value *v = it->next()->valueOf(env);
@@ -480,6 +480,111 @@ Value* MagnitudeExp::valueOf(Environment *env) {
     v->rem_ref();
 
     return res;
+}
+
+Value* MapExp::valueOf(Environment *env) {
+    Value *vs = list->valueOf(env);
+    if (!vs) return NULL;
+
+    Value *f = func->valueOf(env);
+    if (!f) { vs->rem_ref(); return NULL; }
+    
+    if (typeid(*f) != typeid(LambdaVal)) {
+        throw_type_err(func, "lambda");
+        vs->rem_ref();
+        return NULL;
+    }
+
+    // Extract the function... require that it have one argument
+    LambdaVal *fn = (LambdaVal*) f;
+    if (fn->getArgs()[0] == "" || fn->getArgs()[1] != "") {
+        throw_err("runtime", "map function '" + fn->toString() + "' does not take exactly one argument");
+        fn->rem_ref();
+        vs->rem_ref();
+        return NULL;
+    }
+
+    // Get the arguments
+    Expression *map = fn->getBody();
+
+    if (typeid(*vs) == typeid(ListVal)) {
+        // Given a list, map each element of the list
+        ListVal *vals = (ListVal*) vs;
+        ListVal *res = new ListVal();
+        
+        int i = 0;
+        auto it = vals->get()->iterator();
+        while (it->hasNext()) {
+            Value *v = it->next();
+
+            Value **xs = new Value*[2];
+            xs[0] = v;
+            xs[1] = NULL;
+
+            Value *elem = fn->apply(xs);
+
+            delete[] xs;
+
+            if (!elem) {
+                fn->rem_ref();
+                vals->rem_ref();
+                res->rem_ref();
+                return NULL;
+            } else {
+                res->get()->add(res->get()->size(), elem);
+            }
+
+            i++;
+        }
+        delete it;
+        
+        fn->rem_ref();
+        vals->rem_ref();
+
+        return res;
+
+    } else if (typeid(*vs) == typeid(MatrixVal)) {
+        Matrix v = ((MatrixVal*) vs)->get();
+        Matrix M(v.R, v.C);
+
+        Value *xs[2];
+        xs[1] = NULL;
+        
+        for (int r = 0; r < M.R; r++)
+        for (int c = 0; c < M.C; c++) {
+            xs[0] = new RealVal(v(r, c));
+
+            Value *elem = fn->apply(xs);
+            
+            // Garbage collection
+            xs[0]->rem_ref();
+
+            if (!elem) {
+                // The matrix is non-computable, so failure!
+                fn->rem_ref();
+                vs->rem_ref();
+                return NULL;
+            } else if (typeid(*elem) == typeid(RealVal)) {
+                M(r, c) = ((RealVal*) elem)->get();
+            } else if (typeid(*elem) == typeid(IntVal)) {
+                M(r, c) = (float) (((IntVal*) elem)->get());
+            } else {
+                elem->rem_ref();
+                fn->rem_ref();
+                vs->rem_ref();
+                return NULL;
+            }
+        }
+
+        fn->rem_ref();
+        vs->rem_ref();
+        return new MatrixVal(M);
+
+    } else {
+        vs->rem_ref();
+        fn->rem_ref();
+        return NULL;
+    }
 }
 
 Value* MatrixExp::valueOf(Environment *env) {
@@ -674,7 +779,6 @@ Value* VarExp::valueOf(Environment *env) {
     Value *res = env->apply(id);
     if (!res) throw_err("runtime", "variable '" + id + "' was not recognized");
     else res->add_ref(); // This necessarily creates a new reference. So, we must track it.
-    
 
     return res;
 }
