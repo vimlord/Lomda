@@ -10,7 +10,7 @@ using namespace std;
 
 void throw_warning(string form, string mssg) {
     if (WERROR()) throw_err(form, mssg);
-    else std::cerr << "\x1b[31m\x1b[1m" << (form == "" ? "" : (form + " "))
+    else std::cerr << "\x1b[33m\x1b[1m" << (form == "" ? "" : (form + " "))
                    << "warning:\x1b[0m " << mssg << "\n";
 }
 void throw_err(string form, string mssg) {

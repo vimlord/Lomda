@@ -5,6 +5,7 @@
 #include "environment.hpp"
 
 #include "bnf.hpp"
+#include "config.hpp"
 
 #include <cstring>
 
@@ -580,10 +581,23 @@ Value* MapExp::valueOf(Environment *env) {
         vs->rem_ref();
         return new MatrixVal(M);
 
-    } else {
+    } else if (WERROR()) {
+        throw_err("runtime", "expression '" + list->toString() + " does not evaluate as list");
         vs->rem_ref();
         fn->rem_ref();
         return NULL;
+    } else {
+        throw_warning("runtime", "expression '" + list->toString() + " does not evaluate as list");
+
+        Value *xs[2];
+        xs[0] = vs; xs[1] = NULL;
+
+        Value *v = fn->apply(xs);
+
+        vs->rem_ref();
+        fn->rem_ref();
+
+        return v;
     }
 }
 

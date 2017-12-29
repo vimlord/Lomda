@@ -1,6 +1,8 @@
 #include "expressions/derivative.hpp"
 #include "expression.hpp"
 
+#include "config.hpp"
+
 using namespace std;
 
 void throw_calc_err(Expression* exp) {
@@ -380,14 +382,14 @@ Value* MapExp::derivativeOf(string x, Environment *env, Environment *denv) {
         vs->rem_ref();
         return NULL;
     }
-
-    Value *f = ((Differentiable*) func)->derivativeOf(x, env, denv);
+    
+    Value *f = func->valueOf(env);
     if (!f) {
         vs->rem_ref();
         dvs->rem_ref();
         return NULL;
     }
-
+    
     if (typeid(*f) != typeid(LambdaVal)) {
         throw_type_err(func, "lambda");
         vs->rem_ref();
@@ -405,6 +407,15 @@ Value* MapExp::derivativeOf(string x, Environment *env, Environment *denv) {
         dvs->rem_ref();
         return NULL;
     }
+    
+    string var = fn->getArgs()[0];
+    fn->rem_ref();
+    f = ((Differentiable*) func)->derivativeOf(var, env, denv);
+    if (!f) {
+        vs->rem_ref();
+        dvs->rem_ref();
+        return NULL;
+    } else fn = (LambdaVal*) f;
 
     if (typeid(*vs) == typeid(ListVal)) {
         // Given a list, map each element of the list
@@ -466,6 +477,7 @@ Value* MapExp::derivativeOf(string x, Environment *env, Environment *denv) {
 
     } else if (typeid(*vs) == typeid(MatrixVal)) {
         Matrix v = ((MatrixVal*) vs)->get();
+        Matrix dv = ((MatrixVal*) dvs)->get();
         Matrix M(v.R, v.C);
 
         Value *xs[2];
@@ -484,11 +496,12 @@ Value* MapExp::derivativeOf(string x, Environment *env, Environment *denv) {
                 // The matrix is non-computable, so failure!
                 fn->rem_ref();
                 vs->rem_ref();
+                dvs->rem_ref();
                 return NULL;
             } else if (typeid(*elem) == typeid(RealVal)) {
-                M(r, c) = ((RealVal*) elem)->get();
+                M(r, c) = dv(r, c) * ((RealVal*) elem)->get();
             } else if (typeid(*elem) == typeid(IntVal)) {
-                M(r, c) = (float) (((IntVal*) elem)->get());
+                M(r, c) = dv(r, c) * (float) (((IntVal*) elem)->get());
             } else {
                 elem->rem_ref();
                 fn->rem_ref();
@@ -501,10 +514,37 @@ Value* MapExp::derivativeOf(string x, Environment *env, Environment *denv) {
         vs->rem_ref();
         return new MatrixVal(M);
 
-    } else {
+    } else if (WERROR()) {
+        throw_err("runtime", "expression '" + list->toString() + " does not evaluate as list");
         vs->rem_ref();
+        dvs->rem_ref();
         fn->rem_ref();
         return NULL;
+    } else {
+        throw_warning("runtime", "expression '" + list->toString() + "' does not evaluate as list");
+
+        Value *xs[2];
+        xs[0] = vs;
+        xs[1] = NULL;
+
+        Value *v = fn->apply(xs);
+
+        if (v) {
+            Expression *cell = new MultExp(
+                reexpress(v),
+                reexpress(dvs)
+            );
+            v->rem_ref();
+
+            v = cell->valueOf(env);
+            delete cell;
+        }
+
+        vs->rem_ref();
+        dvs->rem_ref();
+        fn->rem_ref();
+
+        return v;
     }
 }
 
