@@ -167,7 +167,50 @@ Value* DerivativeExp::valueOf(Environment* env) {
     }
 }
 
-Value* FalseExp::valueOf(Environment* env) { return new BoolVal(false); }
+Value* FalseExp::valueOf(Environment *env) { return new BoolVal(false); }
+
+Value* FoldExp::valueOf(Environment *env) {
+    Value *lst = list->valueOf(env);
+    if (!lst) return NULL;
+    else if (typeid(*lst) != typeid(ListVal)) {
+        lst->rem_ref();
+        throw_type_err(list, "list");
+        return NULL;
+    }
+    
+    Value *f = func->valueOf(env);
+    if (!f) return NULL;
+    else if (typeid(*f) != typeid(LambdaVal)) {
+        throw_type_err(func, "lambda");
+        return NULL;
+    }
+
+    LambdaVal *fn = (LambdaVal*) f;
+    int i;
+    for (i = 0; fn->getArgs()[i] != ""; i++);
+    if (i != 2) {
+        throw_err("runtime", "function defined by '" + func->toString() + "' does not take exactly two arguments");
+        return NULL;
+    }
+
+    auto it = ((ListVal*) lst)->get()->iterator();
+    Value *xs[3];
+    xs[0] = base->valueOf(env); // First slot is the accumulator
+    xs[2] = NULL; // Last slot is a null terminator.
+
+    while (it->hasNext() && xs[0]) {
+        // Second slot is the element
+        xs[1] = it->next();
+        
+        // Update the accumulator.
+        Value *acc = fn->apply(xs);
+        xs[0]->rem_ref();
+        xs[0] = acc;
+    }
+    
+    delete it;
+    return xs[0];
+}
 
 Value* ForExp::valueOf(Environment *env) {
     // Evaluate the list

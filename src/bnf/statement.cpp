@@ -4,6 +4,77 @@
 using namespace std;
 
 /**
+ * <fold-exp> ::= 'fold' <pemdas> 'into' <pemdas> 'at' <pemdas>
+ */
+ParsedPrgms parseFoldExp(string str, bool ends) {
+    
+    int len, i;
+    ParsedPrgms res = new LinkedList<parsed_prgm>;
+
+    len = parseLit(str, "fold");
+    if (len < 0) return res;
+    str = str.substr(len);
+
+    // The possible lists
+    ParsedPrgms lists = parsePemdas(str, false);
+    
+    while (!lists->isEmpty()) {
+        parsed_prgm lst = lists->remove(0);
+
+        string s = str.substr(lst.len);
+        int length = len + lst.len;;
+        
+        if ((i = parseLit(s, "into")) < 0) {
+            delete lst.item;
+            continue;
+        }
+
+        s = s.substr(i);
+        length += i;
+
+        // Now, parse for the truth body
+        ParsedPrgms funcs = parsePemdas(s, false);
+        
+        while (!funcs->isEmpty()) {
+            parsed_prgm fn = funcs->remove(0);
+
+            string st = s.substr(fn.len);
+            int l = length + fn.len;
+
+            // Next, we will filter for the 'else' keyword
+            if ((i = parseLit(st, "from")) < 0) {
+                // Remove the candidate
+                delete fn.item;
+                continue;
+            } else {
+                l += i;
+                st = st.substr(i);
+            }
+            
+            // The possible false bodies need to be found
+            ParsedPrgms bases = parsePemdas(st, ends);
+            while (!bases->isEmpty()) {
+                parsed_prgm base = bases->remove(0);
+                
+                // Now, we can generate an outcome
+                base.len += l;
+                base.item = new FoldExp(lst.item, fn.item, base.item);
+                res->add(0, base);
+
+                fn.item = fn.item->clone();
+                lst.item = lst.item->clone();
+
+            }
+            delete bases;
+        }
+        delete funcs;
+    }
+    delete lists;
+
+    return res;
+}
+
+/**
  * <for-exp> ::= 'for' <id> 'in' <pemdas> <codeblk>
  */
 ParsedPrgms parseForExp(string str, bool ends) {
@@ -432,6 +503,11 @@ ParsedPrgms parsePemdas(string str, bool ends) {
     // Parse for map expression
     delete res;
     res = parseMapExp(str, ends);
+    if (!res->isEmpty()) return res;
+
+    // Parse for fold expression
+    delete res;
+    res = parseFoldExp(str, ends);
     if (!res->isEmpty()) return res;
 
     // Parse for derivative

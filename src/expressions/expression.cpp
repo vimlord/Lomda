@@ -23,7 +23,7 @@ void throw_debug(string form, string mssg) {
                   << ":\x1b[0m " << mssg << "\n";
 }
 void throw_type_err(Expression *exp, std::string type) {
-    throw_err("runtime", "expression '" + exp->toString() + "' does not evaluate as " + type);
+    throw_err("type", "expression '" + exp->toString() + "' does not evaluate as " + type);
 }
 
 

@@ -64,6 +64,9 @@ string CompareExp::toString() {
 
     return s + right->toString();
 }
+string FoldExp::toString() {
+    return "fold " + list->toString() + " into " + func->toString() + " at " + base->toString();
+}
 string ForExp::toString() {
     return "for " + id + " in " + set->toString() + " " + body->toString();
 }
