@@ -1,18 +1,12 @@
-#include "expressions/derivative.hpp"
 #include "expression.hpp"
+#include "environment.hpp"
 
 #include "config.hpp"
 
 using namespace std;
 
 void throw_calc_err(Exp exp) {
-    throw_err("runtime", "expression '" + exp->toString() + "' is non-differentiable\n");
-}
-
-inline bool is_differentiable(Exp exp) {
-    if (dynamic_cast<const Differentiable*>(exp) != nullptr) return true;
-    throw_calc_err(exp);
-    return false;
+    throw_err("calculus", "expression '" + exp->toString() + "' is non-differentiable\n");
 }
 
 Exp reexpress(Val v) {
@@ -56,7 +50,6 @@ Val AndExp::derivativeOf(string x, Env env, Env denv) {
 Val ApplyExp::derivativeOf(string x, Env env, Env denv) {
     // d/dx f(u1(x), u2(x), ...) = df/du1 * du1/dx + df/du2 * du2/dx + ...
 
-    if (!is_differentiable(op)) return NULL;
     Val o = op->valueOf(env);
     if (!o) return NULL;
     else if (typeid(*o) != typeid(LambdaVal)) {
@@ -65,10 +58,7 @@ Val ApplyExp::derivativeOf(string x, Env env, Env denv) {
     }
 
     int argc;
-    for (argc = 0; args[argc]; argc++) {
-        if (!is_differentiable(args[argc]))
-            return NULL;
-    }
+    for (argc = 0; args[argc]; argc++);
 
     // We will utilize the function to perform the calculations
     LambdaVal *func = (LambdaVal*) o;
@@ -117,13 +107,10 @@ Val CompareExp::derivativeOf(string, Env, Env) {
 }
 
 Val DiffExp::derivativeOf(string x, Env env, Env denv) {
-    if (!is_differentiable(left)) return NULL;
-    if (!is_differentiable(right)) return NULL;
-
-    Val a = ((Differentiable*) left)->derivativeOf(x, env, denv);
+    Val a = left->derivativeOf(x, env, denv);
     if (!a) return NULL;
 
-    Val b = ((Differentiable*) right)->derivativeOf(x, env, denv);
+    Val b = right->derivativeOf(x, env, denv);
     if (!b) {
         a->rem_ref();
         return NULL;
@@ -136,39 +123,29 @@ Val DiffExp::derivativeOf(string x, Env env, Env denv) {
 }
 
 Val DivExp::derivativeOf(string x, Env env, Env denv) { 
-    if (!is_differentiable(left)) return NULL;
-    if (!is_differentiable(right)) return NULL;
+    
+    Val dl = left->derivativeOf(x, env, denv);
+    if (!dl) return NULL;
 
+    Val dr = left->derivativeOf(x, env, denv);
+    if (!dr) { dl->rem_ref(); return NULL; }
 
-    Exp a = reexpress(((Differentiable*) left)->derivativeOf(x, env, denv));
-    Exp b = reexpress(((Differentiable*) right)->derivativeOf(x, env, denv));
+    Exp a = reexpress(dl);
+    Exp b = reexpress(dr);
 
-    if (!a || !b) {
-        delete a, b;
-        return NULL;
-    } else {
-        // d/dx a/b = (ba' - ab') / (b^2)
-        Exp exp = new DivExp(
-                            new DiffExp(
-                                new MultExp(right->clone(), a),
-                                new MultExp(left->clone(), b)),
-                            new MultExp(right->clone(), right->clone()));
-        Val c = exp->valueOf(env);
+    // d/dx a/b = (ba' - ab') / (b^2)
+    Exp exp = new DivExp(
+                        new DiffExp(
+                            new MultExp(right->clone(), a),
+                            new MultExp(left->clone(), b)),
+                        new MultExp(right->clone(), right->clone()));
+    Val c = exp->valueOf(env);
 
-        delete exp;
-        return c;
-    }
-
+    delete exp;
+    return c;
 }
 
 Val ForExp::derivativeOf(string x, Env env, Env denv) {
-
-    if (!is_differentiable(body)) {
-        return NULL;
-    } else if (!is_differentiable(set)) {
-        return NULL;
-    }
-
     // Evaluate the list
     Val listExp = set->valueOf(env);
     if (!listExp) return NULL;
@@ -177,7 +154,7 @@ Val ForExp::derivativeOf(string x, Env env, Env denv) {
         return NULL;
     }
     // And its derivative
-    Val dlistExp = ((Differentiable*) set)->derivativeOf(x, env, denv);
+    Val dlistExp = set->derivativeOf(x, env, denv);
     if (!dlistExp) return NULL;
 
     List<Val> *list = ((ListVal*) listExp)->get();
@@ -199,7 +176,7 @@ Val ForExp::derivativeOf(string x, Env env, Env denv) {
         Env e = new ExtendEnv(id, v, env);
         Env de = new ExtendEnv(id, dv, denv);
         
-        v = ((Differentiable*) body)->derivativeOf(x, e, de);
+        v = body->derivativeOf(x, e, de);
 
         if (!v) {
             delete it, dit;
@@ -224,7 +201,7 @@ Val IfExp::derivativeOf(string x, Env env, Env denv) {
     BoolVal *B = (BoolVal*) b;
     bool bRes = B->get();
 
-    return ((Differentiable*) (bRes ? tExp : fExp))->derivativeOf(x, env, denv);
+    return (bRes ? tExp : fExp)->derivativeOf(x, env, denv);
 }
 
 Val LambdaExp::derivativeOf(string x, Env env, Env denv) {
@@ -240,9 +217,6 @@ Val LambdaExp::derivativeOf(string x, Env env, Env denv) {
 }
 
 Val LetExp::derivativeOf(string x, Env env, Env denv) {
-    if (!is_differentiable(body))
-        return NULL;
-
     int argc = 0;
     for (; exps[argc]; argc++);
 
@@ -252,14 +226,9 @@ Val LetExp::derivativeOf(string x, Env env, Env denv) {
     
     // Extend the environment
     for (int i = 0; i < argc; i++) {
-        if (!is_differentiable(exps[i])) {
-            throw_calc_err(exps[i]);
-            return NULL;
-        }
-
         // Compute the expression
         Val v = exps[i]->valueOf(env);
-        Val dv = ((Differentiable*) exps[i])->derivativeOf(x, env, denv);
+        Val dv = exps[i]->derivativeOf(x, env, denv);
 
         if (!v || !dv) {
             // Garbage collection will happen here
@@ -289,7 +258,7 @@ Val LetExp::derivativeOf(string x, Env env, Env denv) {
     }
 
     // Compute the result
-    Val y = ((Differentiable*) body)->derivativeOf(x, env, denv);
+    Val y = body->derivativeOf(x, env, denv);
     
     // Garbage collection
     // Not implemented yet
@@ -309,11 +278,7 @@ Val ListExp::derivativeOf(string x, Env env, Env denv) {
     for(int i = 0; it->hasNext(); i++) {
         // Compute the value of each item
         Exp exp = it->next();
-        if (!is_differentiable(exp)) {
-            delete it;
-            return NULL;
-        }
-        Val v = ((Differentiable*) exp)->derivativeOf(x, env, denv);
+        Val v = exp->derivativeOf(x, env, denv);
         if (!v) {
             delete it;
             return NULL;
@@ -326,18 +291,33 @@ Val ListExp::derivativeOf(string x, Env env, Env denv) {
 }
 
 Val ListAccessExp::derivativeOf(string x, Env env, Env denv) {
-    if (!is_differentiable(list)) {
-        throw_calc_err(list);
+    Val lst = list->derivativeOf(x, env, denv);
+    if (!lst) return NULL;
+    else if (typeid(*lst) != typeid(ListVal)) {
+        throw_type_err(list, "list");
+        lst->rem_ref();
         return NULL;
     }
 
-    return ((Differentiable*) list)->derivativeOf(x, env, denv);
+    Val index = idx->valueOf(env);
+    if (!index) return NULL;
+    else if (typeid(*index) != typeid(IntVal)) {
+        throw_type_err(idx, "integer");
+        lst->rem_ref();
+        index->rem_ref();
+        return NULL;
+    }
 
+    Val v = ((ListVal*) lst)->get()->get(((IntVal*) index)->get());
+
+    v->add_ref();
+    index->rem_ref();
+    lst->rem_ref();
+
+    return v;
 }
 
 Val MagnitudeExp::derivativeOf(string x, Env env, Env denv) {
-    if (!is_differentiable(exp)) return NULL;
-
     Val res = NULL;
     
     Val v = exp->valueOf(env);
@@ -350,7 +330,7 @@ Val MagnitudeExp::derivativeOf(string x, Env env, Env denv) {
 
         v->rem_ref();
 
-        Val dv = ((Differentiable*) exp)->derivativeOf(x, env, denv);
+        Val dv = exp->derivativeOf(x, env, denv);
         if (dv) {
             if (typeid(*dv) == typeid(IntVal))
                 res = new IntVal((val >= 0 ? 1 : -1) * ((IntVal*) dv)->get());
@@ -370,13 +350,10 @@ Val MagnitudeExp::derivativeOf(string x, Env env, Env denv) {
 }
 
 Val MapExp::derivativeOf(string x, Env env, Env denv) {
-    if (!is_differentiable(list)) return NULL;
-    if (!is_differentiable(func)) return NULL;
-
     Val vs = list->valueOf(env);
     if (!vs) return NULL;
 
-    Val dvs = ((Differentiable*) list)->derivativeOf(x, env, denv);
+    Val dvs = list->derivativeOf(x, env, denv);
     if (!dvs) {
         // The list could not be differentiated
         vs->rem_ref();
@@ -410,7 +387,7 @@ Val MapExp::derivativeOf(string x, Env env, Env denv) {
     
     string var = fn->getArgs()[0];
     fn->rem_ref();
-    f = ((Differentiable*) func)->derivativeOf(var, env, denv);
+    f = func->derivativeOf(var, env, denv);
     if (!f) {
         vs->rem_ref();
         dvs->rem_ref();
@@ -515,7 +492,7 @@ Val MapExp::derivativeOf(string x, Env env, Env denv) {
         return new MatrixVal(M);
 
     } else if (WERROR()) {
-        throw_err("runtime", "expression '" + list->toString() + " does not evaluate as list");
+        throw_type_err(list, "list");
         vs->rem_ref();
         dvs->rem_ref();
         fn->rem_ref();
@@ -550,8 +527,7 @@ Val MapExp::derivativeOf(string x, Env env, Env denv) {
 
 
 Val MatrixExp::derivativeOf(string x, Env env, Env denv) {
-    if (!is_differentiable(list)) return NULL;
-    Val v = ((Differentiable*) list)->derivativeOf(x, env, denv);
+    Val v = list->derivativeOf(x, env, denv);
 
     if (!v) return NULL;
     else if (typeid(*v) != typeid(ListVal)) {
@@ -640,23 +616,21 @@ Val MatrixExp::derivativeOf(string x, Env env, Env denv) {
 }
 
 Val MultExp::derivativeOf(string x, Env env, Env denv) { 
-    if (!is_differentiable(left)) return NULL;
-    if (!is_differentiable(right)) return NULL;
 
+    Val dl = left->derivativeOf(x, env, denv);
+    if (!dl) return NULL;
 
-    Exp a = reexpress(((Differentiable*) left)->derivativeOf(x, env, denv));
-    Exp b = reexpress(((Differentiable*) right)->derivativeOf(x, env, denv));
+    Val dr = left->derivativeOf(x, env, denv);
+    if (!dr) { dl->rem_ref(); return NULL; }
 
-    if (!a || !b) {
-        delete a, b;
-        return NULL;
-    } else {
-        Exp exp = new SumExp(new MultExp(left->clone(), b), new MultExp(right->clone(), a));
-        Val c = exp->valueOf(env);
+    Exp a = reexpress(dl);
+    Exp b = reexpress(dr);
 
-        delete exp;
-        return c;
-    }
+    Exp exp = new SumExp(new MultExp(left->clone(), b), new MultExp(right->clone(), a));
+    Val c = exp->valueOf(env);
+
+    delete exp;
+    return c;
 
 }
 
@@ -665,14 +639,9 @@ Val SetExp::derivativeOf(string x, Env env, Env denv) {
     Val dv = NULL;
 
     for (int i = 0; exps[i]; i++) {
-        if (!is_differentiable(tgts[i]))
-            return NULL;
-        if (!is_differentiable(exps[i]))
-            return NULL;
-
         // Get info for modifying the environment
         Val u = tgts[i]->valueOf(env);
-        Val du = ((Differentiable*) tgts[i])->derivativeOf(x, env, denv);
+        Val du = tgts[i]->derivativeOf(x, env, denv);
         if (!u)
             // The variable doesn't exist
             return NULL;
@@ -680,7 +649,7 @@ Val SetExp::derivativeOf(string x, Env env, Env denv) {
         // Evaluate the expression
         v = exps[i]->valueOf(env);
 
-        dv = ((Differentiable*) exps[i])->derivativeOf(x, env, denv);
+        dv = exps[i]->derivativeOf(x, env, denv);
 
         if (!v || !dv)
             // The value could not be evaluated.
@@ -698,13 +667,10 @@ Val SetExp::derivativeOf(string x, Env env, Env denv) {
 }
 
 Val SumExp::derivativeOf(string x, Env env, Env denv) {
-    if (!is_differentiable(left)) return NULL;
-    if (!is_differentiable(right)) return NULL;
-
-    Val a = ((Differentiable*) left)->derivativeOf(x, env, denv);
+    Val a = left->derivativeOf(x, env, denv);
     if (!a) return NULL;
 
-    Val b = ((Differentiable*) right)->derivativeOf(x, env, denv);
+    Val b = right->derivativeOf(x, env, denv);
     if (!b) {
         a->rem_ref();
         return NULL;
@@ -721,7 +687,7 @@ Val VarExp::derivativeOf(string x, Env env, Env denv) {
     // a lookup.
     Val dv = denv->apply(id);
     if (!dv)
-        throw_err("runtime", "derivative of variable '" + id + "' is not known within this context");
+        throw_err("calculus", "derivative of variable '" + id + "' is not known within this context");
     else
         dv->add_ref();
 
@@ -729,10 +695,6 @@ Val VarExp::derivativeOf(string x, Env env, Env denv) {
 }
 
 Val WhileExp::derivativeOf(string x, Env env, Env denv) {
-    if (!is_differentiable(body)) return NULL;
-
-    Differentiable *b = (Differentiable*) body;
-
     bool skip = alwaysEnter;
     Val v = new VoidVal;
 
@@ -748,7 +710,7 @@ Val WhileExp::derivativeOf(string x, Env env, Env denv) {
             // Compute the new outcome. If it is
             // NULL, computation failed, so NULL
             // should be returned.
-            if (!(v = b->derivativeOf(x, env, denv)))
+            if (!(v = body->derivativeOf(x, env, denv)))
                 return NULL;
         } else
             return v;

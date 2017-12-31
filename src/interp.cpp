@@ -102,69 +102,61 @@ Val deriveVal(Val v, int c = 1) {
 }
 Val DerivativeExp::valueOf(Env env) {
 
-    // Only differentiable functions are differentiated
-    if (dynamic_cast<const Differentiable*>(func) != nullptr) {
-        // Base case: we know of nothing
-        Env denv = new EmptyEnv;
+    // Base case: we know of nothing
+    Env denv = new EmptyEnv;
 
-        // Perform initial loading
-        LinkedList<ExtendEnv*> env_frames;
-        Env tmp = env;
-        while (typeid(*tmp) == typeid(ExtendEnv)) {
-            env_frames.add(0, (ExtendEnv*) tmp);
-            tmp = tmp->subenvironment();
-        }
+    // Perform initial loading
+    LinkedList<ExtendEnv*> env_frames;
+    Env tmp = env;
+    while (typeid(*tmp) == typeid(ExtendEnv)) {
+        env_frames.add(0, (ExtendEnv*) tmp);
+        tmp = tmp->subenvironment();
+    }
+    
+    while (!env_frames.isEmpty()) {
+        ExtendEnv *ee = env_frames.remove(0);
+        Val v = ee->topVal();
+        string id = ee->topId();
         
-        while (!env_frames.isEmpty()) {
-            ExtendEnv *ee = env_frames.remove(0);
-            Val v = ee->topVal();
-            string id = ee->topId();
-            
-            if (typeid(*v) == typeid(LambdaVal)) {
-                LambdaVal *lv = (LambdaVal*) v;
-                int i;
-                for (i = 0; lv->getArgs()[i] != ""; i++);
+        if (typeid(*v) == typeid(LambdaVal)) {
+            LambdaVal *lv = (LambdaVal*) v;
+            int i;
+            for (i = 0; lv->getArgs()[i] != ""; i++);
 
-                string *ids = new string[i+1];
-                ids[i] = "";
-                while (i--) ids[i] = lv->getArgs()[i];
+            string *ids = new string[i+1];
+            ids[i] = "";
+            while (i--) ids[i] = lv->getArgs()[i];
 
-                LambdaVal *dv = new LambdaVal(ids, 
-                                new DerivativeExp(
-                                        lv->getBody()->clone(), var
-                                ), lv->getEnv()->clone());
+            LambdaVal *dv = new LambdaVal(ids, 
+                            new DerivativeExp(
+                                    lv->getBody()->clone(), var
+                            ), lv->getEnv()->clone());
 
-                // Lambda derivative: d/dx lambda (x) f(x) = lambda (x) d/dx f(x)
-                // We will need the derivative for this
-                denv = new ExtendEnv(id, dv, denv);
-                dv->rem_ref(); // The derivative exists only within the environment
-            } else {
-                // Trivial derivative: d/dx c = 0
-                Val c = deriveVal(v, id == var ? 1 : 0);
+            // Lambda derivative: d/dx lambda (x) f(x) = lambda (x) d/dx f(x)
+            // We will need the derivative for this
+            denv = new ExtendEnv(id, dv, denv);
+            dv->rem_ref(); // The derivative exists only within the environment
+        } else {
+            // Trivial derivative: d/dx c = 0
+            Val c = deriveVal(v, id == var ? 1 : 0);
 
-                if (c) {
-                    // The value is of a differentiable type
-                    denv = new ExtendEnv(id, c, denv);
-                    c->rem_ref(); // The derivative exists only within the environment
-                }
+            if (c) {
+                // The value is of a differentiable type
+                denv = new ExtendEnv(id, c, denv);
+                c->rem_ref(); // The derivative exists only within the environment
             }
         }
-
-        // Now, we have the variable, the environment, and the differentiable
-        // environment. So, we can simply derive and return the result.
-        //std::cout << "compute d/d" << var << " | env ::= " << *env << ", denv ::= " << *denv << "\n";
-        Differentiable *df = (Differentiable*) func;
-        Val res = df->derivativeOf(var, env, denv);
-
-        // Garbage collection
-        delete denv;
-
-        return res;
-
-    } else {
-        throw_err("runtime", "expression '" + func->toString() + "' is non-differentiable");
-        return NULL;
     }
+
+    // Now, we have the variable, the environment, and the differentiable
+    // environment. So, we can simply derive and return the result.
+    //std::cout << "compute d/d" << var << " | env ::= " << *env << ", denv ::= " << *denv << "\n";
+    Val res = func->derivativeOf(var, env, denv);
+
+    // Garbage collection
+    delete denv;
+
+    return res;
 }
 
 Val FalseExp::valueOf(Env env) { return new BoolVal(false); }

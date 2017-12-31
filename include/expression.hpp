@@ -5,11 +5,10 @@
 
 #include "expressions/operator.hpp"
 #include "expressions/primitive.hpp"
-#include "expressions/derivative.hpp"
 #include "expressions/list.hpp"
 
 // Calling functions; {a->b, a} -> b
-class ApplyExp : public Differentiable {
+class ApplyExp : public Expression {
     private:
         Expression *op;
         Expression **args;
@@ -54,7 +53,7 @@ class FoldExp : public Expression {
         std::string toString();
 };
 
-class ForExp : public Differentiable {
+class ForExp : public Expression {
     private:
         std::string id;
         Expression *set;
@@ -70,7 +69,7 @@ class ForExp : public Differentiable {
 };
 
 // Condition expression that chooses paths
-class IfExp : public Differentiable {
+class IfExp : public Expression {
     private:
         Expression *cond;
         Expression *tExp;
@@ -87,7 +86,7 @@ class IfExp : public Differentiable {
 };
 
 // Expression for defining variables
-class LetExp : public Differentiable {
+class LetExp : public Expression {
     private:
         std::string *ids;
         Expression **exps;
@@ -108,7 +107,7 @@ class LetExp : public Differentiable {
         std::string toString();
 };
 
-class MagnitudeExp : public Differentiable {
+class MagnitudeExp : public Expression {
     private:
         Expression *exp;
     public:
@@ -122,7 +121,7 @@ class MagnitudeExp : public Differentiable {
         std::string toString();
 };
 
-class MapExp : public Differentiable {
+class MapExp : public Expression {
     private:
         Expression *func;
         Expression *list;
@@ -179,7 +178,7 @@ class SequenceExp : public Expression {
 };
 
 // Expression for redefining values in a store
-class SetExp : public Differentiable {
+class SetExp : public Expression {
     private:
         Expression **tgts;
         Expression **exps;
@@ -197,7 +196,7 @@ class SetExp : public Differentiable {
         std::string toString();
 };
 
-class WhileExp : public Differentiable {
+class WhileExp : public Expression {
     private:
         Expression *cond;
         Expression *body;

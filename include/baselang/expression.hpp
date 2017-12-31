@@ -5,6 +5,11 @@
 #include "baselang/environment.hpp"
 #include "stringable.hpp"
 
+// Error functions
+void throw_warning(std::string form, std::string mssg);
+void throw_err(std::string form, std::string mssg);
+void throw_debug(std::string form, std::string mssg);
+
 // Interface for expressions.
 class Expression : public Stringable {
     public:
@@ -14,7 +19,12 @@ class Expression : public Stringable {
          * Given an environment, compute the value of the expression.
          * Should the expression be invalid, the function will return NULL.
          */
-        virtual Value* valueOf(Environment*) { return NULL; }
+        virtual Value* valueOf(Env) { return NULL; }
+
+        virtual Value* derivativeOf(std::string, Env, Env) {
+            throw_err("calculus", "expression '" + toString() + "' is non-differentiable");
+            return NULL;
+        }
         
         /**
          * Creates a deep copy of the expression.
@@ -23,10 +33,6 @@ class Expression : public Stringable {
 };
 typedef Expression* Exp;
 
-// Error functions
-void throw_warning(std::string form, std::string mssg);
-void throw_err(std::string form, std::string mssg);
-void throw_debug(std::string form, std::string mssg);
 void throw_type_err(Expression *exp, std::string type);
 
 #endif

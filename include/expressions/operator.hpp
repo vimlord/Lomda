@@ -1,9 +1,9 @@
 #ifndef _EXPRESSIONS_OPERATOR_HPP_
 #define _EXPRESSIONS_OPERATOR_HPP_
 
-#include "expressions/derivative.hpp"
+#include "baselang/expression.hpp"
 
-class OperatorExp : public Differentiable {
+class OperatorExp : public Expression {
     protected:
         Expression *left;
         Expression *right;

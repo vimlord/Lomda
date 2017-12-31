@@ -1,8 +1,10 @@
 #ifndef _EXPRESSIONS_LIST_HPP_
 #define _EXPRESSIONS_LIST_HPP_
 
+#include "expression.hpp"
+
 // For accessing an element of an array (theoretically, can be used to get or set)
-class ListAccessExp : public Differentiable {
+class ListAccessExp : public Expression {
     private:
         Expression *list;
         Expression *idx;

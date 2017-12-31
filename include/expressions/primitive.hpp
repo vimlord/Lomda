@@ -1,7 +1,8 @@
 #ifndef _EXPRESSIONS_PRIMITIVE_HPP_
 #define _EXPRESSIONS_PRIMITIVE_HPP_
 
-#include "expressions/derivative.hpp"
+#include "baselang/expression.hpp"
+#include "value.hpp"
 #include "linalg/matrix.hpp"
 
 // Generates false
@@ -15,7 +16,7 @@ class FalseExp : public Expression {
 };
 
 // Expression for an integer.
-class IntExp : public Differentiable {
+class IntExp : public Expression {
     private:
         int val;
     public:
@@ -28,7 +29,7 @@ class IntExp : public Differentiable {
 };
 
 // Expression that yields closures (lambdas)
-class LambdaExp : public Differentiable {
+class LambdaExp : public Expression {
     private:
         std::string *xs;
         Expression *exp;
@@ -44,7 +45,7 @@ class LambdaExp : public Differentiable {
         std::string toString();
 };
 
-class ListExp : public Differentiable {
+class ListExp : public Expression {
     private:
         List<Expression*> *list;
     public:
@@ -63,7 +64,7 @@ class ListExp : public Differentiable {
         std::string toString();
 };
 
-class MatrixExp : public Differentiable {
+class MatrixExp : public Expression {
     private:
         Expression *list;
     public:
@@ -78,7 +79,7 @@ class MatrixExp : public Differentiable {
 };
 
 // Expression for a real number.
-class RealExp : public Differentiable {
+class RealExp : public Expression {
     private:
         float val;
     public:
@@ -113,7 +114,7 @@ class TrueExp : public Expression {
 };
 
 // Get the value of a variable
-class VarExp : public Differentiable {
+class VarExp : public Expression {
     private:
         std::string id;
     public:
