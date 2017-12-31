@@ -11,7 +11,7 @@ class Differentiable : public Expression {
          * env - The known variable values.
          * denv - The known derivative values.
          */
-        virtual Value* derivativeOf(std::string x, Environment *env, Environment *denv) = 0;
+        virtual Value* derivativeOf(std::string x, Env env, Env denv) = 0;
 };
 
 

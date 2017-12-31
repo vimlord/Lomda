@@ -11,7 +11,7 @@ struct parsed {
     T item;
 };
 typedef struct parsed<
-    Expression*
+    Exp
 > parsed_prgm;
 typedef List<parsed_prgm>* ParsedPrgms;
 
@@ -21,7 +21,7 @@ typedef struct parsed<int> parsed_int;
 // Argument types for the let expression
 struct arg {
     std::string id;
-    Expression *exp;
+    Exp exp;
 };
 struct arglist {
     int len;
@@ -69,7 +69,7 @@ ParsedPrgms parseDerivative(std::string, bool = true);
 ParsedPrgms parseProgram(std::string, bool = true);
 ParsedPrgms parseStatement(std::string, bool = true);
 
-Expression* compile(std::string);
-List<Expression*>* parse(std::string);
+Exp compile(std::string);
+List<Exp>* parse(std::string);
 
 #endif

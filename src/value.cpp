@@ -39,7 +39,7 @@ void Value::rem_ref() {
 // Booleans
 BoolVal::BoolVal(bool n) { val = n; }
 bool BoolVal::get() { return val; }
-int BoolVal::set(Value *v) {
+int BoolVal::set(Val v) {
     if (typeid(*v) == typeid(BoolVal)) {
         val = ((BoolVal*) v)->val;
         return 0;
@@ -49,7 +49,7 @@ int BoolVal::set(Value *v) {
 // Integers
 IntVal::IntVal(int n) { val = n; }
 int IntVal::get() { return val; }
-int IntVal::set(Value *v) {
+int IntVal::set(Val v) {
     if (typeid(*v) == typeid(IntVal)) {
         val = ((IntVal*) v)->val;
         return 0;
@@ -58,7 +58,7 @@ int IntVal::set(Value *v) {
 
 // Matrices
 Matrix MatrixVal::get() { return val; }
-int MatrixVal::set(Value *v) {
+int MatrixVal::set(Val v) {
     if (typeid(*v) == typeid(MatrixVal)) {
         val = ((MatrixVal*) v)->val;
         return 0;
@@ -68,14 +68,14 @@ int MatrixVal::set(Value *v) {
 // Decimals
 RealVal::RealVal(float n) { val = n; }
 float RealVal::get() { return val; }
-int RealVal::set(Value *v) {
+int RealVal::set(Val v) {
     if (typeid(*v) == typeid(RealVal)) {
         val = ((RealVal*) v)->val;
         return 0;
     } else return 1;
 }
 
-int StringVal::set(Value *v) {
+int StringVal::set(Val v) {
     if (typeid(*v) == typeid(StringVal)) {
         val = ((StringVal*) v)->get();
         return 0;
@@ -83,12 +83,12 @@ int StringVal::set(Value *v) {
 }
 
 // Lambdas
-LambdaVal::LambdaVal(string *ids, Expression *exp, Environment *env) {
+LambdaVal::LambdaVal(string *ids, Exp exp, Env env) {
     this->xs = ids;
     this->exp = exp;
     this->env = env;
 }
-int LambdaVal::set(Value *v) {
+int LambdaVal::set(Val v) {
     if (typeid(*v) == typeid(LambdaVal)) {
         LambdaVal *lv = (LambdaVal*) v;
         int i;
@@ -107,7 +107,7 @@ int LambdaVal::set(Value *v) {
         exp = lv->exp->clone();
         
         // Set the environment
-        Environment *e = env;
+        Env e = env;
         env = ((LambdaVal*) v)->env;
         delete e;
 
@@ -129,8 +129,8 @@ LambdaVal* LambdaVal::clone() {
 
     return new LambdaVal(ids, exp->clone(), env->clone());
 }
-Value* LambdaVal::apply(Value **argv, Environment *e) {
-    Environment *E = e ? e : env;
+Val LambdaVal::apply(Val *argv, Env e) {
+    Env E = e ? e : env;
 
     // We will use a clone in order to preserve previously allocated memory blocks
     E = E->clone();
@@ -146,7 +146,7 @@ Value* LambdaVal::apply(Value **argv, Environment *e) {
         E = new ExtendEnv(xs[i], argv[i], E);
 
     // Compute the result
-    Value *res = exp->valueOf(E);
+    Val res = exp->valueOf(E);
     
     // Garbage collection
     delete E;
@@ -154,8 +154,8 @@ Value* LambdaVal::apply(Value **argv, Environment *e) {
     // Return it
     return res;
 }
-void LambdaVal::setEnv(Environment *e) {
-    Environment *tmp = env;
+void LambdaVal::setEnv(Env e) {
+    Env tmp = env;
     env = e;
     delete tmp;
 }
@@ -170,7 +170,7 @@ ListVal* ListVal::clone() {
     ListVal *res = new ListVal;
     
     for (int i = 0; it->hasNext(); i++) {
-        Value *v = it->next();
+        Val v = it->next();
         res->list->add(i, v);
         v->add_ref();
     }
@@ -178,11 +178,11 @@ ListVal* ListVal::clone() {
     // Give it back
     return res;
 }
-int ListVal::set(Value *v) {
+int ListVal::set(Val v) {
     if (typeid(*v) == typeid(ListVal)) {
         auto lst = list;
 
-        list = new LinkedList<Value*>;
+        list = new LinkedList<Val>;
         
         // Add each value to the new list
         auto vs = ((ListVal*) v)->list;

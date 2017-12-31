@@ -29,5 +29,6 @@ class Value : public Stringable {
          */
         void rem_ref();
 };
+typedef Value* Val;
 
 #endif

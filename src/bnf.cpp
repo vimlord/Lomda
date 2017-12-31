@@ -340,7 +340,7 @@ ParsedPrgms parseAccessor(string str, bool ends) {
                 st = st.substr(i);
                 alst.len += i;
 
-                Expression **args = new Expression*[alst.list->size() + 1];
+                Exp *args = new Exp[alst.list->size() + 1];
                 for (i = 0; !alst.list->isEmpty(); i++)
                     args[i] = alst.list->remove(0).exp;
                 args[i] = NULL;
@@ -378,7 +378,7 @@ ParsedPrgms parseAdditive(string str, bool ends) {
     while (!mult->isEmpty()) {
         // Get the program branch
         parsed_prgm p = mult->remove(0);
-        Expression *exp = p.item;
+        Exp exp = p.item;
         int len = p.len;
         
         // The string to parse
@@ -448,7 +448,7 @@ ParsedPrgms parseAndExp(string str, bool ends) {
     while (!mult->isEmpty()) {
         // Get the program branch
         parsed_prgm p = mult->remove(0);
-        Expression *exp = p.item;
+        Exp exp = p.item;
         int len = p.len;
         
         // The string to parse
@@ -534,7 +534,7 @@ ParsedPrgms parseEquality(string str, bool ends) {
     while (!mult->isEmpty()) {
         // Get the program branch
         parsed_prgm p = mult->remove(0);
-        Expression *exp = p.item;
+        Exp exp = p.item;
         int len = p.len;
         
         // The string to parse
@@ -696,7 +696,7 @@ ParsedPrgms parseListExp(string str, bool ends) {
         // Empty list
         parsed_prgm p;
 
-        LinkedList<Expression*> *vals = new LinkedList<Expression*>;
+        LinkedList<Exp> *vals = new LinkedList<Exp>;
         p.item = new ListExp(vals);
 
         p.len = len + i;
@@ -742,7 +742,7 @@ ParsedPrgms parseListExp(string str, bool ends) {
         //std::cout << "List with " << lst.list->size() << " args\n";
 
         // Add to the list of possible expressions
-        Expression **vals = new Expression*[lst.list->size() + 1];
+        Exp *vals = new Exp[lst.list->size() + 1];
         
         for (i = 0; !lst.list->isEmpty(); i++) {
             struct arg a = lst.list->remove(0);
@@ -781,7 +781,7 @@ ParsedPrgms parseMultiplicative(string str, bool ends) {
     while (!mult->isEmpty()) {
         // Get the program branch
         parsed_prgm p = mult->remove(0);
-        Expression *exp = p.item;
+        Exp exp = p.item;
         int len = p.len;
         
         // The string to parse
@@ -1072,9 +1072,9 @@ ParsedPrgms parseSetExp(string str, bool ends) {
             parsed_prgm prog = rights->remove(0);
             
             // Build the left and right side
-            Expression **l = new Expression*[2];
+            Exp *l = new Exp[2];
             l[0] = left.item->clone(); l[1] = NULL;
-            Expression **r = new Expression*[2];
+            Exp *r = new Exp[2];
             r[0] = prog.item; r[1] = NULL;
             
             // Create the program outcome

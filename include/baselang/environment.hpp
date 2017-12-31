@@ -26,5 +26,6 @@ class Environment : public Stringable {
 
         Environment* subenvironment();
 };
+typedef Environment* Env;
 
 #endif

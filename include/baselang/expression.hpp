@@ -14,13 +14,14 @@ class Expression : public Stringable {
          * Given an environment, compute the value of the expression.
          * Should the expression be invalid, the function will return NULL.
          */
-        virtual Value* valueOf(Environment*) = 0;
+        virtual Value* valueOf(Environment*) { return NULL; }
         
         /**
          * Creates a deep copy of the expression.
          */
         virtual Expression* clone() = 0;
 };
+typedef Expression* Exp;
 
 // Error functions
 void throw_warning(std::string form, std::string mssg);

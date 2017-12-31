@@ -11,12 +11,12 @@
 
 using namespace std;
 
-Value* run(string program) {
-    Expression *exp = compile(program);
+Val run(string program) {
+    Exp exp = compile(program);
     if (exp) {
         // A tree was successfully parsed, so run it.
-        Environment *env = new EmptyEnv();
-        Value *val = exp->valueOf(env);
+        Env env = new EmptyEnv();
+        Val val = exp->valueOf(env);
         delete exp;
         delete env;
         //if (!val) throw_err("runtime", "could not evaluate expression");
@@ -26,8 +26,8 @@ Value* run(string program) {
     }
 }
 
-Value* ApplyExp::valueOf(Environment *env) {
-    Value *f = op->valueOf(env);
+Val ApplyExp::valueOf(Env env) {
+    Val f = op->valueOf(env);
 
     // Null check the function
     if (!f)
@@ -44,7 +44,7 @@ Value* ApplyExp::valueOf(Environment *env) {
     while (args[argc]) argc++;
 
     // Operate on each argument under the given environment
-    Value **xs = new Value*[argc+1];
+    Val *xs = new Val[argc+1];
     int i;
     for (i = 0; i < argc; i++) {
         // Evanuate the argument
@@ -66,7 +66,7 @@ Value* ApplyExp::valueOf(Environment *env) {
     xs[argc] = NULL;
 
     // Now, compute the answer under the lambda's environment
-    Value *y = F->apply(xs);
+    Val y = F->apply(xs);
     
     // Garbage collection on the array
     while (i--) xs[i]->rem_ref();
@@ -78,16 +78,16 @@ Value* ApplyExp::valueOf(Environment *env) {
     return y;
 }
 
-Value* deriveVal(Value *v, int c = 1) {
+Val deriveVal(Val v, int c = 1) {
     if (typeid(*v) == typeid(StringVal) ||
         typeid(*v) == typeid(BoolVal))
         // Certain types are non-differentiable
         return NULL;
     else if (typeid(*v) == typeid(ListVal)) {
         auto it = ((ListVal*) v)->get()->iterator();
-        LinkedList<Value*> *lst = new LinkedList<Value*>;
+        LinkedList<Val> *lst = new LinkedList<Val>;
         while (it->hasNext()) {
-            Value *x = deriveVal(it->next());
+            Val x = deriveVal(it->next());
             lst->add(lst->size(), x);
         }
         return new ListVal(lst); 
@@ -100,16 +100,16 @@ Value* deriveVal(Value *v, int c = 1) {
     } else
         return new IntVal(c);
 }
-Value* DerivativeExp::valueOf(Environment* env) {
+Val DerivativeExp::valueOf(Env env) {
 
     // Only differentiable functions are differentiated
     if (dynamic_cast<const Differentiable*>(func) != nullptr) {
         // Base case: we know of nothing
-        Environment *denv = new EmptyEnv;
+        Env denv = new EmptyEnv;
 
         // Perform initial loading
         LinkedList<ExtendEnv*> env_frames;
-        Environment *tmp = env;
+        Env tmp = env;
         while (typeid(*tmp) == typeid(ExtendEnv)) {
             env_frames.add(0, (ExtendEnv*) tmp);
             tmp = tmp->subenvironment();
@@ -117,7 +117,7 @@ Value* DerivativeExp::valueOf(Environment* env) {
         
         while (!env_frames.isEmpty()) {
             ExtendEnv *ee = env_frames.remove(0);
-            Value *v = ee->topVal();
+            Val v = ee->topVal();
             string id = ee->topId();
             
             if (typeid(*v) == typeid(LambdaVal)) {
@@ -140,7 +140,7 @@ Value* DerivativeExp::valueOf(Environment* env) {
                 dv->rem_ref(); // The derivative exists only within the environment
             } else {
                 // Trivial derivative: d/dx c = 0
-                Value *c = deriveVal(v, id == var ? 1 : 0);
+                Val c = deriveVal(v, id == var ? 1 : 0);
 
                 if (c) {
                     // The value is of a differentiable type
@@ -154,7 +154,7 @@ Value* DerivativeExp::valueOf(Environment* env) {
         // environment. So, we can simply derive and return the result.
         //std::cout << "compute d/d" << var << " | env ::= " << *env << ", denv ::= " << *denv << "\n";
         Differentiable *df = (Differentiable*) func;
-        Value *res = df->derivativeOf(var, env, denv);
+        Val res = df->derivativeOf(var, env, denv);
 
         // Garbage collection
         delete denv;
@@ -167,10 +167,10 @@ Value* DerivativeExp::valueOf(Environment* env) {
     }
 }
 
-Value* FalseExp::valueOf(Environment *env) { return new BoolVal(false); }
+Val FalseExp::valueOf(Env env) { return new BoolVal(false); }
 
-Value* FoldExp::valueOf(Environment *env) {
-    Value *lst = list->valueOf(env);
+Val FoldExp::valueOf(Env env) {
+    Val lst = list->valueOf(env);
     if (!lst) return NULL;
     else if (typeid(*lst) != typeid(ListVal)) {
         lst->rem_ref();
@@ -178,7 +178,7 @@ Value* FoldExp::valueOf(Environment *env) {
         return NULL;
     }
     
-    Value *f = func->valueOf(env);
+    Val f = func->valueOf(env);
     if (!f) return NULL;
     else if (typeid(*f) != typeid(LambdaVal)) {
         throw_type_err(func, "lambda");
@@ -194,7 +194,7 @@ Value* FoldExp::valueOf(Environment *env) {
     }
 
     auto it = ((ListVal*) lst)->get()->iterator();
-    Value *xs[3];
+    Val xs[3];
     xs[0] = base->valueOf(env); // First slot is the accumulator
     xs[2] = NULL; // Last slot is a null terminator.
 
@@ -203,7 +203,7 @@ Value* FoldExp::valueOf(Environment *env) {
         xs[1] = it->next();
         
         // Update the accumulator.
-        Value *acc = fn->apply(xs);
+        Val acc = fn->apply(xs);
         xs[0]->rem_ref();
         xs[0] = acc;
     }
@@ -212,28 +212,28 @@ Value* FoldExp::valueOf(Environment *env) {
     return xs[0];
 }
 
-Value* ForExp::valueOf(Environment *env) {
+Val ForExp::valueOf(Env env) {
     // Evaluate the list
-    Value *listExp = set->valueOf(env);
+    Val listExp = set->valueOf(env);
     if (!listExp) return NULL;
     else if (typeid(*listExp) != typeid(ListVal)) {
         throw_type_err(set, "list");
         return NULL;
     }
-    List<Value*> *list = ((ListVal*) listExp)->get();
+    List<Val> *list = ((ListVal*) listExp)->get();
     
     // Gather an iterator
-    Iterator<int, Value*> *it = list->iterator();
+    Iterator<int, Val> *it = list->iterator();
 
     // Value to be return
-    Value *v = new VoidVal;
+    Val v = new VoidVal;
 
     while (it->hasNext()) {
         // Get the next item from the list
-        Value *x = it->next();
+        Val x = it->next();
         
         // Build an environment
-        Environment *e = new ExtendEnv(id, x, env->clone());
+        Env e = new ExtendEnv(id, x, env->clone());
 
         v->rem_ref();
         v = body->valueOf(e);
@@ -246,8 +246,8 @@ Value* ForExp::valueOf(Environment *env) {
 
 }
 
-Value* IfExp::valueOf(Environment *env) {
-    Value *b = cond->valueOf(env);
+Val IfExp::valueOf(Env env) {
+    Val b = cond->valueOf(env);
 
     if (typeid(*b) != typeid(BoolVal)) {
         return NULL;
@@ -265,11 +265,11 @@ Value* IfExp::valueOf(Environment *env) {
         return fExp->valueOf(env);
 }
 
-Value* IntExp::valueOf(Environment *env) {
+Val IntExp::valueOf(Env env) {
     return new IntVal(val);
 }
 
-Value* LambdaExp::valueOf(Environment *env) {
+Val LambdaExp::valueOf(Env env) {
     int argc;
     for (argc = 0; xs[argc] != ""; argc++);
 
@@ -280,7 +280,7 @@ Value* LambdaExp::valueOf(Environment *env) {
     return new LambdaVal(ids, exp->clone(), env->clone());
 }
 
-Value* LetExp::valueOf(Environment* env) {
+Val LetExp::valueOf(Env env) {
     // We will operate on a clone
     env = env->clone();
 
@@ -294,7 +294,7 @@ Value* LetExp::valueOf(Environment* env) {
     // Extend the environment
     for (int i = 0; i < argc; i++) {
         // Compute the expression
-        Value *v = exps[i]->valueOf(env);
+        Val v = exps[i]->valueOf(env);
         if (!v) {
             // Garbage collection will happen here
             delete env;
@@ -302,7 +302,7 @@ Value* LetExp::valueOf(Environment* env) {
         }
         
         // Add it to the environment
-        Value *x = v->clone();
+        Val x = v->clone();
         env = new ExtendEnv(ids[i], x, env);
         
         // Drop references
@@ -327,7 +327,7 @@ Value* LetExp::valueOf(Environment* env) {
     }
 
     // Compute the result
-    Value *y = body->valueOf(env);
+    Val y = body->valueOf(env);
 
     // Garbage collection
     delete env;
@@ -337,7 +337,7 @@ Value* LetExp::valueOf(Environment* env) {
 
 }
 
-Value* ListExp::valueOf(Environment *env) {
+Val ListExp::valueOf(Env env) {
     // Generate a blank list
     ListVal *val = new ListVal;
     
@@ -345,7 +345,7 @@ Value* ListExp::valueOf(Environment *env) {
     auto it = list->iterator();
     for(int i = 0; it->hasNext(); i++) {
         // Compute the value of each item
-        Value *v = it->next()->valueOf(env);
+        Val v = it->next()->valueOf(env);
         if (!v) {
             // Garbage collection on the iterator and the value
             delete it;
@@ -361,9 +361,9 @@ Value* ListExp::valueOf(Environment *env) {
     return val;
 }
 
-Value* ListAccessExp::valueOf(Environment *env) {
+Val ListAccessExp::valueOf(Env env) {
     // Get the list
-    Value *f = list->valueOf(env);
+    Val f = list->valueOf(env);
     if (!f)
         return NULL;
     else if (typeid(*f) != typeid(ListVal)) {
@@ -372,10 +372,10 @@ Value* ListAccessExp::valueOf(Environment *env) {
     }
     
     // The list
-    List<Value*> *vals = ((ListVal*) f)->get();
+    List<Val> *vals = ((ListVal*) f)->get();
     
     // Get the index
-    Value *index = idx->valueOf(env);
+    Val index = idx->valueOf(env);
     if (!index) return NULL;
     else if (typeid(*index) != typeid(IntVal)) {
         throw_type_err(idx, "integer");
@@ -388,19 +388,19 @@ Value* ListAccessExp::valueOf(Environment *env) {
 
 }
 
-Value* ListAddExp::valueOf(Environment *env) {
+Val ListAddExp::valueOf(Env env) {
     // Get the list
-    Value *f = list->valueOf(env);
+    Val f = list->valueOf(env);
     if (!f)
         return NULL;
     else if (typeid(*f) != typeid(ListVal)) {
         throw_type_err(list, "list");
         return NULL;
     }
-    List<Value*> *vals = ((ListVal*) f)->get();
+    List<Val> *vals = ((ListVal*) f)->get();
 
     // Compute the index
-    Value *index = idx->valueOf(env);
+    Val index = idx->valueOf(env);
     if (!index) return NULL;
     else if (typeid(*index) != typeid(IntVal)) {
         throw_type_err(idx, "integer");
@@ -409,7 +409,7 @@ Value* ListAddExp::valueOf(Environment *env) {
     int i = ((IntVal*) index)->get();
 
     // Compute the value
-    Value *val = elem->valueOf(env);
+    Val val = elem->valueOf(env);
     if (!index)
         return NULL;
     
@@ -419,19 +419,19 @@ Value* ListAddExp::valueOf(Environment *env) {
     return new VoidVal;
 }
 
-Value* ListRemExp::valueOf(Environment *env) {
+Val ListRemExp::valueOf(Env env) {
     // Get the list
-    Value *f = list->valueOf(env);
+    Val f = list->valueOf(env);
     if (!f)
         return NULL;
     else if (typeid(*f) != typeid(ListVal)) {
         throw_type_err(list, "list");
         return NULL;
     }
-    List<Value*> *vals = ((ListVal*) f)->get();
+    List<Val> *vals = ((ListVal*) f)->get();
 
     // Compute the index
-    Value *index = idx->valueOf(env);
+    Val index = idx->valueOf(env);
     if (!index) return NULL;
     else if (typeid(*index) != typeid(IntVal)) {
         throw_type_err(idx, "integer");
@@ -443,9 +443,9 @@ Value* ListRemExp::valueOf(Environment *env) {
     return vals->remove(i);
 }
 
-Value* ListSliceExp::valueOf(Environment *env) {
+Val ListSliceExp::valueOf(Env env) {
     // Get the list
-    Value *lst = list->valueOf(env);
+    Val lst = list->valueOf(env);
     if (!lst)
         return NULL;
     else if (typeid(*lst) != typeid(ListVal)) {
@@ -455,10 +455,10 @@ Value* ListSliceExp::valueOf(Environment *env) {
     }
     
     // The list
-    List<Value*> *vals = ((ListVal*) lst)->get();
+    List<Val> *vals = ((ListVal*) lst)->get();
 
     // Get the index
-    Value *f = from->valueOf(env);
+    Val f = from->valueOf(env);
     if (!f) return NULL;
     else if (typeid(*f) != typeid(IntVal)) {
         throw_type_err(from, "integer");
@@ -468,7 +468,7 @@ Value* ListSliceExp::valueOf(Environment *env) {
     int i = ((IntVal*) f)->get();
 
     // Get the index
-    Value *t = to->valueOf(env);
+    Val t = to->valueOf(env);
     if (!t) return NULL;
     else if (typeid(*t) != typeid(IntVal)) {
         throw_type_err(to, "integer");
@@ -478,14 +478,14 @@ Value* ListSliceExp::valueOf(Environment *env) {
     int j = ((IntVal*) t)->get();
 
     // Get the item
-    LinkedList<Value*> *vs = new LinkedList<Value*>;
+    LinkedList<Val> *vs = new LinkedList<Val>;
     
     auto it = vals->iterator();
     int x;
     for (x = 0; x < i; x++) it->next();
     for (;x < j && it->hasNext(); x++) {
         // Add the value and a reference to it
-        Value *v = it->next();
+        Val v = it->next();
         vs->add(x-i, v);
         v->add_ref();
     }
@@ -498,9 +498,9 @@ Value* ListSliceExp::valueOf(Environment *env) {
 
 }
 
-Value* MagnitudeExp::valueOf(Environment *env) {
-    Value *v = exp->valueOf(env);
-    Value *res = NULL;
+Val MagnitudeExp::valueOf(Env env) {
+    Val v = exp->valueOf(env);
+    Val res = NULL;
 
     if (!v) return NULL;
     else if (typeid(*v) == typeid(IntVal)) {
@@ -526,11 +526,11 @@ Value* MagnitudeExp::valueOf(Environment *env) {
     return res;
 }
 
-Value* MapExp::valueOf(Environment *env) {
-    Value *vs = list->valueOf(env);
+Val MapExp::valueOf(Env env) {
+    Val vs = list->valueOf(env);
     if (!vs) return NULL;
 
-    Value *f = func->valueOf(env);
+    Val f = func->valueOf(env);
     if (!f) { vs->rem_ref(); return NULL; }
     
     if (typeid(*f) != typeid(LambdaVal)) {
@@ -549,7 +549,7 @@ Value* MapExp::valueOf(Environment *env) {
     }
 
     // Get the arguments
-    Expression *map = fn->getBody();
+    Exp map = fn->getBody();
 
     if (typeid(*vs) == typeid(ListVal)) {
         // Given a list, map each element of the list
@@ -559,13 +559,13 @@ Value* MapExp::valueOf(Environment *env) {
         int i = 0;
         auto it = vals->get()->iterator();
         while (it->hasNext()) {
-            Value *v = it->next();
+            Val v = it->next();
 
-            Value **xs = new Value*[2];
+            Val *xs = new Val[2];
             xs[0] = v;
             xs[1] = NULL;
 
-            Value *elem = fn->apply(xs);
+            Val elem = fn->apply(xs);
 
             delete[] xs;
 
@@ -591,14 +591,14 @@ Value* MapExp::valueOf(Environment *env) {
         Matrix v = ((MatrixVal*) vs)->get();
         Matrix M(v.R, v.C);
 
-        Value *xs[2];
+        Val xs[2];
         xs[1] = NULL;
         
         for (int r = 0; r < M.R; r++)
         for (int c = 0; c < M.C; c++) {
             xs[0] = new RealVal(v(r, c));
 
-            Value *elem = fn->apply(xs);
+            Val elem = fn->apply(xs);
             
             // Garbage collection
             xs[0]->rem_ref();
@@ -632,10 +632,10 @@ Value* MapExp::valueOf(Environment *env) {
     } else {
         throw_warning("runtime", "expression '" + list->toString() + " does not evaluate as list");
 
-        Value *xs[2];
+        Val xs[2];
         xs[0] = vs; xs[1] = NULL;
 
-        Value *v = fn->apply(xs);
+        Val v = fn->apply(xs);
 
         vs->rem_ref();
         fn->rem_ref();
@@ -644,8 +644,8 @@ Value* MapExp::valueOf(Environment *env) {
     }
 }
 
-Value* MatrixExp::valueOf(Environment *env) {
-    Value *v = list->valueOf(env);
+Val MatrixExp::valueOf(Env env) {
+    Val v = list->valueOf(env);
     if (!v) return NULL;
     else if (typeid(*v) != typeid(ListVal)) {
         v->rem_ref();
@@ -659,7 +659,7 @@ Value* MatrixExp::valueOf(Environment *env) {
         return NULL;
     }
 
-    List<Value*> *arr = array->get();
+    List<Val> *arr = array->get();
     int R = array->get()->size();
     int C = 0;
     
@@ -674,7 +674,7 @@ Value* MatrixExp::valueOf(Environment *env) {
             return NULL;
         }
         
-        List<Value*> *row = ((ListVal*) v)->get();
+        List<Val> *row = ((ListVal*) v)->get();
         if (i && row->size() != C) {
             // Ensure the array is square
             array->rem_ref();
@@ -710,11 +710,11 @@ Value* MatrixExp::valueOf(Environment *env) {
     it = arr->iterator();
     for (int i = 0; i < R; i++) {
         ListVal *rowval = ((ListVal*) it->next());
-        List<Value*> *row = rowval->get();
+        List<Val> *row = rowval->get();
 
         auto jt = row->iterator();
         for (int j = 0; j < C; j++, k++) {
-            Value *f = jt->next();
+            Val f = jt->next();
 
             if (typeid(*f) == typeid(RealVal)) vals[k] = ((RealVal*) f)->get();
             else if (typeid(*f) == typeid(IntVal)) vals[k] = (float) ((IntVal*) f)->get();
@@ -732,8 +732,8 @@ Value* MatrixExp::valueOf(Environment *env) {
     return v;
 }
 
-Value* NotExp::valueOf(Environment* env) {
-    Value *v = exp->valueOf(env);
+Val NotExp::valueOf(Env env) {
+    Val v = exp->valueOf(env);
     
     if (!v)
         return NULL;
@@ -752,28 +752,28 @@ Value* NotExp::valueOf(Environment* env) {
     }
 }
 
-Value* OperatorExp::valueOf(Environment *env) {
-    Value *a = left->valueOf(env);
+Val OperatorExp::valueOf(Env env) {
+    Val a = left->valueOf(env);
     if (!a) return NULL;
 
-    Value *b = right->valueOf(env);
+    Val b = right->valueOf(env);
 
     if (!b) {
         a->rem_ref();
         return NULL;
     } else {
-        Value *res = op(a, b);
+        Val res = op(a, b);
         a->rem_ref();
         b->rem_ref();
         return res;
     }
 }
 
-Value* PrintExp::valueOf(Environment *env) {
+Val PrintExp::valueOf(Env env) {
     string s = "";
     
     for (int i = 0; args[i]; i++) {
-        Value *v = args[i]->valueOf(env);
+        Val v = args[i]->valueOf(env);
         if (!v)
             return NULL;
 
@@ -787,12 +787,12 @@ Value* PrintExp::valueOf(Environment *env) {
     return new VoidVal;
 }
 
-Value* RealExp::valueOf(Environment *env) {
+Val RealExp::valueOf(Env env) {
     return new RealVal(val);
 }
 
-Value* SequenceExp::valueOf(Environment *env) {
-    Value *v = pre->valueOf(env);
+Val SequenceExp::valueOf(Env env) {
+    Val v = pre->valueOf(env);
 
     if (!v) return NULL;
     else if (!post) return v;
@@ -802,12 +802,12 @@ Value* SequenceExp::valueOf(Environment *env) {
     }
 }
 
-Value* SetExp::valueOf(Environment *env) {
-    Value *v = NULL;
+Val SetExp::valueOf(Env env) {
+    Val v = NULL;
 
     for (int i = 0; exps[i]; i++) {
         // Get info for modifying the environment
-        Value *u = tgts[i]->valueOf(env);
+        Val u = tgts[i]->valueOf(env);
         if (!u)
             // The variable doesn't exist
             return NULL;
@@ -830,22 +830,22 @@ Value* SetExp::valueOf(Environment *env) {
     return v ? v : new VoidVal;
 }
 
-Value* TrueExp::valueOf(Environment* env) { return new BoolVal(true); }
+Val TrueExp::valueOf(Env env) { return new BoolVal(true); }
 
-Value* VarExp::valueOf(Environment *env) {
-    Value *res = env->apply(id);
+Val VarExp::valueOf(Env env) {
+    Val res = env->apply(id);
     if (!res) throw_err("runtime", "variable '" + id + "' was not recognized");
     else res->add_ref(); // This necessarily creates a new reference. So, we must track it.
 
     return res;
 }
 
-Value* WhileExp::valueOf(Environment *env) {
+Val WhileExp::valueOf(Env env) {
     bool skip = alwaysEnter;
-    Value *v = new VoidVal;
+    Val v = new VoidVal;
 
     while (true) {
-        Value *c = cond->valueOf(env);
+        Val c = cond->valueOf(env);
         if (!c) return NULL;
         else if (typeid(*c) != typeid(BoolVal)) {
             throw_type_err(cond, "boolean");

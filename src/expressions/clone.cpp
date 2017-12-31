@@ -2,11 +2,11 @@
 
 using namespace std;
 
-Expression* ApplyExp::clone() {
+Exp ApplyExp::clone() {
     int i;
     for (i = 0; args[i]; i++);
 
-    Expression **a = new Expression*[i+1];
+    Exp *a = new Exp[i+1];
     a[i] = NULL;
 
     while (i--) {
@@ -16,7 +16,7 @@ Expression* ApplyExp::clone() {
     return new ApplyExp(op->clone(), a);
 }
 
-Expression* LambdaExp::clone() {
+Exp LambdaExp::clone() {
     int i;
     for (i = 0; xs[i] != ""; i++);
     
@@ -29,12 +29,12 @@ Expression* LambdaExp::clone() {
 
 }
 
-Expression* LetExp::clone() {
+Exp LetExp::clone() {
     int argc;
     for (argc = 0; exps[argc]; argc++);
     
     string *ps = new string[argc+1];
-    Expression **es = new Expression*[argc+1];
+    Exp *es = new Exp[argc+1];
     ps[argc] = "";
     es[argc] = NULL;
     while (argc--) {
@@ -46,8 +46,8 @@ Expression* LetExp::clone() {
 
 }
 
-Expression* ListExp::clone() {
-    LinkedList<Expression*> *exps = new LinkedList<Expression*>;
+Exp ListExp::clone() {
+    LinkedList<Exp> *exps = new LinkedList<Exp>;
 
     auto it = list->iterator();
     while (it->hasNext())
@@ -58,23 +58,23 @@ Expression* ListExp::clone() {
 
 }
 
-Expression* PrintExp::clone() {
+Exp PrintExp::clone() {
     int i;
     for (i = 0; args[i]; i++);
 
-    Expression **list = new Expression*[i+1];
+    Exp *list = new Exp[i+1];
     list[i] = NULL;
     while (i--) list[i] = args[i]->clone();
 
     return new PrintExp(list);
 }
 
-Expression* SetExp::clone() {
+Exp SetExp::clone() {
     int i;
     for (i = 0; exps[i]; i++);
 
-    Expression **a = new Expression*[i+1];
-    Expression **b = new Expression*[i+1];
+    Exp *a = new Exp[i+1];
+    Exp *b = new Exp[i+1];
     a[i] = b[i] = NULL;
 
     while (i--) {
