@@ -7,6 +7,8 @@
 #include "bnf.hpp"
 #include "config.hpp"
 
+#include "expressions/derivative.hpp"
+
 #include <cstring>
 
 using namespace std;
@@ -78,28 +80,6 @@ Val ApplyExp::valueOf(Env env) {
     return y;
 }
 
-Val deriveVal(Val v, int c = 1) {
-    if (typeid(*v) == typeid(StringVal) ||
-        typeid(*v) == typeid(BoolVal))
-        // Certain types are non-differentiable
-        return NULL;
-    else if (typeid(*v) == typeid(ListVal)) {
-        auto it = ((ListVal*) v)->get()->iterator();
-        LinkedList<Val> *lst = new LinkedList<Val>;
-        while (it->hasNext()) {
-            Val x = deriveVal(it->next());
-            lst->add(lst->size(), x);
-        }
-        return new ListVal(lst); 
-    } else if (typeid(*v) == typeid(MatrixVal)) {
-        Matrix M(((MatrixVal*) v)->get().R, ((MatrixVal*) v)->get().C);
-        for (int i = 0; i < M.R; i++)
-            for (int j = 0; j < M.C; j++)
-                M(i, j) = c;
-        return new MatrixVal(M);
-    } else
-        return new IntVal(c);
-}
 Val DerivativeExp::valueOf(Env env) {
 
     // Base case: we know of nothing
@@ -137,13 +117,16 @@ Val DerivativeExp::valueOf(Env env) {
             denv = new ExtendEnv(id, dv, denv);
             dv->rem_ref(); // The derivative exists only within the environment
         } else {
-            // Trivial derivative: d/dx c = 0
-            Val c = deriveVal(v, id == var ? 1 : 0);
+            // Trivial derivative: d/dx c = 0, d/dx x = x
+            int c = id == var ? 1 : 0;
+            
+            v = deriveConstVal(v, env->apply(var), c);
 
-            if (c) {
+            if (v) {
                 // The value is of a differentiable type
-                denv = new ExtendEnv(id, c, denv);
-                c->rem_ref(); // The derivative exists only within the environment
+                denv = new ExtendEnv(id, v, denv);
+                v->rem_ref(); // The derivative exists only within the environment
+                throw_debug("calc_init", "d/d" + var + " " + id + " = " + v->toString());
             }
         }
     }
@@ -174,6 +157,7 @@ Val FoldExp::valueOf(Env env) {
     if (!f) return NULL;
     else if (typeid(*f) != typeid(LambdaVal)) {
         throw_type_err(func, "lambda");
+        lst->rem_ref();
         return NULL;
     }
 
@@ -182,6 +166,8 @@ Val FoldExp::valueOf(Env env) {
     for (i = 0; fn->getArgs()[i] != ""; i++);
     if (i != 2) {
         throw_err("runtime", "function defined by '" + func->toString() + "' does not take exactly two arguments");
+        lst->rem_ref();
+        f->rem_ref();
         return NULL;
     }
 
@@ -201,6 +187,10 @@ Val FoldExp::valueOf(Env env) {
     }
     
     delete it;
+
+    fn->rem_ref();
+    lst->rem_ref();
+
     return xs[0];
 }
 
@@ -376,7 +366,9 @@ Val ListAccessExp::valueOf(Env env) {
     int i = ((IntVal*) index)->get();
 
     // Get the item
-    return vals->get(i);
+    Val v = vals->get(i);
+    v->add_ref();
+    return v;
 
 }
 
@@ -660,7 +652,8 @@ Val MatrixExp::valueOf(Env env) {
     for (int i = 0; i < R; i++) {
         v = it->next(); // Get the next "row"
         if (typeid(*v) != typeid(ListVal)) {
-            // Ensure that the list is a 2D list
+            throw_err("runtime", "list " + array->toString() + " is not 2D");
+            // The list is not 2D
             array->rem_ref();
             delete it;
             return NULL;
@@ -669,6 +662,7 @@ Val MatrixExp::valueOf(Env env) {
         List<Val> *row = ((ListVal*) v)->get();
         if (i && row->size() != C) {
             // Ensure the array is square
+            throw_err("runtime", "list " + array->toString() + " is not square");
             array->rem_ref();
             delete it;
             return NULL;
@@ -686,6 +680,7 @@ Val MatrixExp::valueOf(Env env) {
         while (jt->hasNext()) {
             v = jt->next();
             if (typeid(*v) != typeid(RealVal) && typeid(*v) != typeid(IntVal)) {
+                throw_err("runtime", "list " + array->toString() + " is not 2D");
                 delete it;
                 delete jt;
                 array->rem_ref();

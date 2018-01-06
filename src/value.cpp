@@ -161,7 +161,10 @@ void LambdaVal::setEnv(Env e) {
 }
 
 ListVal::~ListVal() {
-    while (!list->isEmpty()) list->remove(0)->rem_ref();
+    while (!list->isEmpty()) {
+        Val v = list->remove(0);
+        if (v) v->rem_ref();
+    }
     delete list;
 }
 ListVal* ListVal::clone() {
@@ -172,7 +175,7 @@ ListVal* ListVal::clone() {
     for (int i = 0; it->hasNext(); i++) {
         Val v = it->next();
         res->list->add(i, v);
-        v->add_ref();
+        if (v) v->add_ref();
     }
 
     // Give it back

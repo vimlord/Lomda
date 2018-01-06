@@ -10,14 +10,14 @@
 // Calling functions; {a->b, a} -> b
 class ApplyExp : public Expression {
     private:
-        Expression *op;
-        Expression **args;
+        Exp op;
+        Exp *args;
     public:
         ApplyExp(Exp, Exp*);
         ~ApplyExp();
 
-        Value* valueOf(Env);
-        Value* derivativeOf(std::string, Env, Env);
+        Val valueOf(Env);
+        Val derivativeOf(std::string, Env, Env);
         
         Exp clone();
         std::string toString();
@@ -25,13 +25,13 @@ class ApplyExp : public Expression {
 
 class DerivativeExp : public Expression {
     private:
-        Expression *func;
+        Exp func;
         std::string var;
     public:
         DerivativeExp(Exp f, std::string s) : func(f), var(s) {}
         ~DerivativeExp() { delete func; }
 
-        Value* valueOf(Env);
+        Val valueOf(Env);
 
         Exp clone() { return new DerivativeExp(func->clone(), var); }
         std::string toString();
@@ -39,15 +39,16 @@ class DerivativeExp : public Expression {
 
 class FoldExp : public Expression {
     private:
-        Expression *list;
-        Expression *func;
-        Expression *base;
+        Exp list;
+        Exp func;
+        Exp base;
     public:
-        FoldExp(Expression *l, Expression *f, Expression *b)
+        FoldExp(Exp l, Exp f, Exp b)
                 : list(l), func(f), base(b) {}
         ~FoldExp() { delete list; delete func; delete base; }
         
-        Value* valueOf(Env);
+        Val valueOf(Env);
+        Val derivativeOf(std::string, Env, Env);
 
         Exp clone() { return new FoldExp(list->clone(), func->clone(), base->clone()); }
         std::string toString();
@@ -56,13 +57,13 @@ class FoldExp : public Expression {
 class ForExp : public Expression {
     private:
         std::string id;
-        Expression *set;
-        Expression *body;
+        Exp set;
+        Exp body;
     public:
-        ForExp(std::string x, Expression *xs, Expression *e) : id(x), set(xs), body(e) {}
+        ForExp(std::string x, Exp xs, Exp e) : id(x), set(xs), body(e) {}
         ~ForExp() { delete set; delete body; }
-        Value* valueOf(Env);
-        Value* derivativeOf(std::string, Env, Env);
+        Val valueOf(Env);
+        Val derivativeOf(std::string, Env, Env);
 
         Exp clone() { return new ForExp(id, set->clone(), body->clone()); }
         std::string toString();
@@ -71,15 +72,15 @@ class ForExp : public Expression {
 // Condition expression that chooses paths
 class IfExp : public Expression {
     private:
-        Expression *cond;
-        Expression *tExp;
-        Expression *fExp;
+        Exp cond;
+        Exp tExp;
+        Exp fExp;
     public:
         IfExp(Exp, Exp, Exp);
         ~IfExp() { delete cond; delete tExp; delete fExp; }
 
-        Value* valueOf(Env);
-        Value* derivativeOf(std::string, Env, Env);
+        Val valueOf(Env);
+        Val derivativeOf(std::string, Env, Env);
         
         Exp clone() { return new IfExp(cond->clone(), tExp->clone(), fExp->clone()); }
         std::string toString();
@@ -89,8 +90,8 @@ class IfExp : public Expression {
 class LetExp : public Expression {
     private:
         std::string *ids;
-        Expression **exps;
-        Expression *body;
+        Exp *exps;
+        Exp body;
     public:
         LetExp(std::string*, Exp*, Exp);
         ~LetExp() {
@@ -100,8 +101,8 @@ class LetExp : public Expression {
             delete[] ids;
         }
 
-        Value* valueOf(Env);
-        Value* derivativeOf(std::string, Env, Env);
+        Val valueOf(Env);
+        Val derivativeOf(std::string, Env, Env);
         
         Exp clone();
         std::string toString();
@@ -109,29 +110,29 @@ class LetExp : public Expression {
 
 class MagnitudeExp : public Expression {
     private:
-        Expression *exp;
+        Exp exp;
     public:
-        MagnitudeExp(Expression *e) : exp(e) {}
+        MagnitudeExp(Exp e) : exp(e) {}
         ~MagnitudeExp() { delete exp; }
         Exp clone() { return new MagnitudeExp(exp->clone()); }
 
-        Value* valueOf(Env);
-        Value* derivativeOf(std::string, Env, Env);
+        Val valueOf(Env);
+        Val derivativeOf(std::string, Env, Env);
 
         std::string toString();
 };
 
 class MapExp : public Expression {
     private:
-        Expression *func;
-        Expression *list;
+        Exp func;
+        Exp list;
     public:
-        MapExp(Expression *l, Expression *f) : func(f), list(l) {}
+        MapExp(Exp l, Exp f) : func(f), list(l) {}
         ~MapExp() { delete func; delete list; }
         Exp clone() { return new MapExp(list->clone(), func->clone()); }
 
-        Value* valueOf(Env);
-        Value* derivativeOf(std::string, Env, Env);
+        Val valueOf(Env);
+        Val derivativeOf(std::string, Env, Env);
         
         std::string toString();
 };
@@ -139,12 +140,12 @@ class MapExp : public Expression {
 // Bool -> Bool expression that negates booleans
 class NotExp : public Expression {
     private:
-        Expression *exp;
+        Exp exp;
     public:
         NotExp(Exp e) { exp = e; }
         ~NotExp() { delete exp; }
 
-        Value* valueOf(Env);
+        Val valueOf(Env);
         
         Exp clone() { return new NotExp(exp->clone()); }
         std::string toString();
@@ -152,12 +153,12 @@ class NotExp : public Expression {
 
 class PrintExp : public Expression {
     private:
-        Expression **args;
+        Exp *args;
     public:
-        PrintExp(Expression **l) : args(l) {}
+        PrintExp(Exp *l) : args(l) {}
         ~PrintExp() { for (int i = 0; args[i]; i++) delete args[i]; delete[] args; }
 
-        Value* valueOf(Env);
+        Val valueOf(Env);
 
         Exp clone();
         std::string toString();
@@ -165,13 +166,13 @@ class PrintExp : public Expression {
 
 class SequenceExp : public Expression {
     private:
-        Expression *pre;
-        Expression *post;
+        Exp pre;
+        Exp post;
     public:
         SequenceExp(Exp, Exp = NULL);
         ~SequenceExp() { delete pre; delete post; }
 
-        Value* valueOf(Env);
+        Val valueOf(Env);
         
         Exp clone() { return new SequenceExp(pre->clone(), post->clone()); }
         std::string toString();
@@ -180,8 +181,8 @@ class SequenceExp : public Expression {
 // Expression for redefining values in a store
 class SetExp : public Expression {
     private:
-        Expression **tgts;
-        Expression **exps;
+        Exp *tgts;
+        Exp *exps;
     public:
         SetExp(Exp*, Exp*);
         ~SetExp() {
@@ -189,8 +190,8 @@ class SetExp : public Expression {
             delete[] tgts; delete[] exps;
         }
 
-        Value* valueOf(Env);
-        Value* derivativeOf(std::string, Env, Env);
+        Val valueOf(Env);
+        Val derivativeOf(std::string, Env, Env);
         
         Exp clone();
         std::string toString();
@@ -198,16 +199,16 @@ class SetExp : public Expression {
 
 class WhileExp : public Expression {
     private:
-        Expression *cond;
-        Expression *body;
+        Exp cond;
+        Exp body;
         bool alwaysEnter; /* If true, always enter for at least one iteration; do-while */
     public:
-        WhileExp(Expression *c, Expression *b, bool enter = false)
+        WhileExp(Exp c, Exp b, bool enter = false)
                 : cond(c), body(b), alwaysEnter(enter) {}
         ~WhileExp() { delete cond; delete body; }
 
-        Value* valueOf(Env);
-        Value* derivativeOf(std::string, Env, Env);
+        Val valueOf(Env);
+        Val derivativeOf(std::string, Env, Env);
 
         Exp clone() { return new WhileExp(cond->clone(), body->clone(), alwaysEnter); }
         std::string toString();

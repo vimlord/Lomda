@@ -1,5 +1,6 @@
 #include "expression.hpp"
 #include "environment.hpp"
+#include "expressions/derivative.hpp"
 
 #include "config.hpp"
 
@@ -7,6 +8,106 @@ using namespace std;
 
 void throw_calc_err(Exp exp) {
     throw_err("calculus", "expression '" + exp->toString() + "' is non-differentiable\n");
+}
+
+void resolveIdentity(Val val, List<int> *idx = NULL) {
+    if (typeid(*val) == typeid(ListVal)) {
+        if (!idx) idx = new LinkedList<int>;
+
+        ListVal *lst = (ListVal*) val;
+        
+        auto it = lst->get()->iterator();
+        for (int i = 0; it->hasNext(); i++) {
+            idx->add(0, i);
+            resolveIdentity(it->next(), idx);
+            idx->remove(0);
+        }
+
+    }
+
+    auto it = idx->iterator();
+    auto jt = idx->iterator();
+    
+    int i;
+    for (i = 0; i < idx->size() / 2; i++) jt->next();
+    for (; i < idx->size() && it->next() == jt->next(); i++);
+
+    if (i == idx->size()) {
+        Val v = typeid(*val) == typeid(IntVal)
+                ? (Val) new IntVal(1) : (Val) new RealVal(1);
+
+        val->set(v);
+    }
+}
+
+Val deriveConstVal(Val v, int c) {
+
+    if (typeid(*v) == typeid(StringVal) ||
+        typeid(*v) == typeid(BoolVal))
+        // Certain types are non-differentiable
+        return NULL;
+    else if (typeid(*v) == typeid(ListVal)) {
+        auto it = ((ListVal*) v)->get()->iterator();
+        LinkedList<Val> *lst = new LinkedList<Val>;
+        while (it->hasNext()) {
+            Val x = deriveConstVal(it->next(), c);
+            lst->add(lst->size(), x);
+        }
+        delete it;
+        return new ListVal(lst); 
+    } else if (typeid(*v) == typeid(MatrixVal)) {
+        Matrix M(((MatrixVal*) v)->get().R, ((MatrixVal*) v)->get().C);
+        if (M.R > 1 && M.C > 1)
+            for (int i = 0; i < M.R; i++)
+                for (int j = 0; j < M.C; j++)
+                    M(i, j) = i == j ? c : 0;
+        else for (int i = 0; i < M.R * M.C; i++)
+                M(M.R == 1 ? 0 : i, M.R == 1 ? i : 0) = c;
+        return new MatrixVal(M);
+    } else
+        return new IntVal(c);
+}
+
+Val deriveConstVal(Val x, Val v, int c) {
+
+    //return deriveConstVal(x, c);
+
+    if (typeid(*v) == typeid(StringVal) ||
+        typeid(*v) == typeid(BoolVal))
+        // Certain types are non-differentiable
+        return NULL;
+    else if (typeid(*v) == typeid(ListVal)) {
+        auto it = ((ListVal*) v)->get()->iterator();
+        LinkedList<Val> *lst = new LinkedList<Val>;
+        while (it->hasNext()) {
+            Val u = it->next();
+            Val dx = deriveConstVal(x, u, 0);
+            lst->add(lst->size(), dx);
+        }
+        delete it;
+
+        Val res = new ListVal(lst);
+
+        if (c == 1) resolveIdentity(res);
+
+        return res;
+    } else if (typeid(*v) == typeid(MatrixVal)) {
+        ListVal *lst = new ListVal;
+
+        int R = ((MatrixVal*) v)->get().R;
+        int C = ((MatrixVal*) v)->get().C;
+
+        for (int i = 0; i < R; i++) {
+            ListVal *row = new ListVal;
+            for (int j = 0; j < C; j++) {
+                row->get()->add(j, deriveConstVal(x, 1));
+            }
+            lst->get()->add(i, row);
+        }
+
+        return lst;
+    } else
+        return deriveConstVal(x, c);
 }
 
 Exp reexpress(Val v) {
@@ -349,6 +450,143 @@ Val MagnitudeExp::derivativeOf(string x, Env env, Env denv) {
     return res;
 }
 
+Val FoldExp::derivativeOf(string x, Env env, Env denv) {
+    // f(L, c) = g(g(...g(c,L[0]),L[1],...))
+    // g'(a,b) = a' * g_a(a,b) + b' * g_b(a,b)
+    // f' = g'(g(...(c, L[0]), L[1]), ...), L[N-1])
+    //      = g'(g(...(c, L[0]),...), L[N-2]) * g_a(...(c,L[0])...,L[N-1])
+    //      + L'[N-1] * g_b(...(c,L[0])...,L[N-1])
+    Val lst = list->valueOf(env);
+    if (!lst) return NULL;
+    else if (typeid(*lst) != typeid(ListVal)) {
+        lst->rem_ref();
+        throw_type_err(list, "list");
+        return NULL;
+    } else if (((ListVal*) lst)->get()->isEmpty()) {
+        // Base case: empty list
+        lst->rem_ref();
+        return base->derivativeOf(x, env, denv);
+    }
+    
+    Val dlst = list->derivativeOf(x, env, denv);
+    if (!dlst) return NULL;
+    
+    // Attempt to evaluate the fold function
+    Val f = func->valueOf(env);
+    if (!f) return NULL;
+    else if (typeid(*f) != typeid(LambdaVal)) {
+        throw_type_err(func, "lambda");
+
+        f->rem_ref();
+        lst->rem_ref();
+        dlst->rem_ref();
+
+        return NULL;
+    }
+        
+    // Extract the fold function
+    LambdaVal *fn = (LambdaVal*) f;
+    int i;
+    for (i = 0; fn->getArgs()[i] != ""; i++);
+    if (i != 2) {
+        throw_err("runtime", "function defined by '" + func->toString() + "' does not take exactly two arguments");
+        fn->rem_ref();
+        lst->rem_ref();
+        dlst->rem_ref();
+        return NULL;
+    }
+
+    // Fold derivative wrt the first var
+    Val v = func->derivativeOf(fn->getArgs()[0], env, denv);
+    if (!v) {
+        fn->rem_ref();
+        lst->rem_ref();
+        dlst->rem_ref(); 
+    }
+    LambdaVal *df_a = (LambdaVal*) v;
+
+    // The derivative wrt the second var
+    v = func->derivativeOf(fn->getArgs()[1], env, denv);
+    if (!v) {
+        fn->rem_ref();
+        lst->rem_ref();
+        dlst->rem_ref(); 
+        df_a->rem_ref();
+    }
+    LambdaVal *df_b = (LambdaVal*) v;
+
+    auto it = ((ListVal*) lst)->get()->iterator();
+    auto dit = ((ListVal*) dlst)->get()->iterator();
+
+    Val xs[3];
+    xs[2] = NULL;
+    
+    Val c = base->valueOf(env);
+    Val dc = base->derivativeOf(x, env, denv);
+
+    while (c && dc && it->hasNext()) {
+        v = it->next();
+
+        xs[0] = c;
+        xs[1] = v;
+        
+        // Perform the fold (and then do GC)
+        v = fn->apply(xs);
+        
+        // Same on derivatives
+        Val fa = df_a->apply(xs);
+        
+        if (!fa) {
+            c->rem_ref(); v->rem_ref(); fn->rem_ref(); lst->rem_ref();
+            dlst->rem_ref(); df_a->rem_ref(); df_b->rem_ref();
+            return NULL;
+        }
+
+        Val fb = df_b->apply(xs);
+        if (!fb) {
+            fa->rem_ref();
+            c->rem_ref(); v->rem_ref(); fn->rem_ref(); lst->rem_ref();
+            dlst->rem_ref(); df_a->rem_ref(); df_b->rem_ref();
+            return NULL;
+        }
+
+        // Apply the fold
+        c->rem_ref();
+        c = v;
+
+        // Derivative of the list index
+        v = dit->next();
+        
+        // We will construct an expression to handle the ordeal
+        Expression *cell = new SumExp(
+            new MultExp(reexpress(dc), reexpress(fa)),
+            new MultExp(reexpress(v), reexpress(fb))
+        );
+
+        v = cell->valueOf(env);
+
+        // Large amount of GC
+        dc->rem_ref();
+        fa->rem_ref();
+        fb->rem_ref();
+
+        dc = v;
+
+        delete cell;
+    }
+    
+    // Metric fuckton of GC
+    if (c) c->rem_ref();
+    fn->rem_ref();
+    lst->rem_ref();
+    dlst->rem_ref();
+    df_a->rem_ref();
+    df_b->rem_ref();
+
+    return dc;
+
+}
+
 Val MapExp::derivativeOf(string x, Env env, Env denv) {
     Val vs = list->valueOf(env);
     if (!vs) return NULL;
@@ -620,18 +858,79 @@ Val MultExp::derivativeOf(string x, Env env, Env denv) {
     Val dl = left->derivativeOf(x, env, denv);
     if (!dl) return NULL;
 
-    Val dr = left->derivativeOf(x, env, denv);
+    Val dr = right->derivativeOf(x, env, denv);
     if (!dr) { dl->rem_ref(); return NULL; }
 
-    Exp a = reexpress(dl);
-    Exp b = reexpress(dr);
+    Val l = left->valueOf(env);
+    if (!l) { dl->rem_ref(); dr->rem_ref(); return NULL; }
+    Val r = right->valueOf(env);
+    if (!r) { dl->rem_ref(); dr->rem_ref(); l->rem_ref(); return NULL; }
 
-    Exp exp = new SumExp(new MultExp(left->clone(), b), new MultExp(right->clone(), a));
-    Val c = exp->valueOf(env);
+    SumExp sum(NULL, NULL);
 
-    delete exp;
+    /*
+    std::cout << "d/d" << x << " " << toString() << " = " << *l << " * " << *dr << " + " << *r << " * " << *dl << "\n";
+    std::cout << "d/d" << x << " " << toString() << " = l*r' + r*l'\n";
+    std::cout << " = " << *l << " * " << *dr << " + " << *r << " * " << *dl << "\n";
+
+    std::cout << "l: " << *l << "\n";
+    if (typeid(*l) == typeid(ListVal)) {ListVal *tmp = (ListVal*) l; while (typeid(*(tmp->get()->get(0))) == typeid(ListVal)) { std::cout << tmp->get()->size() << " by "; tmp = (ListVal*) tmp->get()->get(0); } std::cout << tmp->get()->size() << "\n";}
+    
+    std::cout << "dl: d/d" << x << " " << *left << " = " << *dl << "\n";
+    if (typeid(*dl) == typeid(ListVal)) {ListVal *tmp = (ListVal*) dl; while (typeid(*(tmp->get()->get(0))) == typeid(ListVal)) { std::cout << tmp->get()->size() << " by "; tmp = (ListVal*) tmp->get()->get(0); } std::cout << tmp->get()->size() << "\n";}
+
+    std::cout << "r: " << *r << "\n";
+    if (typeid(*r) == typeid(ListVal)) {ListVal *tmp = (ListVal*) r; while (typeid(*(tmp->get()->get(0))) == typeid(ListVal)) { std::cout << tmp->get()->size() << " by "; tmp = (ListVal*) tmp->get()->get(0); } std::cout << tmp->get()->size() << "\n";}
+    
+    std::cout << "dr: d/d" << x << " " << *right << " = " << *dr << "\n";
+    if (typeid(*dr) == typeid(ListVal)) {ListVal *tmp = (ListVal*) dr; while (typeid(*(tmp->get()->get(0))) == typeid(ListVal)) { std::cout << tmp->get()->size() << " by "; tmp = (ListVal*) tmp->get()->get(0); } std::cout << tmp->get()->size() << "\n";}
+    */
+
+    Val a = op(l, dr);
+    if (!a) {
+        l->rem_ref();
+        r->rem_ref();
+        dl->rem_ref();
+        dr->rem_ref();
+        return NULL;
+    }
+    
+    /*
+    std::cout << "left: " << *l << " * " << *dr << " = " << *a << "\n";
+    if (typeid(*a) == typeid(ListVal)) {ListVal *tmp = (ListVal*) a; while (typeid(*(tmp->get()->get(0))) == typeid(ListVal)) { std::cout << tmp->get()->size() << " by "; tmp = (ListVal*) tmp->get()->get(0); } std::cout << tmp->get()->size() << "\n";}
+    */
+
+    l->rem_ref();
+    dr->rem_ref();
+
+    Val b = op(r, dl);
+
+    if (!b) {
+        a->rem_ref();
+        return NULL;
+    }
+    
+    /*
+    std::cout << "right: " << *r << " * " << *dl << " = " << *b << "\n";
+    if (typeid(*b) == typeid(ListVal)) {ListVal *tmp = (ListVal*) b; while (typeid(*(tmp->get()->get(0))) == typeid(ListVal)) { std::cout << tmp->get()->size() << " by "; tmp = (ListVal*) tmp->get()->get(0); } std::cout << tmp->get()->size() << "\n";}
+    */
+
+    r->rem_ref();
+    dl->rem_ref();
+
+    //std::cout << "d/d" << x << " " << toString() << " = " << *a << " + " << *b << "\n";
+    
+    Val c = sum.op(a, b);
+    
+    /*
+    if (c) std::cout << "result := " << *c << "\n";
+    else std::cout << "non-computable\n";
+    */
+
+    a->rem_ref();
+    b->rem_ref();
+
     return c;
-
 }
 
 Val SetExp::derivativeOf(string x, Env env, Env denv) {
@@ -715,6 +1014,14 @@ Val WhileExp::derivativeOf(string x, Env env, Env denv) {
         } else
             return v;
     }
+}
+
+// d/dx c = 0
+Val IntExp::derivativeOf(string x, Env env, Env denv) {
+    return deriveConstVal(env->apply(x), 0);
+}
+Val RealExp::derivativeOf(string x, Env env, Env denv) {
+    return deriveConstVal(env->apply(x), 0);
 }
 
 

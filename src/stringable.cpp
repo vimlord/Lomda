@@ -234,7 +234,11 @@ string ListVal::toString() {
 
     for (int i = 0; i < list->size(); i++) {
         if (i) s += ", ";
-        s += list->get(i)->toString();
+        Val v = list->get(i);
+        if (v)
+            s += list->get(i)->toString();
+        else
+            s += "null";
     }
 
     s += "]";

@@ -22,7 +22,7 @@ class IntExp : public Expression {
     public:
         IntExp(int = 0);
         Value* valueOf(Environment*);
-        Value* derivativeOf(std::string, Environment*, Environment*) { return new IntVal(0); } // d/dx c = 0
+        Value* derivativeOf(std::string, Environment*, Environment*);
         
         Expression* clone() { return new IntExp(val); }
         std::string toString();
@@ -85,7 +85,7 @@ class RealExp : public Expression {
     public:
         RealExp(float = 0);
         Value* valueOf(Environment*);
-        Value* derivativeOf(std::string, Environment*, Environment*) { return new IntVal(0); } // d/dx c = 0
+        Value* derivativeOf(std::string, Environment*, Environment*);
         
         Expression* clone() { return new RealExp(val); }
         std::string toString();
