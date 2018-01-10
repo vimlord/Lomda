@@ -36,6 +36,7 @@ int interpret() {
     display_config();
     cout << "Enter a program and press <enter> to execute, or one of the following:\n";
     cout << "'exit' - exit the interpreter\n";
+    cout << "'q/quit' - exit the interpreter\n";
 
     string program;
     
@@ -44,7 +45,7 @@ int interpret() {
         cout << "> ";
         getline(cin, program);
         
-        if (program == "exit")
+        if (program == "exit" || program == "quit" || program == "q")
             // Terminate the program
             return 0;
         else if (program != "") {
