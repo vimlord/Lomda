@@ -141,9 +141,6 @@ string MagnitudeExp::toString() {
 string MapExp::toString() {
     return "map " + list->toString() + " to " + func->toString();
 }
-string MatrixExp::toString() {
-    return "matrix from " + list->toString();
-}
 string MultExp::toString() {
     return left->toString() + " * " + right->toString();
 }
@@ -243,9 +240,6 @@ string ListVal::toString() {
 
     s += "]";
     return s;
-}
-string MatrixVal::toString() {
-    return val.toString();
 }
 string RealVal::toString() { return to_string(val); }
 string StringVal::toString() { return val; }

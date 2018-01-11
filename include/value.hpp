@@ -69,19 +69,6 @@ class ListVal : public Value {
         std::string toString();
 };
 
-class MatrixVal : public Value {
-    private:
-        Matrix val;
-    public:
-        MatrixVal(Matrix m) : val(m) {}
-        
-        int set(Value*);
-        Matrix get();
-
-        std::string toString();
-        MatrixVal* clone() { return new MatrixVal(val); }
-};
-
 class RealVal : public Value {
     private:
         float val;

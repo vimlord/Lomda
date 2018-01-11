@@ -499,9 +499,6 @@ Val MagnitudeExp::valueOf(Env env) {
         // Magnitude of list is its length
         int val = ((ListVal*) v)->get()->size();
         res = new IntVal(val > 0 ? val : -val);
-    } else if (typeid(*v) == typeid(MatrixVal)) {
-        float val = ((MatrixVal*) v)->get().determinant();
-        res = new RealVal(val);
     }
     
     // Garbage collection
@@ -571,43 +568,6 @@ Val MapExp::valueOf(Env env) {
 
         return res;
 
-    } else if (typeid(*vs) == typeid(MatrixVal)) {
-        Matrix v = ((MatrixVal*) vs)->get();
-        Matrix M(v.R, v.C);
-
-        Val xs[2];
-        xs[1] = NULL;
-        
-        for (int r = 0; r < M.R; r++)
-        for (int c = 0; c < M.C; c++) {
-            xs[0] = new RealVal(v(r, c));
-
-            Val elem = fn->apply(xs);
-            
-            // Garbage collection
-            xs[0]->rem_ref();
-
-            if (!elem) {
-                // The matrix is non-computable, so failure!
-                fn->rem_ref();
-                vs->rem_ref();
-                return NULL;
-            } else if (typeid(*elem) == typeid(RealVal)) {
-                M(r, c) = ((RealVal*) elem)->get();
-            } else if (typeid(*elem) == typeid(IntVal)) {
-                M(r, c) = (float) (((IntVal*) elem)->get());
-            } else {
-                elem->rem_ref();
-                fn->rem_ref();
-                vs->rem_ref();
-                return NULL;
-            }
-        }
-
-        fn->rem_ref();
-        vs->rem_ref();
-        return new MatrixVal(M);
-
     } else if (WERROR()) {
         throw_err("runtime", "expression '" + list->toString() + " does not evaluate as list");
         vs->rem_ref();
@@ -626,97 +586,6 @@ Val MapExp::valueOf(Env env) {
 
         return v;
     }
-}
-
-Val MatrixExp::valueOf(Env env) {
-    Val v = list->valueOf(env);
-    if (!v) return NULL;
-    else if (typeid(*v) != typeid(ListVal)) {
-        v->rem_ref();
-        return NULL;
-    }
-    ListVal *array = (ListVal*) v;
-
-    if (array->get()->size() == 0) {
-        // We will not permit arrays with 0 rows
-        v->rem_ref();
-        return NULL;
-    }
-
-    List<Val> *arr = array->get();
-    int R = array->get()->size();
-    int C = 0;
-    
-    // We must verify that the outcome is authentic
-    auto it = arr->iterator();
-    for (int i = 0; i < R; i++) {
-        v = it->next(); // Get the next "row"
-        if (typeid(*v) != typeid(ListVal)) {
-            throw_err("runtime", "list " + array->toString() + " is not 2D");
-            // The list is not 2D
-            array->rem_ref();
-            delete it;
-            return NULL;
-        }
-        
-        List<Val> *row = ((ListVal*) v)->get();
-        if (i && row->size() != C) {
-            // Ensure the array is square
-            throw_err("runtime", "list " + array->toString() + " is not square");
-            array->rem_ref();
-            delete it;
-            return NULL;
-        } else if (!i) {
-            C = ((ListVal*) v)->get()->size();
-            if (C == 0) {
-                array->rem_ref();
-                delete it;
-                return NULL;
-            }
-        }
-        
-        // Verify that the row only contains numbers
-        auto jt = row->iterator();
-        while (jt->hasNext()) {
-            v = jt->next();
-            if (typeid(*v) != typeid(RealVal) && typeid(*v) != typeid(IntVal)) {
-                throw_err("runtime", "list " + array->toString() + " is not 2D");
-                delete it;
-                delete jt;
-                array->rem_ref();
-                return NULL;
-            }
-        }
-
-    }
-    delete it;
-
-    float *vals = new float[R*C];
-
-    int k = 0;
-    it = arr->iterator();
-    for (int i = 0; i < R; i++) {
-        ListVal *rowval = ((ListVal*) it->next());
-        List<Val> *row = rowval->get();
-
-        auto jt = row->iterator();
-        for (int j = 0; j < C; j++, k++) {
-            Val f = jt->next();
-
-            if (typeid(*f) == typeid(RealVal)) vals[k] = ((RealVal*) f)->get();
-            else if (typeid(*f) == typeid(IntVal)) vals[k] = (float) ((IntVal*) f)->get();
-        }
-        delete jt;
-    }
-    delete it;
-
-    array->rem_ref();
-
-    Matrix m(R, C, vals);
-    
-    v = new MatrixVal(m);
-
-    return v;
 }
 
 Val NotExp::valueOf(Env env) {

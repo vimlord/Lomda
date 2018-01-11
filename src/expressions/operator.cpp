@@ -71,23 +71,10 @@ Val DiffExp::op(Value *a, Value *b) {
             delete bit;
 
             return new ListVal(C);
-        } else {
-            throw_err("runtime", "type of '" + left->toString() + "' and '" + right->toString() + "' do not properly match\n");
-            return NULL;
-        }
-    } else if (typeid(*a) == typeid(MatrixVal)) {
-        if (typeid(*b) == typeid(MatrixVal)) {
-            Matrix A = ((MatrixVal*) a)->get();
-            Matrix B = ((MatrixVal*) b)->get();
-            
-            if (A.R == B.R && A.C == B.C)
-                return new MatrixVal(A-B);
-            else {
-                throw_err("runtime", "subtraction is not defined between " + to_string(A.R) + "x" + to_string(A.C) + "matrix and " + to_string(B.R) + "x" + to_string(B.C) + " matrix");
-                return NULL;
-            }
-        } else {
-            throw_err("runtime", "type of '" + left->toString() + "' and '" + right->toString() + "' do not properly match\n");
+        } else  {
+            Stringable *l = left ? (Stringable*) left : (Stringable*) a;
+            Stringable *r = right ? (Stringable*) right : (Stringable*) b;
+            throw_err("runtime", "type of '" + l->toString() + "' and '" + r->toString() + "' do not properly match");
             return NULL;
         }
     }
@@ -122,26 +109,6 @@ Val DivExp::op(Value *a, Value *b) {
         typeid(*b) == typeid(LambdaVal)) {
         throw_err("runtime", "division is not defined on lambdas or booleans\nsee:\n" + right->toString());
         return NULL;
-    } else if (typeid(*a) == typeid(MatrixVal)) {
-        Matrix A = ((MatrixVal*) a)->get();
-
-        if (typeid(*b) == typeid(MatrixVal)) {
-            Matrix B = ((MatrixVal*) b)->get();
-            
-            if (B.R != B.C) {
-                throw_err("runtime", "non-square matrix '" + b->toString() + "' cannot be inverted");
-                return NULL;
-            } else if (A.C != B.R) {
-                throw_err("runtime", "division is not defined between " + to_string(A.R) + "x" + to_string(A.C) + "matrix and " + to_string(B.R) + "x" + to_string(B.C) + " matrix");
-                return NULL;
-            } else return new MatrixVal(A/B);
-
-        } else if (typeid(*b) == typeid(IntVal) || typeid(*b) == typeid(RealVal)) {
-            return new MatrixVal(A/(typeid(*b) == typeid(IntVal) ? ((IntVal*) b)->get() : ((RealVal*) b)->get()));
-        } else {
-            throw_err("runtime", "division is not defined between '" + a->toString() + "' and '" + b->toString() + "'");
-            return NULL;
-        }
     }
     
     // The lhs is numerical
@@ -150,29 +117,18 @@ Val DivExp::op(Value *a, Value *b) {
         ? ((IntVal*) a)->get() :
           ((RealVal*) a)->get();
     
-    if (typeid(*b) == typeid(MatrixVal)) {
-        if (((MatrixVal*) b)->get().R != ((MatrixVal*) b)->get().C) {
-            throw_err("runtime", "non-square matrix '" + b->toString() + "' cannot be inverted");
-            return NULL;
-        } else {
-            // rhs is a matrix
-            Matrix M = ((MatrixVal*) b)->get();
-            return new MatrixVal(x/M);
-        }
-    } else {
-        // rhs is numerical
-        auto y = 
-            typeid(*b) == typeid(IntVal)
-            ? ((IntVal*) b)->get() :
-              ((RealVal*) b)->get();
+    // rhs is numerical
+    auto y = 
+        typeid(*b) == typeid(IntVal)
+        ? ((IntVal*) b)->get() :
+          ((RealVal*) b)->get();
 
-        // Compute the result
-        auto z = x / y;
-        if (typeid(*a) == typeid(RealVal) || typeid(*b) == typeid(RealVal))
-            return new RealVal(z);
-        else
-            return new IntVal(z);
-    }
+    // Compute the result
+    auto z = x / y;
+    if (typeid(*a) == typeid(RealVal) || typeid(*b) == typeid(RealVal))
+        return new RealVal(z);
+    else
+        return new IntVal(z);
 }
 
 Val CompareExp::op(Value *a, Value *b) { 
@@ -523,75 +479,30 @@ Val MultExp::op(Value *a, Value *b) {
 
             return res;
         } else {
-            List<Val> *A = ((ListVal*) a)->get();
-            List<Val> *C = new LinkedList<Val>;
+            ListVal *res = new ListVal;
 
-            auto it = A->iterator();
-            for (int i = 0; it->hasNext(); i++) {
-                Value *x = it->next();
-                Value *c = op(x, b);
-                if (!c) {
-                    while (!C->isEmpty()) C->remove(0)->rem_ref();
-                    delete it;
-                    return NULL;
-                }
-                C->add(i, c);
+            auto it = ((ListVal*) a)->get()->iterator();
+            while (res && it->hasNext()) {
+                Val x = op(it->next(), b);
+                if (!x) {
+                    res->rem_ref();
+                    res = NULL;
+                } else
+                    res->get()->add(res->get()->size(), x);
             }
+
             delete it;
-            return new ListVal(C);
-        }
-        /*
-        else {
-            throw_err("runtime", "type of '" + left->toString() + "' and '" + right->toString() + "' do not properly match\n");
-            return NULL;
-        }*/
-    } else if (typeid(*a) == typeid(MatrixVal)) {
-        Matrix A = ((MatrixVal*) a)->get();
-
-        if (typeid(*b) == typeid(MatrixVal)) {
-            // Matrix multiplication
-            Matrix B = ((MatrixVal*) b)->get();
-            
-            if (A.C != B.R) {
-                throw_err("runtime", "multiplication is not defined between " + to_string(A.R) + "x" + to_string(A.C) + " matrix and " + to_string(B.R) + "x" + to_string(B.C) + " matrix");
-                return NULL;
-            } else return new MatrixVal(A*B);
-
-        } else if (typeid(*b) == typeid(IntVal) || typeid(*b) == typeid(RealVal)) {
-            // Multiply matrix by constant
-            return new MatrixVal(A*(typeid(*b) == typeid(IntVal) ? ((IntVal*) b)->get() : ((RealVal*) b)->get()));
-
-        } else if (typeid(*b) == typeid(ListVal)) {
-            // Multiply matrix by list
-            List<Val> *B = ((ListVal*) b)->get();
-            if (B->size() != A.C) {
-                throw_err("runtime", "multiplication is not defined between " + to_string(A.R) + "x" + to_string(A.C) + " matrix and " + to_string(B->size()) + "D list");
-            }
-
-            List<Val> *C = new LinkedList<Val>;
-            for (int i = 0; i < A.R; i++) {
-                // Compute each row
-
-            }
-
-            return new ListVal(C);
-
-        } else {
-            throw_err("runtime", "multiplication is not defined between '" + a->toString() + "' and '" + b->toString() + "'");
-            return NULL;
+            return res;
         }
     }
-    
+
     // The lhs is numerical
     auto x = 
         typeid(*a) == typeid(IntVal)
         ? ((IntVal*) a)->get() :
           ((RealVal*) a)->get();
     
-    if (typeid(*b) == typeid(MatrixVal)) {
-        // rhs is a matrix
-        return new MatrixVal(x*((MatrixVal*) b)->get());
-    } else if (typeid(*b) == typeid(ListVal)) {
+    if (typeid(*b) == typeid(ListVal)) {
         return op(b, a);
     } else {
         // rhs is numerical
@@ -656,26 +567,9 @@ Val SumExp::op(Value *a, Value *b) {
 
             return new ListVal(C);
         } else {
-            if (left && right)
-                throw_err("runtime", "type of '" + left->toString() + "' and '" + right->toString() + "' do not properly match\n");
-            else
-                throw_err("runtime", "types of expressions do not properly match\n");
-
-            return NULL;
-        }
-    } else if (typeid(*a) == typeid(MatrixVal)) {
-        if (typeid(*b) == typeid(MatrixVal)) {
-            Matrix A = ((MatrixVal*) a)->get();
-            Matrix B = ((MatrixVal*) b)->get();
-            
-            if (A.R == B.R && A.C == B.C)
-                return new MatrixVal(A+B);
-            else {
-                throw_err("runtime", "addition is not defined between " + to_string(A.R) + "x" + to_string(A.C) + "matrix and " + to_string(B.R) + "x" + to_string(B.C) + " matrix");
-                return NULL;
-            }
-        } else {
-            throw_err("runtime", "type of '" + left->toString() + "' and '" + right->toString() + "' do not properly match\n");
+            Stringable *l = left ? (Stringable*) left : (Stringable*) a;
+            Stringable *r = right ? (Stringable*) right : (Stringable*) b;
+            throw_err("runtime", "type of '" + l->toString() + "' and '" + r->toString() + "' do not properly match");
             return NULL;
         }
     }

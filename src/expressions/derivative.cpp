@@ -11,6 +11,8 @@ void throw_calc_err(Exp exp) {
 }
 
 void resolveIdentity(Val val, List<int> *idx = NULL) {
+    if (!val) return;
+
     if (typeid(*val) == typeid(ListVal)) {
         if (!idx) idx = new LinkedList<int>;
 
@@ -49,21 +51,21 @@ Val deriveConstVal(Val v, int c) {
     else if (typeid(*v) == typeid(ListVal)) {
         auto it = ((ListVal*) v)->get()->iterator();
         LinkedList<Val> *lst = new LinkedList<Val>;
+        Val res = new ListVal(lst);
+
         while (it->hasNext()) {
             Val x = deriveConstVal(it->next(), c);
+
+            if (!x) {
+                res->rem_ref();
+                delete it;
+                return NULL;
+            }
+
             lst->add(lst->size(), x);
         }
         delete it;
-        return new ListVal(lst); 
-    } else if (typeid(*v) == typeid(MatrixVal)) {
-        Matrix M(((MatrixVal*) v)->get().R, ((MatrixVal*) v)->get().C);
-        if (M.R > 1 && M.C > 1)
-            for (int i = 0; i < M.R; i++)
-                for (int j = 0; j < M.C; j++)
-                    M(i, j) = i == j ? c : 0;
-        else for (int i = 0; i < M.R * M.C; i++)
-                M(M.R == 1 ? 0 : i, M.R == 1 ? i : 0) = c;
-        return new MatrixVal(M);
+        return res; 
     } else
         return new IntVal(c);
 }
@@ -79,33 +81,25 @@ Val deriveConstVal(Val x, Val v, int c) {
     else if (typeid(*v) == typeid(ListVal)) {
         auto it = ((ListVal*) v)->get()->iterator();
         LinkedList<Val> *lst = new LinkedList<Val>;
+        Val res = new ListVal(lst);
+
         while (it->hasNext()) {
             Val u = it->next();
             Val dx = deriveConstVal(x, u, 0);
+
+            if (!dx) {
+                res->rem_ref();
+                delete it;
+                return NULL;
+            }
+
             lst->add(lst->size(), dx);
         }
         delete it;
 
-        Val res = new ListVal(lst);
-
         if (c == 1) resolveIdentity(res);
 
         return res;
-    } else if (typeid(*v) == typeid(MatrixVal)) {
-        ListVal *lst = new ListVal;
-
-        int R = ((MatrixVal*) v)->get().R;
-        int C = ((MatrixVal*) v)->get().C;
-
-        for (int i = 0; i < R; i++) {
-            ListVal *row = new ListVal;
-            for (int j = 0; j < C; j++) {
-                row->get()->add(j, deriveConstVal(x, 1));
-            }
-            lst->get()->add(i, row);
-        }
-
-        return lst;
     } else
         return deriveConstVal(x, c);
 }
@@ -690,45 +684,6 @@ Val MapExp::derivativeOf(string x, Env env, Env denv) {
 
         return res;
 
-    } else if (typeid(*vs) == typeid(MatrixVal)) {
-        Matrix v = ((MatrixVal*) vs)->get();
-        Matrix dv = ((MatrixVal*) dvs)->get();
-        Matrix M(v.R, v.C);
-
-        Val xs[2];
-        xs[1] = NULL;
-        
-        for (int r = 0; r < M.R; r++)
-        for (int c = 0; c < M.C; c++) {
-            xs[0] = new RealVal(v(r, c));
-
-            Val elem = fn->apply(xs);
-            
-            // Garbage collection
-            xs[0]->rem_ref();
-
-            if (!elem) {
-                // The matrix is non-computable, so failure!
-                fn->rem_ref();
-                vs->rem_ref();
-                dvs->rem_ref();
-                return NULL;
-            } else if (typeid(*elem) == typeid(RealVal)) {
-                M(r, c) = dv(r, c) * ((RealVal*) elem)->get();
-            } else if (typeid(*elem) == typeid(IntVal)) {
-                M(r, c) = dv(r, c) * (float) (((IntVal*) elem)->get());
-            } else {
-                elem->rem_ref();
-                fn->rem_ref();
-                vs->rem_ref();
-                return NULL;
-            }
-        }
-
-        fn->rem_ref();
-        vs->rem_ref();
-        return new MatrixVal(M);
-
     } else if (WERROR()) {
         throw_type_err(list, "list");
         vs->rem_ref();
@@ -763,169 +718,44 @@ Val MapExp::derivativeOf(string x, Env env, Env denv) {
     }
 }
 
-
-Val MatrixExp::derivativeOf(string x, Env env, Env denv) {
-    Val v = list->derivativeOf(x, env, denv);
-
-    if (!v) return NULL;
-    else if (typeid(*v) != typeid(ListVal)) {
-        v->rem_ref();
-        return NULL;
-    }
-    ListVal *array = (ListVal*) v;
-
-    if (array->get()->size() == 0) {
-        // We will not permit arrays with 0 rows
-        v->rem_ref();
-        return NULL;
-    }
-
-    List<Val> *arr = array->get();
-    int R = array->get()->size();
-    int C = 0;
-    
-    // We must verify that the outcome is authentic
-    auto it = arr->iterator();
-    for (int i = 0; i < R; i++) {
-        v = it->next(); // Get the next "row"
-        if (typeid(*v) != typeid(ListVal)) {
-            // Ensure that the list is a 2D list
-            array->rem_ref();
-            delete it;
-            return NULL;
-        }
-        
-        List<Val> *row = ((ListVal*) v)->get();
-        if (i && row->size() != C) {
-            // Ensure the array is square
-            array->rem_ref();
-            delete it;
-            return NULL;
-        } else if (!i) {
-            C = ((ListVal*) v)->get()->size();
-            if (C == 0) {
-                array->rem_ref();
-                delete it;
-                return NULL;
-            }
-        }
-        
-        // Verify that the row only contains numbers
-        auto jt = row->iterator();
-        while (jt->hasNext()) {
-            v = jt->next();
-            if (typeid(*v) != typeid(RealVal) && typeid(*v) != typeid(IntVal)) {
-                delete it;
-                delete jt;
-                array->rem_ref();
-                return NULL;
-            }
-        }
-
-    }
-    delete it;
-
-    float *vals = new float[R*C];
-
-    int k = 0;
-    it = arr->iterator();
-    for (int i = 0; i < R; i++) {
-        ListVal *rowval = ((ListVal*) it->next());
-        List<Val> *row = rowval->get();
-
-        auto jt = row->iterator();
-        for (int j = 0; j < C; j++, k++) {
-            Val f = jt->next();
-
-            if (typeid(*f) == typeid(RealVal)) vals[k] = ((RealVal*) f)->get();
-            else if (typeid(*f) == typeid(IntVal)) vals[k] = (float) ((IntVal*) f)->get();
-        }
-        delete jt;
-    }
-    delete it;
-
-    array->rem_ref();
-
-    Matrix m(R, C, vals);
-    
-    v = new MatrixVal(m);
-
-    return v;
-}
-
 Val MultExp::derivativeOf(string x, Env env, Env denv) { 
-
+    // Left hand derivative
     Val dl = left->derivativeOf(x, env, denv);
     if (!dl) return NULL;
-
+    
+    // Right hand derivative
     Val dr = right->derivativeOf(x, env, denv);
     if (!dr) { dl->rem_ref(); return NULL; }
-
+    
+    // We will need the left and right sides
     Val l = left->valueOf(env);
     if (!l) { dl->rem_ref(); dr->rem_ref(); return NULL; }
     Val r = right->valueOf(env);
     if (!r) { dl->rem_ref(); dr->rem_ref(); l->rem_ref(); return NULL; }
-
+    
+    // Utility object
     SumExp sum(NULL, NULL);
 
-    /*
-    std::cout << "d/d" << x << " " << toString() << " = " << *l << " * " << *dr << " + " << *r << " * " << *dl << "\n";
-    std::cout << "d/d" << x << " " << toString() << " = l*r' + r*l'\n";
-    std::cout << " = " << *l << " * " << *dr << " + " << *r << " * " << *dl << "\n";
-
-    std::cout << "l: " << *l << "\n";
-    if (typeid(*l) == typeid(ListVal)) {ListVal *tmp = (ListVal*) l; while (typeid(*(tmp->get()->get(0))) == typeid(ListVal)) { std::cout << tmp->get()->size() << " by "; tmp = (ListVal*) tmp->get()->get(0); } std::cout << tmp->get()->size() << "\n";}
-    
-    std::cout << "dl: d/d" << x << " " << *left << " = " << *dl << "\n";
-    if (typeid(*dl) == typeid(ListVal)) {ListVal *tmp = (ListVal*) dl; while (typeid(*(tmp->get()->get(0))) == typeid(ListVal)) { std::cout << tmp->get()->size() << " by "; tmp = (ListVal*) tmp->get()->get(0); } std::cout << tmp->get()->size() << "\n";}
-
-    std::cout << "r: " << *r << "\n";
-    if (typeid(*r) == typeid(ListVal)) {ListVal *tmp = (ListVal*) r; while (typeid(*(tmp->get()->get(0))) == typeid(ListVal)) { std::cout << tmp->get()->size() << " by "; tmp = (ListVal*) tmp->get()->get(0); } std::cout << tmp->get()->size() << "\n";}
-    
-    std::cout << "dr: d/d" << x << " " << *right << " = " << *dr << "\n";
-    if (typeid(*dr) == typeid(ListVal)) {ListVal *tmp = (ListVal*) dr; while (typeid(*(tmp->get()->get(0))) == typeid(ListVal)) { std::cout << tmp->get()->size() << " by "; tmp = (ListVal*) tmp->get()->get(0); } std::cout << tmp->get()->size() << "\n";}
-    */
-
     Val a = op(l, dr);
-    if (!a) {
-        l->rem_ref();
-        r->rem_ref();
-        dl->rem_ref();
-        dr->rem_ref();
-        return NULL;
-    }
-    
-    /*
-    std::cout << "left: " << *l << " * " << *dr << " = " << *a << "\n";
-    if (typeid(*a) == typeid(ListVal)) {ListVal *tmp = (ListVal*) a; while (typeid(*(tmp->get()->get(0))) == typeid(ListVal)) { std::cout << tmp->get()->size() << " by "; tmp = (ListVal*) tmp->get()->get(0); } std::cout << tmp->get()->size() << "\n";}
-    */
-
     l->rem_ref();
     dr->rem_ref();
 
+    if (!a) {
+        r->rem_ref();
+        dl->rem_ref();
+        return NULL;
+    }
+
     Val b = op(r, dl);
+    r->rem_ref();
+    dl->rem_ref();
 
     if (!b) {
         a->rem_ref();
         return NULL;
     }
     
-    /*
-    std::cout << "right: " << *r << " * " << *dl << " = " << *b << "\n";
-    if (typeid(*b) == typeid(ListVal)) {ListVal *tmp = (ListVal*) b; while (typeid(*(tmp->get()->get(0))) == typeid(ListVal)) { std::cout << tmp->get()->size() << " by "; tmp = (ListVal*) tmp->get()->get(0); } std::cout << tmp->get()->size() << "\n";}
-    */
-
-    r->rem_ref();
-    dl->rem_ref();
-
-    //std::cout << "d/d" << x << " " << toString() << " = " << *a << " + " << *b << "\n";
-    
     Val c = sum.op(a, b);
-    
-    /*
-    if (c) std::cout << "result := " << *c << "\n";
-    else std::cout << "non-computable\n";
-    */
 
     a->rem_ref();
     b->rem_ref();

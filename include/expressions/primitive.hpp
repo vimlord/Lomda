@@ -64,20 +64,6 @@ class ListExp : public Expression {
         std::string toString();
 };
 
-class MatrixExp : public Expression {
-    private:
-        Expression *list;
-    public:
-        MatrixExp(Expression *m) : list(m) {};
-        ~MatrixExp() { delete list; }
-
-        Value* valueOf(Environment*);
-        Value* derivativeOf(std::string, Environment*, Environment*);
-
-        Expression* clone() { return new MatrixExp(list->clone()); }
-        std::string toString();
-};
-
 // Expression for a real number.
 class RealExp : public Expression {
     private:

@@ -990,20 +990,6 @@ ParsedPrgms parsePrimitive(string str, bool ends) {
     if (i > 0 && (!ends || i + parseSpaces(str.substr(i)) == str.length())) {
         parsed_prgm b; b.len = i; b.item = new FalseExp; res->add(0, b); return res;
     }
-    // Parse for matrix-exp
-    i = parseLit(str, "matrix");
-    if (i > 0) {
-        string s = str.substr(i);
-        tmp = parseListExp(s, ends);
-        while (!tmp->isEmpty()) {
-            parsed_prgm b = tmp->remove(0);
-            b.len += i;
-            b.item = new MatrixExp(b.item);
-            res->add(0, b);
-        }
-        delete tmp;
-        return res;
-    }
     
     // Parse for string literal
     i = parseLit(str, "\"");
