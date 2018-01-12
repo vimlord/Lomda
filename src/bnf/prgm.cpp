@@ -28,6 +28,11 @@ ParsedPrgms parseStatement(string str, bool ends) {
     res = parsePrintExp(str, ends);
     if (!res->isEmpty()) return res;
 
+    // stdlib-exp
+    delete res;
+    res = parseStdlib(str, ends);
+    if (!res->isEmpty()) return res;
+
     // insert-exp
     delete res;
     res = parseInsertExp(str, ends);

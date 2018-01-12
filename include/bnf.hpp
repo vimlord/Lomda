@@ -17,6 +17,7 @@ typedef List<parsed_prgm>* ParsedPrgms;
 
 typedef struct parsed<std::string> parsed_id;
 typedef struct parsed<int> parsed_int;
+typedef struct parsed<float> parsed_float;
 
 // Argument types for the let expression
 struct arg {
@@ -30,6 +31,7 @@ struct arglist {
 
 parsed_id parseId(std::string);
 parsed_int parseInt(std::string);
+parsed_float parseFloat(std::string);
 
 int parseSpaces(std::string);
 int parseLit(std::string, std::string);
@@ -54,6 +56,7 @@ ParsedPrgms parseIfExp(std::string str, bool = true);
 ParsedPrgms parseWhileExp(std::string str, bool = true);
 
 ParsedPrgms parsePrintExp(std::string str, bool = true);
+ParsedPrgms parseStdlib(std::string str, bool = true);
 
 ParsedPrgms parseInsertExp(std::string str, bool = true);
 ParsedPrgms parseRemoveExp(std::string str, bool = true);

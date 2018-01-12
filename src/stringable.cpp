@@ -176,6 +176,20 @@ string SetExp::toString() {
 
     return s;
 }
+string StdlibOpExp::toString() {
+    string s = "";
+    switch (op) {
+        case StdlibOp::SIN:
+            s += "sin"; break;
+        case StdlibOp::COS:
+            s += "sin"; break;
+        case StdlibOp::LOG:
+            s += "log"; break;
+    }
+
+    s += " " + x->toString();
+    return s;
+}
 string StringExp::toString() {
     return "\"" + val + "\"";
 }

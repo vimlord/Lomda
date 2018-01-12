@@ -6,6 +6,7 @@
 #include "expressions/operator.hpp"
 #include "expressions/primitive.hpp"
 #include "expressions/list.hpp"
+#include "expressions/stdlib.hpp"
 
 // Calling functions; {a->b, a} -> b
 class ApplyExp : public Expression {
@@ -148,19 +149,6 @@ class NotExp : public Expression {
         Val valueOf(Env);
         
         Exp clone() { return new NotExp(exp->clone()); }
-        std::string toString();
-};
-
-class PrintExp : public Expression {
-    private:
-        Exp *args;
-    public:
-        PrintExp(Exp *l) : args(l) {}
-        ~PrintExp() { for (int i = 0; args[i]; i++) delete args[i]; delete[] args; }
-
-        Val valueOf(Env);
-
-        Exp clone();
         std::string toString();
 };
 

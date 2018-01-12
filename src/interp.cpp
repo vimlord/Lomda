@@ -10,6 +10,7 @@
 #include "expressions/derivative.hpp"
 
 #include <cstring>
+#include <cstdlib>
 
 using namespace std;
 
@@ -684,6 +685,32 @@ Val SetExp::valueOf(Env env) {
     // To be simple, we return 0 on completion
     // as opposed to NULL, which indicates a failure.
     return v ? v : new VoidVal;
+}
+
+Val StdlibOpExp::valueOf(Env env) {
+    Val v = x->valueOf(env);
+    if (!v) return NULL;
+    
+    if (
+        typeid(*v) == typeid(LambdaVal)
+    ||  typeid(*v) == typeid(ListVal)
+    ||  typeid(*v) == typeid(StringVal)
+    ) {
+        throw_type_err(x, "numerical");
+    }
+
+    auto z = typeid(*v) == typeid(IntVal)
+            ? ((IntVal*) v)->get()
+            : ((RealVal*) v)->get();
+    
+    switch (op) {
+        case SIN:
+            return new RealVal(sin(z));
+        case COS:
+            return new RealVal(cos(z));
+        case LOG:
+            return new RealVal(log(z));
+    }
 }
 
 Val TrueExp::valueOf(Env env) { return new BoolVal(true); }

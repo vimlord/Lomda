@@ -25,6 +25,8 @@ inline bool is_keyword(string s) {
         || s == "insert" || s == "into" || s == "at" // insertion
         || s == "remove" || s == "from" // removal
         || s == "let" // let-exp
+        || s == "print" || s == "sin" || s == "cos" || s == "tan" // stdlib
+        || s == "map" || s == "fold" || s == "into" || s == "from" // maps/folds
     ;
 }
 
@@ -64,32 +66,37 @@ parsed_id parseId(string str) {
 
 parsed_int parseInt(string str) {
     int i = parseSpaces(str);
-    int j;
-    int num = 0;
-    int sign = 1;
+    str = str.substr(i);
 
-    // Negate?
-    if (str[i] == '-') {
-        sign = -1;
-        i++;
-    }
+    parsed_int res;
 
-    // Get the number
-    for (j = i; str[j] >= '0' && str[j] <= '9'; j++)
-        num = 10*num + (char) (str[j] - '0') * sign;
-
-    struct parsed<int> res;
-    if (i == j) {
-        // Error
+    string::size_type s;
+    
+    try {
+        res.item = stoi(str, &s, 10);
+        res.len = s > 0 ? i + s : -1;
+    } catch (std::out_of_range oor) {
         res.len = -1;
-        res.item = 0;
-    } else {
-        // Build the result
-        res.len = j;
-        res.item = num;
-        //std::cout << " found integer: " << res.item << "\n";
     }
+    
+    return res;
+}
 
+parsed_float parseFloat(string str) {
+    float i = parseSpaces(str);
+    str = str.substr(i);
+
+    parsed_float res;
+
+    string::size_type s;
+    
+    try {
+        res.item = stof(str, &s);
+        res.len = s > 0 ? i + s : -1;
+    } catch (std::out_of_range oor) {
+        res.len = -1;
+    }
+    
     return res;
 }
 
@@ -969,9 +976,25 @@ ParsedPrgms parsePrimitive(string str, bool ends) {
     if (!tmp->isEmpty()) return tmp;
     delete tmp;
 
-    // First, parse for an int-exp
+    // Parse for an int-exp
     parsed_int num = parseInt(str);
-    if (num.len >= 0 && (!ends || num.len + parseSpaces(str.substr(num.len)) == str.length())) {
+    parsed_float real = parseFloat(str);
+
+    // Parse for real-exp
+    if (real.len >= 0 && (!ends || real.len + parseSpaces(str.substr(real.len)) == str.length())) {
+        // Build and then insert the program structure
+        parsed_prgm prgm;
+        prgm.len = ends ? str.length() : real.len;
+
+        prgm.item = (real.len == num.len)
+            ? (Exp) new IntExp(num.item)
+            : (Exp) new RealExp(real.item);
+
+
+        res->add(0, prgm);
+        return res;
+    } else if (num.len >= 0 && (!ends || num.len + parseSpaces(str.substr(num.len)) == str.length())) {
+
         // Build and then insert the program structure
         parsed_prgm prgm;
         prgm.len = ends ? str.length() : num.len;

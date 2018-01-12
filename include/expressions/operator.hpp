@@ -10,17 +10,17 @@ class OperatorExp : public Expression {
     public:
         OperatorExp(Exp, Exp);
         ~OperatorExp();
-        Value* valueOf(Env);
+        Val valueOf(Env);
         
-        virtual Value* op(Value*, Value*) = 0;
+        virtual Val op(Val, Val) = 0;
 };
 
 class AndExp : public OperatorExp {
     public:
         using OperatorExp::OperatorExp;
-        Value* op(Value*, Value*);
+        Val op(Val, Val);
         
-        Value* derivativeOf(std::string, Env, Env);
+        Val derivativeOf(std::string, Env, Env);
 
         Exp clone() { return new AndExp(left->clone(), right->clone()); }
         std::string toString();
@@ -30,8 +30,8 @@ class DiffExp : public OperatorExp {
     public:
         using OperatorExp::OperatorExp;
 
-        Value* op(Value*, Value*);
-        Value* derivativeOf(std::string, Env, Env);
+        Val op(Val, Val);
+        Val derivativeOf(std::string, Env, Env);
         
         Exp clone() { return new DiffExp(left->clone(), right->clone()); }
         std::string toString();
@@ -41,8 +41,8 @@ class DivExp : public OperatorExp {
     public:
         using OperatorExp::OperatorExp;
 
-        Value* op(Value*, Value*);
-        Value* derivativeOf(std::string, Env, Env);
+        Val op(Val, Val);
+        Val derivativeOf(std::string, Env, Env);
         
         Exp clone() { return new DivExp(left->clone(), right->clone()); }
         std::string toString();
@@ -58,9 +58,9 @@ class CompareExp : public OperatorExp {
         CompareExp(Exp l, Expression *r, CompOp op) : OperatorExp(l, r) {
             operation = op;
         }
-        Value* op(Value*, Value*);
+        Val op(Val, Val);
 
-        Value* derivativeOf(std::string, Env, Env);
+        Val derivativeOf(std::string, Env, Env);
         
         Exp clone() { return new CompareExp(left->clone(), right->clone(), operation); }
         std::string toString();
@@ -71,8 +71,8 @@ class MultExp : public OperatorExp {
     public:
         using OperatorExp::OperatorExp;
 
-        Value* op(Value*, Value*);
-        Value* derivativeOf(std::string, Env, Env);
+        Val op(Val, Val);
+        Val derivativeOf(std::string, Env, Env);
         
         Exp clone() { return new MultExp(left->clone(), right->clone()); }
         std::string toString();
@@ -83,8 +83,8 @@ class SumExp : public OperatorExp {
     public:
         using OperatorExp::OperatorExp;
 
-        Value* op(Value*, Value*);
-        Value* derivativeOf(std::string, Env, Env);
+        Val op(Val, Val);
+        Val derivativeOf(std::string, Env, Env);
         
         Exp clone() { return new SumExp(left->clone(), right->clone()); }
         std::string toString();
