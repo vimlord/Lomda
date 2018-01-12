@@ -611,10 +611,7 @@ ParsedPrgms parseEquality(string str, bool ends) {
     return res;
 }
 
-/**
- * <lambda-exp> ::= 'lambda' '(' <args> ')' <codeblk>
- */
-ParsedPrgms parseLambdaExp(string str, bool ends) {
+ParsedPrgms parseLambdaExp1(string str, bool ends) {
     int len;
     ParsedPrgms res = new LinkedList<parsed_prgm>;
     
@@ -689,6 +686,108 @@ ParsedPrgms parseLambdaExp(string str, bool ends) {
     delete bodies;
 
     return res;
+}
+
+ParsedPrgms parseLambdaExp2(string str, bool ends) {
+    int len;
+    ParsedPrgms res = new LinkedList<parsed_prgm>;
+    
+    // We will tolerate 'lambda' or the actual symbol
+    // (for monsters who have the time to paste lambdas around)
+
+    // Check for the open parenthesis.
+    int i = parseLit(str, "(");
+    if (i < 0) return res;
+    str = str.substr(i);
+    len = i;
+
+    // Parse a collection of identifiers
+    LinkedList<string> xs;
+    
+    if ((i = parseLit(str, ")")) >= 0) {
+        // The function takes zero arguments. So, we skip the search.
+        str = str.substr(i);
+        len += i;
+    } else while (1) {
+        
+        parsed_id arg = parseId(str);
+        if (arg.len < 0)
+            // The argument set is invalid
+            return res;
+        else
+            xs.add(xs.size(), arg.item);
+        
+        // Progress the string
+        str = str.substr(arg.len);
+        len += arg.len;
+
+        if ((i = parseLit(str, ")")) >= 0) {
+            // End of arguments
+            str = str.substr(i);
+            len += i;
+
+            if ((i = parseLit(str, "->")) < 0) {
+                return res;
+            } else {
+                str = str.substr(i);
+                len += i;
+            }
+
+            break;
+        } else if ((i = parseLit(str, ",")) >= 0) {
+            str = str.substr(i);
+            len += i;
+        } else {
+            // Something is in place of the comma
+            return res;
+        }
+    }
+
+    // The possible code blocks
+    ParsedPrgms bodies = parseCodeBlock(str, ends);
+
+    // Now, we create a set of lambda-exps
+    while (!bodies->isEmpty()) {
+        parsed_prgm p = bodies->remove(0);
+
+        string *ids = new string[xs.size()+1];
+        auto xit = xs.iterator();
+        for (i = 0; xit->hasNext(); i++) {
+            ids[i] = xit->next();
+        }
+        delete xit;
+        ids[i] = "";
+        
+        // Add the item
+        p.item = new LambdaExp(ids, p.item);
+        p.len += len;
+        res->add(0, p);
+    }
+
+    delete bodies;
+
+    return res;
+}
+
+/**
+ * <lambda-exp> ::= 'lambda' '(' <args> ')' <codeblk>
+ *                | '(' <args> ')' '->' <codeblk>
+ */
+ParsedPrgms parseLambdaExp(string str, bool ends) {
+    ParsedPrgms res = new LinkedList<parsed_prgm>;
+
+    ParsedPrgms tmp;
+
+    tmp = parseLambdaExp1(str, ends);
+    while (!tmp->isEmpty()) res->add(0, tmp->remove(0));
+    delete tmp;
+
+    tmp = parseLambdaExp2(str, ends);
+    while (!tmp->isEmpty()) res->add(0, tmp->remove(0));
+    delete tmp;
+
+    return res;
+
 }
 
 ParsedPrgms parseListExp(string str, bool ends) {
