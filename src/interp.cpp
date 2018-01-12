@@ -702,14 +702,13 @@ Val StdlibOpExp::valueOf(Env env) {
     auto z = typeid(*v) == typeid(IntVal)
             ? ((IntVal*) v)->get()
             : ((RealVal*) v)->get();
+    v->rem_ref();
     
     switch (op) {
-        case SIN:
-            return new RealVal(sin(z));
-        case COS:
-            return new RealVal(cos(z));
-        case LOG:
-            return new RealVal(log(z));
+        case SIN: return new RealVal(sin(z));
+        case COS: return new RealVal(cos(z));
+        case LOG: return new RealVal(log(z));
+        case SQRT: return new RealVal(sqrt(z));
     }
 }
 

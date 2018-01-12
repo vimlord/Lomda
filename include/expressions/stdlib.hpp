@@ -17,7 +17,7 @@ class PrintExp : public Expression {
 };
 
 enum StdlibOp {
-    SIN, COS, LOG
+    SIN, COS, LOG, SQRT
 };
 class StdlibOpExp : public Expression {
     private:
@@ -28,6 +28,7 @@ class StdlibOpExp : public Expression {
         ~StdlibOpExp() { delete x; }
 
         Val valueOf(Env);
+        Val derivativeOf(std::string, Env, Env);
         
         Exp clone() { return new StdlibOpExp(op, x->clone()); }
         std::string toString();

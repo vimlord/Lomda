@@ -179,12 +179,14 @@ string SetExp::toString() {
 string StdlibOpExp::toString() {
     string s = "";
     switch (op) {
-        case StdlibOp::SIN:
+        case SIN:
             s += "sin"; break;
-        case StdlibOp::COS:
+        case COS:
             s += "sin"; break;
-        case StdlibOp::LOG:
+        case LOG:
             s += "log"; break;
+        case SQRT:
+            s += "sqrt"; break;
     }
 
     s += " " + x->toString();

@@ -25,7 +25,7 @@ inline bool is_keyword(string s) {
         || s == "insert" || s == "into" || s == "at" // insertion
         || s == "remove" || s == "from" // removal
         || s == "let" // let-exp
-        || s == "print" || s == "sin" || s == "cos" || s == "tan" // stdlib
+        || s == "print" || s == "sin" || s == "cos" || s == "log" || s == "sqrt" // stdlib
         || s == "map" || s == "fold" || s == "into" || s == "from" // maps/folds
     ;
 }

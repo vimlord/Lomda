@@ -4,6 +4,8 @@
 
 #include "config.hpp"
 
+#include <cstdlib>
+
 using namespace std;
 
 void throw_calc_err(Exp exp) {
@@ -222,7 +224,7 @@ Val DivExp::derivativeOf(string x, Env env, Env denv) {
     Val dl = left->derivativeOf(x, env, denv);
     if (!dl) return NULL;
 
-    Val dr = left->derivativeOf(x, env, denv);
+    Val dr = right->derivativeOf(x, env, denv);
     if (!dr) { dl->rem_ref(); return NULL; }
 
     Exp a = reexpress(dl);
@@ -234,6 +236,7 @@ Val DivExp::derivativeOf(string x, Env env, Env denv) {
                             new MultExp(right->clone(), a),
                             new MultExp(left->clone(), b)),
                         new MultExp(right->clone(), right->clone()));
+
     Val c = exp->valueOf(env);
 
     delete exp;
@@ -793,6 +796,45 @@ Val SetExp::derivativeOf(string x, Env env, Env denv) {
     // To be simple, we return 0 on completion
     // as opposed to NULL, which indicates a failure.
     return v ? v : new VoidVal;
+}
+
+Val StdlibOpExp::derivativeOf(string id, Env env, Env denv) {
+    Val v = x->valueOf(env);
+    if (!v) return NULL;
+    
+    if (
+        typeid(*v) == typeid(LambdaVal)
+    ||  typeid(*v) == typeid(ListVal)
+    ||  typeid(*v) == typeid(StringVal)
+    ) {
+        throw_type_err(x, "numerical");
+    }
+
+    auto z = typeid(*v) == typeid(IntVal)
+            ? ((IntVal*) v)->get()
+            : ((RealVal*) v)->get();
+    v->rem_ref();
+
+    Val dx = x->derivativeOf(id, env, denv);
+    if (!dx) {
+        v->rem_ref();
+        return NULL;
+    }
+
+    switch (op) {
+        case SIN: v = new RealVal(cos(z)); break; // d/dx sin x = cos x
+        case COS: v = new RealVal(-sin(z)); break; // d/dx cos x = -sin x
+        case LOG: v = new RealVal(1.0 / z); break; // d/dx ln x = 1/x
+        case SQRT: v = new RealVal(1.0 / (2 * sqrt(z))); break; // d/dx sqrt x = 1 / (2 sqrt x)
+    }
+    
+    MultExp mult(NULL, NULL);
+
+    Val y = mult.op(v, dx);
+    v->rem_ref();
+    dx->rem_ref();
+
+    return y;
 }
 
 Val SumExp::derivativeOf(string x, Env env, Env denv) {

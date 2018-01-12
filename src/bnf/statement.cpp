@@ -312,83 +312,204 @@ ParsedPrgms parseLetExp(string str, bool ends) {
         }
         
         // Parse literal
-        if ((i = parseLit(s, "equal")) < 0 &&
-            (i = parseLit(s, "=")) < 0) {
-            while (!lst.list->isEmpty()) delete lst.list->remove(0).exp;
-            delete lst.list;
-            continue;
-        } else {
+        if ((i = parseLit(s, "equal")) >= 0 ||
+            (i = parseLit(s, "=")) >= 0) {
+            // Progress the string
             s = s.substr(i);
             len += i;
-        }
-        
-        //std::cout << "Searching for let-exp args in '" << s << "'\n";
 
-        // Parse all possible expressions
-        ParsedPrgms args = parsePemdas(s, false);
+            // Parse all possible expressions
+            ParsedPrgms args = parsePemdas(s, false);
 
-        //std::cout << "found " << args->size() << " arg candidates\n";
-
-        if (args->isEmpty()) {
-            // No possible way to parse arguments
-            delete args;
-            delete lst.list;
-            continue;
-        }
-
-        // Act on each possible branch
-        while (!args->isEmpty()) {
-            parsed_prgm prgm = args->remove(0);
-
-            struct arglist newlst;
-            newlst.len = lst.len + len + prgm.len;
-
-            // Rebuild the list
-            newlst.list = new LinkedList<struct arg>;
-            
-            // Add each item from the old list
-            Iterator<int, struct arg> *lstit = lst.list->iterator();
-            i = 0;
-            while (lstit->hasNext()) newlst.list->add(i++, lstit->next());
-            delete lstit;
-
-            // Append the newest expression
-            struct arg arg;
-            arg.id = d_id.item;
-            arg.exp = prgm.item;
-            newlst.list->add(i, arg);
-
-            // Next, we want to split into three categories:
-            // (0) : Semicolon immediately follows: end the let
-            // (1) : Comma immediately follows: there is more to parse
-            // (2) : Otherwise, the tree is bad
-            string st = s.substr(prgm.len);
-            int semi = parseLit(st, ";"); // Perhaps we reached a semicolon terminator?
-            int comm = parseLit(st, ","); // Maybe we reached a comma separator?
-
-            if (semi < 0 && comm < 0) { // If not, the usage is illegal
-                delete newlst.list;
+            if (args->isEmpty()) {
+                // No possible way to parse arguments
+                delete args;
+                delete lst.list;
                 continue;
-            } else {
-                // Adjust the length
-                newlst.len += semi > comm ? semi : comm;
+            }
 
-                //std::cout << "arg list defines " << arg.id << " as " << *(arg.exp) << "\n";
+            // Act on each possible branch
+            while (!args->isEmpty()) {
+                parsed_prgm prgm = args->remove(0);
 
-                // Now, we add this argument list as an option. Adding to the
-                // front results in DFS, placing at end is approximately BFS.
-                if (semi > comm) {
-                    //std::cout << "completed an argument list\n";
-                    lists.add(0, newlst);
+                struct arglist newlst;
+                newlst.len = lst.len + len + prgm.len;
+
+                // Rebuild the list
+                newlst.list = new LinkedList<struct arg>;
+                
+                // Add each item from the old list
+                Iterator<int, struct arg> *lstit = lst.list->iterator();
+                i = 0;
+                while (lstit->hasNext()) newlst.list->add(i++, lstit->next());
+                delete lstit;
+
+                // Append the newest expression
+                struct arg arg;
+                arg.id = d_id.item;
+                arg.exp = prgm.item;
+                newlst.list->add(i, arg);
+
+                // Next, we want to split into three categories:
+                // (0) : Semicolon immediately follows: end the let
+                // (1) : Comma immediately follows: there is more to parse
+                // (2) : Otherwise, the tree is bad
+                string st = s.substr(prgm.len);
+                int semi = parseLit(st, ";"); // Perhaps we reached a semicolon terminator?
+                int comm = parseLit(st, ","); // Maybe we reached a comma separator?
+
+                if (semi < 0 && comm < 0) { // If not, the usage is illegal
+                    delete newlst.list;
+                    continue;
                 } else {
-                    //std::cout << "argument list is incomplete\n";
-                    options.add(0, newlst);
+                    // Adjust the length
+                    newlst.len += semi > comm ? semi : comm;
+
+                    //std::cout << "arg list defines " << arg.id << " as " << *(arg.exp) << "\n";
+
+                    // Now, we add this argument list as an option. Adding to the
+                    // front results in DFS, placing at end is approximately BFS.
+                    if (semi > comm) {
+                        //std::cout << "completed an argument list\n";
+                        lists.add(0, newlst);
+                    } else {
+                        //std::cout << "argument list is incomplete\n";
+                        options.add(0, newlst);
+                    }
                 }
             }
-        }
 
-        delete args;
-        delete lst.list;
+            delete args;
+            delete lst.list;
+
+        } else if ((i = parseLit(s, "(")) >= 0) {
+            // We are parsing for a function of some kind.
+            s = s.substr(i);
+            len += i;
+            
+            // The argument list
+            LinkedList<string> xs;
+
+            bool parsed = true;
+
+            if ((i = parseLit(s, ")")) >= 0) {
+                s = s.substr(i);
+                len += i;
+            } else while (1) {
+                 
+                parsed_id arg = parseId(s);
+                if (arg.len < 0)
+                    // The argument set is invalid
+                    return res;
+                else
+                    xs.add(xs.size(), arg.item);
+                
+                // Progress the string
+                s = s.substr(arg.len);
+                len += arg.len;
+
+                if ((i = parseLit(s, ")")) >= 0) {
+                    // End of arguments
+                    s = s.substr(i);
+                    len += i;
+
+                    if ((i = parseLit(s, "=")) >= 0) {
+                        s = s.substr(i);
+                        len += i;
+                    } else
+                        parsed = false;
+
+                    break;
+                } else if ((i = parseLit(s, ",")) >= 0) {
+                    s = s.substr(i);
+                    len += i;
+                } else {
+                    // Something is in place of the comma
+                    parsed = false;
+                    break;
+                }
+            }
+
+            if (!parsed) {
+                // The argument list is bad
+                while (!lst.list->isEmpty()) delete lst.list->remove(0).exp;
+                delete lst.list;
+                continue;
+            }
+
+            ParsedPrgms args = parsePemdas(s, false);
+
+            if (args->isEmpty()) {
+                delete args;
+                delete lst.list;
+                continue;
+            }
+            
+            // Act on each possible branch
+            while (!args->isEmpty()) {
+                parsed_prgm prgm = args->remove(0);
+
+                struct arglist newlst;
+                newlst.len = lst.len + len + prgm.len;
+
+                // Rebuild the list
+                newlst.list = new LinkedList<struct arg>;
+                
+                // Add each item from the old list
+                Iterator<int, struct arg> *lstit = lst.list->iterator();
+                i = 0;
+                while (lstit->hasNext()) newlst.list->add(i++, lstit->next());
+                delete lstit;
+
+                // Build the lambda's argument list
+                string *as = new string[xs.size()+1];
+                auto it = xs.iterator();
+                for (int i = 0; it->hasNext(); i++)
+                    as[i] = it->next();
+
+                // Append the newest expression
+                struct arg arg;
+                arg.id = d_id.item;
+                arg.exp = new LambdaExp(as, prgm.item);
+                newlst.list->add(i, arg);
+
+                // Next, we want to split into three categories:
+                // (0) : Semicolon immediately follows: end the let
+                // (1) : Comma immediately follows: there is more to parse
+                // (2) : Otherwise, the tree is bad
+                string st = s.substr(prgm.len);
+                int semi = parseLit(st, ";"); // Perhaps we reached a semicolon terminator?
+                int comm = parseLit(st, ","); // Maybe we reached a comma separator?
+
+                if (semi < 0 && comm < 0) { // If not, the usage is illegal
+                    delete newlst.list;
+                    continue;
+                } else {
+                    // Adjust the length
+                    newlst.len += semi > comm ? semi : comm;
+
+                    //std::cout << "arg list defines " << arg.id << " as " << *(arg.exp) << "\n";
+
+                    // Now, we add this argument list as an option. Adding to the
+                    // front results in DFS, placing at end is approximately BFS.
+                    if (semi > comm) {
+                        //std::cout << "completed an argument list\n";
+                        lists.add(0, newlst);
+                    } else {
+                        //std::cout << "argument list is incomplete\n";
+                        options.add(0, newlst);
+                    }
+                }
+            }
+
+            delete args;
+            delete lst.list;
+
+
+        } else {
+            while (!lst.list->isEmpty()) delete lst.list->remove(0).exp;
+            delete lst.list;
+        }
 
     }
 
@@ -532,6 +653,8 @@ ParsedPrgms parseStdlib(string str, bool ends) {
         op = COS;
     else if ((i = parseLit(str, "log")) >= 0)
         op = LOG;
+    else if ((i = parseLit(str, "sqrt")) >= 0)
+        op = SQRT;
     else
         return new LinkedList<parsed_prgm>;
 
