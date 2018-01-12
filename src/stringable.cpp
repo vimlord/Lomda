@@ -144,6 +144,9 @@ string MapExp::toString() {
 string MultExp::toString() {
     return left->toString() + " * " + right->toString();
 }
+string NormExp::toString() {
+    return "||" + exp->toString() + "||";
+}
 string NotExp::toString() {
     return "not " + exp->toString();
 }

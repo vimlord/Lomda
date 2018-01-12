@@ -138,6 +138,20 @@ class MapExp : public Expression {
         std::string toString();
 };
 
+class NormExp : public Expression {
+    private:
+        Exp exp;
+    public:
+        NormExp(Exp e) : exp(e) {}
+        ~NormExp() { delete exp; }
+        Exp clone() { return new NormExp(exp->clone()); }
+
+        Val valueOf(Env);
+        //Val derivativeOf(std::string, Env, Env);
+
+        std::string toString();
+};
+
 // Bool -> Bool expression that negates booleans
 class NotExp : public Expression {
     private:

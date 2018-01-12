@@ -589,6 +589,56 @@ Val MapExp::valueOf(Env env) {
     }
 }
 
+Val sqnorm(Val v, Env env) {
+    if (typeid(*v) == typeid(IntVal)) {
+        // Magnitude of number is its absolute value
+        int val = ((IntVal*) v)->get();
+        return new IntVal(val * val);
+    } else if (typeid(*v) == typeid(RealVal)) {
+        // Magnitude of number is its absolute value
+        int val = ((RealVal*) v)->get();
+        return new RealVal(val * val);
+    } else if (typeid(*v) == typeid(ListVal)) {
+        // Magnitude of list is its length
+        auto it = ((ListVal*) v)->get()->iterator();
+
+        float sum = 0;
+        
+        while (it->hasNext()) {
+            Val v = sqnorm(it->next(), env);
+
+            if (!v) return NULL;
+
+            auto x = typeid(*v) == typeid(IntVal)
+                    ? ((IntVal*) v)->get()
+                    : ((RealVal*) v)->get();
+            v->rem_ref();
+
+            sum += x;
+        }
+
+        return new RealVal(sum);
+
+    } else return NULL;
+}
+Val NormExp::valueOf(Env env) {
+    Val val = exp->valueOf(env);
+    if (!val) return NULL;
+
+    Val v = sqnorm(val, env);
+    val->rem_ref();
+    if (!v) return NULL;
+
+    auto x = typeid(*v) == typeid(IntVal)
+            ? ((IntVal*) v)->get()
+            : ((RealVal*) v)->get();
+
+    v->rem_ref();
+    
+    return x < 0 ? NULL : new RealVal(sqrt(x));
+}
+
+
 Val NotExp::valueOf(Env env) {
     Val v = exp->valueOf(env);
     

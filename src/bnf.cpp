@@ -953,8 +953,12 @@ ParsedPrgms parseMultiplicative(string str, bool ends) {
 ParsedPrgms parseMagnitude(string str, bool ends) {
     ParsedPrgms res = new LinkedList<parsed_prgm>;
 
-    int len = parseLit(str, "|");
-    if (len < 0) return res;
+    int mag_ord = 0;
+
+    int len;
+    if ((len = parseLit(str, "||")) >= 0) mag_ord = 2;
+    else if ((len = parseLit(str, "|")) >= 0) mag_ord = 1;
+    else return res;
 
     str = str.substr(len);
 
@@ -965,7 +969,7 @@ ParsedPrgms parseMagnitude(string str, bool ends) {
 
         string s = str.substr(p.len);
 
-        int i = parseLit(s, "|");
+        int i = parseLit(s, mag_ord == 1 ? "|" : "||");
         if (i < 0) {
             delete p.item;
             continue;
@@ -980,7 +984,10 @@ ParsedPrgms parseMagnitude(string str, bool ends) {
         }
 
         // Set up absolute value
-        p.item = new MagnitudeExp(p.item);
+        if (mag_ord == 1)
+            p.item = new MagnitudeExp(p.item);
+        else
+            p.item = new NormExp(p.item);
 
         res->add(0, p);
 
