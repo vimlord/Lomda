@@ -77,6 +77,8 @@ parsed_int parseInt(string str) {
         res.len = s > 0 ? i + s : -1;
     } catch (std::out_of_range oor) {
         res.len = -1;
+    } catch (std::invalid_argument ia) {
+        res.len = -1;
     }
     
     return res;
@@ -94,6 +96,8 @@ parsed_float parseFloat(string str) {
         res.item = stof(str, &s);
         res.len = s > 0 ? i + s : -1;
     } catch (std::out_of_range oor) {
+        res.len = -1;
+    } catch (std::invalid_argument ia) {
         res.len = -1;
     }
     
