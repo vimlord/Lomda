@@ -62,24 +62,33 @@ ParsedPrgms parseSequence(string str, bool ends) {
     while (!prgms->isEmpty()) {
         parsed_prgm left = prgms->remove(0);
         string s = str.substr(left.len);
+        int i;
         
-        int i = parseLit(s, ";");
-        if (i < 0) {
-            if (!ends || parseSpaces(s) == s.length())
-                res->add(0, left);
-            else
-                delete left.item;
+        if ((i = parseLit(s, ";")) < 0) {
+            // End of program
+            res->add(0, left);
+            continue;
+        } else do {
+            // Possibly another statement. So, get ready
+            left.len += i;
+            s = s.substr(i);
+        } while ((i = parseLit(s, ";")) >= 0);
+
+        if (!ends) {
+            // Perhaps not the end of th program
+            res->add(0, left);
+        } else if (parseSpaces(s) == s.length()) {
+            // End of program
+            res->add(0, left);
             continue;
         }
-        s = s.substr(i);
-        left.len += i;
         
         ParsedPrgms posts = parseProgram(s, ends);
         while (!posts->isEmpty()) {
             // Check right hand side of semicolon
             parsed_prgm right = posts->remove(0);
             right.len += left.len;
-            right.item = new SequenceExp(left.item, right.item);
+            right.item = new SequenceExp(left.item->clone(), right.item);
             res->add(0, right);
         }
         delete posts;
