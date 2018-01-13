@@ -197,5 +197,19 @@ int ListVal::set(Val v) {
     } else return 1;
 }
 
+int Thunk::set(Val v) {
+    if (typeid(*v) == typeid(Thunk)) {
+        Thunk *t = (Thunk*) v;
+        
+        if (val) val->rem_ref();
+        delete exp;
 
+        if (t->val) t->val->add_ref();
+        
+        exp = t->exp->clone();
+        val = t->val;
+
+        return 0;
+    } else return 1;
+}
 

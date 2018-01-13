@@ -94,6 +94,22 @@ class StringVal : public Value {
         StringVal* clone() { return new StringVal(val); }
 };
 
+class Thunk : public Value {
+    private:
+        Exp exp;
+        Env env;
+        Val val;
+    public:
+        Thunk(Exp ex, Env en, Val v = NULL) : exp(ex), env(en), val(v) {}
+        ~Thunk() { delete exp; if (val) val->rem_ref(); }
+        
+        Val get(Env env) { if (!val) val = exp->valueOf(env); val->add_ref(); return val; }
+        int set(Value*);
+
+        std::string toString();
+        Thunk* clone() { if (val) val->add_ref(); return new Thunk(exp->clone(), env->clone(), val); }
+};
+
 class VoidVal : public Value {
     public:
         std::string toString() { return "void"; }

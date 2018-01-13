@@ -201,6 +201,12 @@ string StringExp::toString() {
 string SumExp::toString() {
     return left->toString() + " + " + right->toString();
 }
+string ThunkExp::toString() {
+    return "thunk { " + exp->toString() + " }";
+}
+string ValExp::toString() {
+    return "antithunk { " + val->toString() + " }";
+}
 string VarExp::toString() {
     return id;
 }
@@ -262,4 +268,5 @@ string ListVal::toString() {
 }
 string RealVal::toString() { return to_string(val); }
 string StringVal::toString() { return val; }
+string Thunk::toString() { return val ? val->toString() : ("thunk { " + exp->toString() + " | " + env->toString() + " }"); }
 

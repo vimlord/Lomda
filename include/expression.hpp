@@ -199,6 +199,35 @@ class SetExp : public Expression {
         std::string toString();
 };
 
+class ThunkExp : public Expression {
+    private:
+        Exp exp;
+    public:
+        ThunkExp(Exp e) : exp(e) {}
+        ~ThunkExp() { delete exp; }
+
+        Val valueOf(Env env) { return new Thunk(exp->clone(), env->clone()); }
+
+        Exp clone() { return new ThunkExp(exp->clone()); }
+        std::string toString();
+};
+
+/**
+ * An anti-thunk. Evaluates to the stored value.
+ */
+class ValExp : public Expression {
+    private:
+        Val val;
+    public:
+        ValExp(Val v) : val(v) {}
+        ~ValExp() { val->rem_ref(); }
+
+        Val valueOf(Env) { val->add_ref(); return val; }
+
+        Exp clone() { val->add_ref(); return new ValExp(val); }
+        std::string toString();
+};
+
 class WhileExp : public Expression {
     private:
         Exp cond;
