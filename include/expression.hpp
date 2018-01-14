@@ -168,15 +168,17 @@ class NotExp : public Expression {
 
 class SequenceExp : public Expression {
     private:
-        Exp pre;
-        Exp post;
+        LinkedList<Exp> *seq;
     public:
-        SequenceExp(Exp, Exp = NULL);
-        ~SequenceExp() { delete pre; delete post; }
+        SequenceExp() : seq(new LinkedList<Exp>) {}
+        SequenceExp(LinkedList<Exp>* es) : seq(es) {}
+        ~SequenceExp() { while (!seq->isEmpty()) delete seq->remove(0); delete seq; }
+
+        LinkedList<Exp>* getSeq() { return seq; }
 
         Val valueOf(Env);
         
-        Exp clone() { return new SequenceExp(pre->clone(), post->clone()); }
+        Exp clone();
         std::string toString();
 };
 

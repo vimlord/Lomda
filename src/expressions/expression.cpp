@@ -70,9 +70,16 @@ OperatorExp::OperatorExp(Expression *a, Expression *b) {
 
 RealExp::RealExp(float n) { val = n; }
 
-SequenceExp::SequenceExp(Expression *a, Expression *b) {
-    pre = a;
-    post = b;
+Exp SequenceExp::clone() {
+    auto es = new LinkedList<Exp>;
+
+    auto it = seq->iterator();
+    while (it->hasNext())
+        es->add(es->size(), it->next());
+    delete it;
+
+    return new SequenceExp(es);
+
 }
 
 SetExp::SetExp(Expression **xs, Expression **vs) {

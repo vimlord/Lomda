@@ -699,14 +699,20 @@ Val RealExp::valueOf(Env env) {
 }
 
 Val SequenceExp::valueOf(Env env) {
-    Val v = pre->valueOf(env);
-
-    if (!v) return NULL;
-    else if (!post) return v;
-    else {
-        v->rem_ref();
-        return post->valueOf(env);
-    }
+    Val v = NULL;
+    
+    // For each expression in the sequence...
+    auto it = seq->iterator();
+    do {
+        // Compute it and store it.
+        if (v) v->rem_ref();
+        v = it->next()->valueOf(env);
+    } while (it->hasNext() && v); // End the loop early if an error occurs.
+    
+    // Return the final outcome, or NULL if one of
+    // the executions fails.
+    delete it;
+    return v;
 }
 
 Val SetExp::valueOf(Env env) {

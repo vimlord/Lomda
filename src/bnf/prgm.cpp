@@ -88,7 +88,18 @@ ParsedPrgms parseSequence(string str, bool ends) {
             // Check right hand side of semicolon
             parsed_prgm right = posts->remove(0);
             right.len += left.len;
-            right.item = new SequenceExp(left.item->clone(), right.item);
+
+            if (typeid(*(right.item)) == typeid(SequenceExp))
+                // The right side is also a sequence, so we can add the left side to
+                // that sequence.
+                ((SequenceExp*) right.item)->getSeq()->add(0, left.item);
+            else {
+                auto seq = new LinkedList<Exp>;
+                seq->add(0, right.item);
+                seq->add(0, left.item);
+
+                right.item = new SequenceExp(seq);
+            }
             res->add(0, right);
         }
         delete posts;

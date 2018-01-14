@@ -126,12 +126,11 @@ int testexp4() {
     xs[0] = new VarExp("x"), xs[1] = NULL;
     zs[0] = new IntExp(2); zs[1] = NULL;
 
-    exp = 
-        new LetExp(as, bs,
-        new SequenceExp(
-        new SetExp(xs, zs),
-        new VarExp("x")
-    ));
+    SequenceExp *seq = new SequenceExp;
+    seq->getSeq()->add(0, new VarExp("x"));
+    seq->getSeq()->add(0, new SetExp(xs, zs));
+
+    exp = new LetExp(as, bs, seq);
     env = new EmptyEnv();
 
     return testcase(exp, env, IntVal(2).toString());

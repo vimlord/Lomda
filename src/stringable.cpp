@@ -161,11 +161,11 @@ string RealExp::toString() {
     return to_string(val) + "f";
 }
 string SequenceExp::toString() {
-    string s = pre->toString();
-    
-    if (post)
-        s += "; " + post->toString();
+    string s = "";
 
+    auto it = seq->iterator();
+    while (it->hasNext()) s += it->next()->toString();
+    
     return s;
 }
 string SetExp::toString() {
