@@ -4,7 +4,7 @@ OBJS=$(SRCS:.cpp=.o)
 
 EXEC=lomda
 
-CXXFLAGS=-Iinclude -g
+CXXFLAGS=-Iinclude -O3
 
 $(EXEC): all
 
