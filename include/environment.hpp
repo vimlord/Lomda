@@ -27,7 +27,9 @@ class ExtendEnv : public Environment {
     public:
         ExtendEnv(std::string, Value*, Environment* = NULL);
         ~ExtendEnv();
-        Value* apply(std::string);
+
+        Val apply(std::string);
+        int set(std::string s, Val v) {if (s == id) { ref->rem_ref(); ref = v; return 0;} else return subenv->set(s, v); }
 
         std::string topId() { return id; }
         Value* topVal() { return ref; }

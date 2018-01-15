@@ -20,7 +20,8 @@ class Environment : public Stringable {
         virtual ~Environment() {}
 
         // Applies an identifier to the environment to get its Value.
-        virtual Value* apply(std::string) = 0;
+        virtual Val apply(std::string) { return NULL; }
+        virtual int set(std::string, Val) { return 1; }
 
         virtual Environment* clone() = 0;
 
