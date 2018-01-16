@@ -483,6 +483,60 @@ ParsedPrgms parseAndExp(string str, bool ends) {
     return res;
 }
 
+ParsedPrgms parseCastExp(string str, bool ends) {
+    ParsedPrgms exps = parseNotExp(str, false);
+    
+    ParsedPrgms res = new LinkedList<parsed_prgm>;
+
+    while (!exps->isEmpty()) {
+        parsed_prgm p = exps->remove(0);
+        string s = str.substr(p.len);
+
+        if (parseSpaces(s) == s.length()) {
+            res->add(0, p);
+            continue;
+        }
+        
+        int i;
+        if ((i = parseLit(s, "as")) < 0) {
+            if (ends)
+                delete p.item;
+            else
+                res->add(0, p);
+            continue;
+        }
+
+        s = s.substr(i);
+        p.len += i;
+        
+        parsed_id type = parseId(s);
+        if (type.len < 0) {
+            delete p.item;
+            continue;
+        }
+
+        s = s.substr(type.len);
+        p.len += type.len;
+        if (ends && parseSpaces(s) != s.length()) {
+            delete p.item;
+            continue;
+        }
+        
+        if (
+        type.item == "bool" || type.item == "boolean" ||
+        type.item == "int" || type.item == "integer" ||
+        type.item == "real" ||
+        type.item == "string") {
+            p.item = new CastExp(type.item, p.item);
+            res->add(0, p);
+        }
+
+    }
+
+    return res;
+
+}
+
 /**
  * <derivative-exp> ::= 'd/d'<id> <statement>
  */
@@ -872,7 +926,7 @@ ParsedPrgms parseMultiplicative(string str, bool ends) {
 
     // First, find every multiplicative expression that could come before this one.
     // We won't require them to finish
-    ParsedPrgms mult = parseNotExp(str, false);
+    ParsedPrgms mult = parseCastExp(str, false);
 
     while (!mult->isEmpty()) {
         // Get the program branch

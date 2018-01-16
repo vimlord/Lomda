@@ -24,6 +24,21 @@ class ApplyExp : public Expression {
         std::string toString();
 };
 
+// Casting values; {type t, a} -> t
+class CastExp : public Expression {
+    private:
+        std::string type;
+        Exp exp;
+    public:
+        CastExp(std::string t, Exp e) : type(t), exp(e) {}
+        ~CastExp() { delete exp; }
+
+        Val valueOf(Env);
+
+        Exp clone() { return new CastExp(type, exp->clone()); }
+        std::string toString();
+};
+
 class DerivativeExp : public Expression {
     private:
         Exp func;

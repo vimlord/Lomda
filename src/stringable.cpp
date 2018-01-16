@@ -30,6 +30,9 @@ string ApplyExp::toString() {
 
     return s;
 }
+string CastExp::toString() {
+    return "(" + type + ") " + exp->toString();
+}
 string DerivativeExp::toString() {
     string s = "d/d" + var; 
     s += " " + (typeid(*func) == typeid(VarExp)

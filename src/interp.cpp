@@ -96,6 +96,70 @@ Val ApplyExp::valueOf(Env env) {
     return y;
 }
 
+Val CastExp::valueOf(Env env) {
+    Val val = exp->valueOf(env);
+
+    Val res = NULL;
+
+    if (!val) return NULL;
+    else if (type == "string")
+        res = new StringVal(val->toString());
+    else if (type == "int" || type == "integer") {
+        // Type conversion to an integer
+        if (typeid(*val) == typeid(IntVal))
+            return val;
+        else if (typeid(*val) == typeid(RealVal))
+            res = new IntVal(((RealVal*) val)->get());
+        else if (typeid(*val) == typeid(BoolVal))
+            res = new IntVal(((BoolVal*) val)->get());
+        else if (typeid(*val) == typeid(StringVal)) {
+            // String parsing (use BNF parser source)
+            string s = ((StringVal*) val)->get();
+            parsed_int p = parseInt(s);
+            if (p.len >= 0 && parseSpaces(s.substr(p.len)) + p.len == s.length())
+                res = new IntVal(p.item);
+        }
+    } else if (type == "real") {
+        // Type conversion to a float
+        if (typeid(*val) == typeid(IntVal))
+            res = new RealVal(((IntVal*) val)->get());
+        else if (typeid(*val) == typeid(RealVal))
+            return val;
+        else if (typeid(*val) == typeid(BoolVal))
+            res = new RealVal(((BoolVal*) val)->get());
+        else if (typeid(*val) == typeid(StringVal)) {
+            // String parsing
+            string s = ((StringVal*) val)->get();
+            parsed_float p = parseFloat(s);
+            if (p.len >= 0 && parseSpaces(s.substr(p.len)) + p.len == s.length())
+                res = new RealVal(p.item);
+        }
+    } else if (type == "bool" || type == "boolean") {
+        // Type conversion to a boolean
+        if (typeid(*val) == typeid(IntVal))
+            res = new BoolVal(((IntVal*) val)->get());
+        else if (typeid(*val) == typeid(RealVal))
+            res = new BoolVal(((RealVal*) val)->get());
+        else if (typeid(*val) == typeid(BoolVal))
+            return val;
+        else if (typeid(*val) == typeid(StringVal)) {
+            // String parsing
+            string s = ((StringVal*) val)->get();
+            int i;
+            if ((i = parseLit(s, "true")) >= 0 && i + parseSpaces(s.substr(i)) == s.length())
+                res = new BoolVal(true);
+            else if ((i = parseLit(s, "false")) >= 0 && i + parseSpaces(s.substr(i)) == s.length())
+                res = new BoolVal(false);
+        }
+    }
+    
+    if (!res)
+        throw_err("type", "expression '" + exp->toString() + "' cannot be casted to " + type);
+
+    val->rem_ref();
+    return res;
+}
+
 Val DerivativeExp::valueOf(Env env) {
 
     // Base case: we know of nothing
@@ -257,6 +321,7 @@ Val IfExp::valueOf(Env env) {
     unpack_thunk(b);
 
     if (typeid(*b) != typeid(BoolVal)) {
+        throw_type_err(cond, "boolean");
         return NULL;
     }
 
