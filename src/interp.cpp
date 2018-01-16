@@ -29,12 +29,27 @@ Val run(string program) {
     }
 }
 
+/**
+ * Checks the type of a value and unpacks it if it is a thunk.
+ */
+inline Val unpack_thunk(Val v) {
+    // If the function is a thunk, then we need to unpack it.
+    while (v && typeid(*v) == typeid(Thunk)) {
+        // Unpack
+        Thunk *t = (Thunk*) v;
+        v = t->get();
+        t->rem_ref();
+    }
+}
+
 Val ApplyExp::valueOf(Env env) {
     Val f = op->valueOf(env);
 
     // Null check the function
     if (!f)
         return NULL;
+    else
+        unpack_thunk(f);
     
     // Type check the function
     if (typeid(*f) != typeid(LambdaVal)) {
@@ -147,6 +162,8 @@ Val FalseExp::valueOf(Env env) { return new BoolVal(false); }
 
 Val FoldExp::valueOf(Env env) {
     Val lst = list->valueOf(env);
+    unpack_thunk(lst);
+
     if (!lst) return NULL;
     else if (typeid(*lst) != typeid(ListVal)) {
         lst->rem_ref();
@@ -155,6 +172,8 @@ Val FoldExp::valueOf(Env env) {
     }
     
     Val f = func->valueOf(env);
+    unpack_thunk(f);
+
     if (!f) return NULL;
     else if (typeid(*f) != typeid(LambdaVal)) {
         throw_type_err(func, "lambda");
@@ -198,6 +217,8 @@ Val FoldExp::valueOf(Env env) {
 Val ForExp::valueOf(Env env) {
     // Evaluate the list
     Val listExp = set->valueOf(env);
+    unpack_thunk(listExp);
+
     if (!listExp) return NULL;
     else if (typeid(*listExp) != typeid(ListVal)) {
         throw_type_err(set, "list");
@@ -233,6 +254,7 @@ Val ForExp::valueOf(Env env) {
 
 Val IfExp::valueOf(Env env) {
     Val b = cond->valueOf(env);
+    unpack_thunk(b);
 
     if (typeid(*b) != typeid(BoolVal)) {
         return NULL;
@@ -351,6 +373,8 @@ Val ListExp::valueOf(Env env) {
 Val ListAccessExp::valueOf(Env env) {
     // Get the list
     Val f = list->valueOf(env);
+    unpack_thunk(f);
+
     if (!f)
         return NULL;
     else if (typeid(*f) != typeid(ListVal)) {
@@ -363,6 +387,8 @@ Val ListAccessExp::valueOf(Env env) {
     
     // Get the index
     Val index = idx->valueOf(env);
+    unpack_thunk(index);
+
     if (!index) return NULL;
     else if (typeid(*index) != typeid(IntVal)) {
         throw_type_err(idx, "integer");
@@ -380,6 +406,8 @@ Val ListAccessExp::valueOf(Env env) {
 Val ListAddExp::valueOf(Env env) {
     // Get the list
     Val f = list->valueOf(env);
+    unpack_thunk(f);
+
     if (!f)
         return NULL;
     else if (typeid(*f) != typeid(ListVal)) {
@@ -390,6 +418,8 @@ Val ListAddExp::valueOf(Env env) {
 
     // Compute the index
     Val index = idx->valueOf(env);
+    unpack_thunk(index);
+
     if (!index) return NULL;
     else if (typeid(*index) != typeid(IntVal)) {
         throw_type_err(idx, "integer");
@@ -411,6 +441,8 @@ Val ListAddExp::valueOf(Env env) {
 Val ListRemExp::valueOf(Env env) {
     // Get the list
     Val f = list->valueOf(env);
+    unpack_thunk(f);
+
     if (!f)
         return NULL;
     else if (typeid(*f) != typeid(ListVal)) {
@@ -421,6 +453,8 @@ Val ListRemExp::valueOf(Env env) {
 
     // Compute the index
     Val index = idx->valueOf(env);
+    unpack_thunk(index);
+
     if (!index) return NULL;
     else if (typeid(*index) != typeid(IntVal)) {
         throw_type_err(idx, "integer");
@@ -435,6 +469,8 @@ Val ListRemExp::valueOf(Env env) {
 Val ListSliceExp::valueOf(Env env) {
     // Get the list
     Val lst = list->valueOf(env);
+    unpack_thunk(lst);
+
     if (!lst)
         return NULL;
     else if (typeid(*lst) != typeid(ListVal)) {
@@ -448,6 +484,8 @@ Val ListSliceExp::valueOf(Env env) {
 
     // Get the index
     Val f = from->valueOf(env);
+    unpack_thunk(f);
+
     if (!f) return NULL;
     else if (typeid(*f) != typeid(IntVal)) {
         throw_type_err(from, "integer");
@@ -458,6 +496,8 @@ Val ListSliceExp::valueOf(Env env) {
 
     // Get the index
     Val t = to->valueOf(env);
+    unpack_thunk(t);
+
     if (!t) return NULL;
     else if (typeid(*t) != typeid(IntVal)) {
         throw_type_err(to, "integer");
@@ -503,7 +543,7 @@ Val MagnitudeExp::valueOf(Env env) {
     } else if (typeid(*v) == typeid(ListVal)) {
         // Magnitude of list is its length
         int val = ((ListVal*) v)->get()->size();
-        res = new IntVal(val > 0 ? val : -val);
+        res = new IntVal(val);
     }
     
     // Garbage collection
@@ -514,9 +554,11 @@ Val MagnitudeExp::valueOf(Env env) {
 
 Val MapExp::valueOf(Env env) {
     Val vs = list->valueOf(env);
+    unpack_thunk(vs);
     if (!vs) return NULL;
 
     Val f = func->valueOf(env);
+    unpack_thunk(f);
     if (!f) { vs->rem_ref(); return NULL; }
     
     if (typeid(*f) != typeid(LambdaVal)) {
@@ -627,6 +669,7 @@ Val sqnorm(Val v, Env env) {
 }
 Val NormExp::valueOf(Env env) {
     Val val = exp->valueOf(env);
+    unpack_thunk(val);
     if (!val) return NULL;
 
     Val v = sqnorm(val, env);
@@ -645,6 +688,7 @@ Val NormExp::valueOf(Env env) {
 
 Val NotExp::valueOf(Env env) {
     Val v = exp->valueOf(env);
+    unpack_thunk(v);
     
     if (!v)
         return NULL;
@@ -665,9 +709,12 @@ Val NotExp::valueOf(Env env) {
 
 Val OperatorExp::valueOf(Env env) {
     Val a = left->valueOf(env);
+    unpack_thunk(a);
+
     if (!a) return NULL;
 
     Val b = right->valueOf(env);
+    unpack_thunk(b);
 
     if (!b) {
         a->rem_ref();
@@ -807,6 +854,8 @@ Val SetExp::valueOf(Env env) {
 
 Val StdlibOpExp::valueOf(Env env) {
     Val v = x->valueOf(env);
+    unpack_thunk(v);
+
     if (!v) return NULL;
     
     if (
@@ -846,6 +895,8 @@ Val WhileExp::valueOf(Env env) {
 
     while (true) {
         Val c = cond->valueOf(env);
+        unpack_thunk(c);
+
         if (!c) return NULL;
         else if (typeid(*c) != typeid(BoolVal)) {
             throw_type_err(cond, "boolean");
