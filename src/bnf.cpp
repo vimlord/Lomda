@@ -200,17 +200,8 @@ LinkedList<struct arglist>* parseArgList(string str, bool ends) {
 ParsedPrgms parseCodeBlock(string str, bool ends) {
     int i;
 
-    //std::cout << "Searching for code block in '" << str << "'\n";
-
     // First, we check for programs with single line invocations
     ParsedPrgms bodies = parseStatement(str, ends);
-
-    //std::cout << "found " << bodies->size() << " applicable statements\n";
-
-    /*auto it = bodies->iterator(); while (it->hasNext()) {
-        parsed_prgm p = it->next();
-        //std::cout << " s: '" << *(p.item) << " (len: " << p.len << ")\n";
-    }*/
 
     // Next, we check for multiline invocations
     if ((i = parseLit(str, "{")) >= 0) {
@@ -234,11 +225,10 @@ ParsedPrgms parseCodeBlock(string str, bool ends) {
 
             if (ends && parseSpaces(s) < s.length()) {
                 delete p.item;
-                continue;
+            } else {
+                // The body should be added
+                bodies->add(0, p);
             }
-
-            // The body should be added
-            bodies->add(0, p);
         }
         delete subps;
     }

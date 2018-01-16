@@ -93,18 +93,17 @@ ParsedPrgms parseSequence(string str, bool ends) {
             if (typeid(*(right.item)) == typeid(SequenceExp))
                 // The right side is also a sequence, so we can add the left side to
                 // that sequence.
-                ((SequenceExp*) right.item)->getSeq()->add(0, left.item);
+                ((SequenceExp*) right.item)->getSeq()->add(0, left.item->clone());
             else {
                 auto seq = new LinkedList<Exp>;
                 seq->add(0, right.item);
-                seq->add(0, left.item);
+                seq->add(0, left.item->clone());
 
                 right.item = new SequenceExp(seq);
             }
             res->add(0, right);
         }
         delete posts;
-
     }
     delete prgms;
 

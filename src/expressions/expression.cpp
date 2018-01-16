@@ -75,7 +75,7 @@ Exp SequenceExp::clone() {
 
     auto it = seq->iterator();
     while (it->hasNext())
-        es->add(es->size(), it->next());
+        es->add(es->size(), it->next()->clone());
     delete it;
 
     return new SequenceExp(es);

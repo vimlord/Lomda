@@ -21,7 +21,7 @@ Val run(string program) {
         Env env = new EmptyEnv();
         Val val = exp->valueOf(env);
         delete exp;
-        delete env;
+        env->rem_ref();
         //if (!val) throw_err("runtime", "could not evaluate expression");
         return val;
     } else {

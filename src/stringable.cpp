@@ -164,7 +164,10 @@ string SequenceExp::toString() {
     string s = "";
 
     auto it = seq->iterator();
-    while (it->hasNext()) s += it->next()->toString();
+    for (int i = 0; it->hasNext(); i++) {
+        if (i) s += "; ";
+        s += it->next()->toString();
+    }
     
     return s;
 }
