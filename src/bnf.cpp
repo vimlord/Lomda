@@ -252,12 +252,8 @@ ParsedPrgms parseCodeBlock(string str, bool ends) {
 ParsedPrgms parseAccessor(string str, bool ends) {
     ParsedPrgms res = new LinkedList<parsed_prgm>;
 
-    //std::cout << "searching '" << str << "' for subaccessors\n";
-
     // The possible expansions
     ParsedPrgms lists = parsePrimitive(str, false);
-
-    //std::cout << "found " << lists->size() << " subaccessors in '" << str << "'\n";
 
     while (!lists->isEmpty()) {
         parsed_prgm lst = lists->remove(0);
@@ -1166,11 +1162,12 @@ ParsedPrgms parseSetExp(string str, bool ends) {
     ParsedPrgms res = new LinkedList<parsed_prgm>;
 
     ParsedPrgms lefts = parseAndExp(str, false);
+
     while (!lefts->isEmpty()) {
         parsed_prgm left = lefts->remove(0);
 
         string s = str.substr(left.len);
-
+         
         if (parseSpaces(s) == s.length()) {
             res->add(0, left);
             continue;

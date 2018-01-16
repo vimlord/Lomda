@@ -33,7 +33,6 @@ ExtendEnv::~ExtendEnv() {
         ref = NULL;
         v->rem_ref();
     }
-    delete subenv;
 }
 
 Value* EmptyEnv::apply(string id) {

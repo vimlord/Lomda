@@ -15,7 +15,7 @@ class Reffable {
          * Notify the object that another reference has been
          * created to acknowledge it.
          */
-         virtual void add_ref();
+        virtual void add_ref();
 
         /**
          * Decrements the reference count of the object.

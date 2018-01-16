@@ -77,7 +77,7 @@ int LambdaVal::set(Val v) {
 LambdaVal::~LambdaVal() {
     delete[] xs;
     delete exp;
-    delete env;
+    env->rem_ref();
 }
 LambdaVal* LambdaVal::clone() {
     int argc;
@@ -86,8 +86,9 @@ LambdaVal* LambdaVal::clone() {
     string *ids = new string[argc+1];
     ids[argc] = "";
     while (argc--) ids[argc] = xs[argc];
-
-    return new LambdaVal(ids, exp->clone(), env->clone());
+    
+    env->add_ref();
+    return new LambdaVal(ids, exp->clone(), env);
 }
 Val LambdaVal::apply(Val *argv, Env e) {
     Env E = e ? e : env;
@@ -117,7 +118,9 @@ Val LambdaVal::apply(Val *argv, Env e) {
 void LambdaVal::setEnv(Env e) {
     Env tmp = env;
     env = e;
-    delete tmp;
+    
+    if (env) env->add_ref();
+    if (tmp) tmp->rem_ref();
 }
 
 ListVal::~ListVal() {

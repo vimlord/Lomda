@@ -66,7 +66,8 @@ ParsedPrgms parseSequence(string str, bool ends) {
         
         if ((i = parseLit(s, ";")) < 0) {
             // End of program
-            res->add(0, left);
+            if (!ends || parseSpaces(s) == s.length())
+                res->add(0, left);
             continue;
         } else do {
             // Possibly another statement. So, get ready

@@ -138,7 +138,7 @@ Val DerivativeExp::valueOf(Env env) {
     Val res = func->derivativeOf(var, env, denv);
 
     // Garbage collection
-    delete denv;
+    denv->rem_ref();
 
     return res;
 }
@@ -216,11 +216,13 @@ Val ForExp::valueOf(Env env) {
         Val x = it->next();
         
         // Build an environment
-        Env e = new ExtendEnv(id, x, env->clone());
+        env->add_ref();
+        Env e = new ExtendEnv(id, x, env);
 
         v->rem_ref();
         v = body->valueOf(e);
-
+        
+        e->rem_ref();
     }
 
     delete it;
@@ -259,8 +261,9 @@ Val LambdaExp::valueOf(Env env) {
     string *ids = new string[argc+1];
     ids[argc] = "";
     while (argc--) ids[argc] = xs[argc];
-
-    return new LambdaVal(ids, exp->clone(), env->clone());
+    
+    env->add_ref();
+    return new LambdaVal(ids, exp->clone(), env);
 }
 
 Val LetExp::valueOf(Env env) {
@@ -273,6 +276,9 @@ Val LetExp::valueOf(Env env) {
     // I want to make all of the lambdas recursive.
     // So, I will track my lambdas for now
     LinkedList<LambdaVal*> lambdas;
+
+    // There is now one more reference to the original environment
+    env->add_ref();
     
     // Extend the environment
     for (int i = 0; i < argc; i++) {
@@ -293,27 +299,25 @@ Val LetExp::valueOf(Env env) {
         x->rem_ref();
 
         // We permit all lambdas to have recursive behavior
-        if (typeid(*x) == typeid(LambdaVal)) {
+        if (typeid(*x) == typeid(LambdaVal))
             lambdas.add(0, (LambdaVal*) x);
-        }
-
     }
     
     // Apply recursive principles
     while (!lambdas.isEmpty()) {
         LambdaVal *v = lambdas.remove(0);
-        v->setEnv(env->clone());
-
-        // Although the environment contains itself, a self-reference
-        // doesn't really count. In fact, it's a bitch to deal with.
-        v->rem_ref();
+        v->setEnv(env);
     }
+
+    // Display the env if necessary
+    if (VERBOSITY())
+        throw_debug("env", env->toString());
 
     // Compute the result
     Val y = body->valueOf(env);
 
     // Garbage collection
-    delete env;
+    env->rem_ref();
         
     // Return the result
     return y;
