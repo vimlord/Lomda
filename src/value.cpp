@@ -1,40 +1,9 @@
 #include "value.hpp"
 #include "environment.hpp"
-#include "config.hpp"
 
 using namespace std;
 
 #include <string>
-
-void Value::add_ref() {
-    ++refs;
-    
-    if (VERBOSITY()) {
-        std::cout << "\x1b[34m\x1b[1mmem_mgt:\x1b[0m "
-                  << "ref count of " << this
-                  //<< " (" << toString() << ")"
-                  << " up to "
-                  << refs << "\n";
-    }
-}
-
-void Value::rem_ref() {
-    if (refs == 0) return;
-
-    --refs;
-
-    if (VERBOSITY()) {
-        std::cout << "\x1b[34m\x1b[1mmem_mgt:\x1b[0m "
-                  << "ref count of " << this
-                  //<< " (" << toString() << ")"
-                  << " down to "
-                  << refs << "\n";
-    }
-
-    if (refs == 0) {
-        delete this;
-    }
-}
 
 // Booleans
 BoolVal::BoolVal(bool n) { val = n; }
