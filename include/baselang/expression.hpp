@@ -13,6 +13,9 @@ void throw_debug(std::string form, std::string mssg);
 // Interface for expressions.
 class Expression : public Stringable {
     public:
+        /**
+         * The default behavior on deletion is to do nothing.
+         */
         virtual ~Expression() {}
 
         /**
@@ -20,7 +23,11 @@ class Expression : public Stringable {
          * Should the expression be invalid, the function will return NULL.
          */
         virtual Value* valueOf(Env) { return NULL; }
-
+        
+        /**
+         * Computes the derivative of an expression. The default is to
+         * fail to compute (return NULL).
+         */
         virtual Value* derivativeOf(std::string, Env, Env) {
             throw_err("calculus", "expression '" + toString() + "' is non-differentiable");
             return NULL;
@@ -30,6 +37,7 @@ class Expression : public Stringable {
          * Creates a deep copy of the expression.
          */
         virtual Expression* clone() = 0;
+
 };
 typedef Expression* Exp;
 

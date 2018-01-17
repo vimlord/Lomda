@@ -1144,7 +1144,6 @@ ParsedPrgms parsePrimitive(string str, bool ends) {
         res->add(0, prgm);
         return res;
     } else if (num.len >= 0 && (!ends || num.len + parseSpaces(str.substr(num.len)) == str.length())) {
-
         // Build and then insert the program structure
         parsed_prgm prgm;
         prgm.len = ends ? str.length() : num.len;
@@ -1191,7 +1190,10 @@ ParsedPrgms parsePrimitive(string str, bool ends) {
         // Build and then insert the program structure
         parsed_prgm prgm;
         prgm.len = ends ? str.length() : id.len;
-        prgm.item = new VarExp(id.item);
+        if (id.item == "input")
+            prgm.item = new InputExp;
+        else
+            prgm.item = new VarExp(id.item);
         res->add(0, prgm);
         return res;
     }

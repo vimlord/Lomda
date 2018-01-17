@@ -102,6 +102,16 @@ class IfExp : public Expression {
         std::string toString();
 };
 
+class InputExp : public Expression {
+    public:
+        InputExp() {}
+        
+        Val valueOf(Env);
+
+        Exp clone() { return new InputExp; }
+        std::string toString() { return "input"; }
+};
+
 // Expression for defining variables
 class LetExp : public Expression {
     private:

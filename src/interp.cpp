@@ -337,6 +337,12 @@ Val IfExp::valueOf(Env env) {
         return fExp->valueOf(env);
 }
 
+Val InputExp::valueOf(Env env) {
+    string s;
+    getline(cin, s);
+    return new StringVal(s);
+}
+
 Val IntExp::valueOf(Env env) {
     return new IntVal(val);
 }
