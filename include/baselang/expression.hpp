@@ -40,7 +40,6 @@ class Expression : public Stringable {
          */
         virtual Expression* clone() = 0;
         
-
         /**
          * Performs optimization operations on an expression.
          * default: do nothing
@@ -55,7 +54,10 @@ class Expression : public Stringable {
         virtual Expression* opt_const_prop(
                 std::unordered_map<std::string, Expression*>&
         ) { return this; };
-
+        /**
+         * Returns combined variable usage, in form 00...00rw (ex: 3 means reads and writes)
+         */
+        virtual int opt_var_usage(std::string) { return 3; }
 };
 typedef Expression* Exp;
 

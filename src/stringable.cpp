@@ -74,7 +74,7 @@ string ForExp::toString() {
     return "for " + id + " in " + set->toString() + " " + body->toString();
 }
 string IfExp::toString() {
-    return "if " + cond->toString() + " then " + tExp->toString() + " else " + fExp->toString() + ")";
+    return "if " + cond->toString() + " then " + tExp->toString() + " else " + fExp->toString();
 }
 string IntExp::toString() {
     return to_string(val);

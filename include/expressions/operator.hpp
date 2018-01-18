@@ -16,6 +16,7 @@ class OperatorExp : public Expression {
 
         Exp optimize();
         Exp opt_const_prop(std::unordered_map<std::string, Exp>&);
+        int opt_var_usage(std::string x) { return left->opt_var_usage(x) | right->opt_var_usage(x); }
 };
 
 class AndExp : public OperatorExp {

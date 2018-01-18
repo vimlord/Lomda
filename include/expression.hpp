@@ -24,6 +24,7 @@ class ApplyExp : public Expression {
         
         Exp clone();
         std::string toString();
+        int opt_var_usage(std::string);
 };
 
 // Casting values; {type t, a} -> t
@@ -41,6 +42,7 @@ class CastExp : public Expression {
         std::string toString();
 
         Exp optimize() { exp->optimize(); return this; }
+        int opt_var_usage(std::string x) { return exp->opt_var_usage(x); }
 };
 
 class DerivativeExp : public Expression {
@@ -72,6 +74,8 @@ class FoldExp : public Expression {
 
         Exp clone() { return new FoldExp(list->clone(), func->clone(), base->clone()); }
         std::string toString();
+
+        Exp optimize() { list = list->optimize(); func = func->optimize(); base = base->optimize(); return this; }
 };
 
 class ForExp : public Expression {
@@ -89,6 +93,7 @@ class ForExp : public Expression {
         std::string toString();
 
         Exp optimize() { body->optimize(); return this; }
+        int opt_var_usage(std::string x);
 };
 
 // Condition expression that chooses paths
@@ -108,6 +113,7 @@ class IfExp : public Expression {
         std::string toString();
 
         Exp optimize();
+        int opt_var_usage(std::string x);
 };
 
 class InputExp : public Expression {
@@ -118,6 +124,8 @@ class InputExp : public Expression {
 
         Exp clone() { return new InputExp; }
         std::string toString() { return "input"; }
+
+        int opt_var_usage(std::string x) { return 0; }
 };
 
 // Expression for defining variables
@@ -143,6 +151,7 @@ class LetExp : public Expression {
 
         Exp optimize();
         Exp opt_const_prop(std::unordered_map<std::string, Exp>&);
+        int opt_var_usage(std::string x);
 };
 
 class MagnitudeExp : public Expression {
@@ -157,6 +166,9 @@ class MagnitudeExp : public Expression {
         Val derivativeOf(std::string, Env, Env);
 
         std::string toString();
+        
+        Exp optimize() { exp = exp->optimize(); return this; }
+        int opt_var_usage(std::string x) { return exp->opt_var_usage(x); }
 };
 
 class MapExp : public Expression {
@@ -172,6 +184,8 @@ class MapExp : public Expression {
         Val derivativeOf(std::string, Env, Env);
         
         std::string toString();
+
+        Exp optimize() { list = list->optimize(); func = func->optimize(); return this; }
 };
 
 class NormExp : public Expression {
@@ -186,6 +200,9 @@ class NormExp : public Expression {
         //Val derivativeOf(std::string, Env, Env);
 
         std::string toString();
+
+        Exp optimize() { exp = exp->optimize(); return this; }
+        int opt_var_usage(std::string x) { return exp->opt_var_usage(x); }
 };
 
 // Bool -> Bool expression that negates booleans
@@ -202,6 +219,7 @@ class NotExp : public Expression {
         std::string toString();
 
         Exp optimize();
+        int opt_var_usage(std::string x) { return exp->opt_var_usage(x); }
 };
 
 class SequenceExp : public Expression {
@@ -221,6 +239,7 @@ class SequenceExp : public Expression {
 
         Exp optimize();
         Exp opt_const_prop(std::unordered_map<std::string, Exp>&);
+        int opt_var_usage(std::string x);
 };
 
 // Expression for redefining values in a store
@@ -243,6 +262,7 @@ class SetExp : public Expression {
 
         Exp optimize();
         Exp opt_const_prop(std::unordered_map<std::string, Exp>&);
+        int opt_var_usage(std::string x) { return exp->opt_var_usage(x) | (tgt->opt_var_usage(x) >> 1); }
 };
 
 class ThunkExp : public Expression {
@@ -254,6 +274,7 @@ class ThunkExp : public Expression {
 
         Val valueOf(Env env) { return new Thunk(exp->clone(), env->clone()); }
 
+        Exp optimize() { exp = exp->optimize(); return this; }
         Exp clone() { return new ThunkExp(exp->clone()); }
         std::string toString();
 };
@@ -291,6 +312,7 @@ class WhileExp : public Expression {
         std::string toString();
 
         Exp optimize() { cond->optimize(); body->optimize(); }
+        int opt_var_usage(std::string x) { return cond->opt_var_usage(x) | body->opt_var_usage(x); }
 };
 
 #endif

@@ -13,6 +13,8 @@ class FalseExp : public Expression {
         
         Exp clone() { return new FalseExp(); }
         std::string toString() { return "false"; }
+
+        int opt_var_usage(std::string) { return 0; }
 };
 
 // Expression for an integer.
@@ -26,6 +28,8 @@ class IntExp : public Expression {
         
         Exp clone() { return new IntExp(val); }
         std::string toString();
+
+        int opt_var_usage(std::string) { return 0; }
 };
 
 // Expression that yields closures (lambdas)
@@ -47,6 +51,7 @@ class LambdaExp : public Expression {
         Exp optimize() { exp = exp->optimize(); return this; }
         Exp opt_const_prop(std::unordered_map<std::string, Exp> vs) 
                 { exp = exp->opt_const_prop(vs); return this; }
+        int opt_var_usage(std::string);
 };
 
 class ListExp : public Expression {
@@ -66,6 +71,8 @@ class ListExp : public Expression {
         
         Exp clone();
         std::string toString();
+
+        int opt_var_usage(std::string);
 };
 
 // Expression for a real number.
@@ -79,6 +86,8 @@ class RealExp : public Expression {
         
         Exp clone() { return new RealExp(val); }
         std::string toString();
+
+        int opt_var_usage(std::string) { return 0; }
 };
 
 class StringExp : public Expression {
@@ -91,6 +100,8 @@ class StringExp : public Expression {
 
         Exp clone() { return new StringExp(val); }
         std::string toString();
+
+        int opt_var_usage(std::string) { return 0; }
 };
 
 // Generates true
@@ -101,6 +112,8 @@ class TrueExp : public Expression {
         
         Exp clone() { return new TrueExp(); }
         std::string toString() { return "true"; }
+
+        int opt_var_usage(std::string) { return 0; }
 };
 
 // Get the value of a variable
@@ -121,7 +134,8 @@ class VarExp : public Expression {
          * Constant propagation will trivially replace the variable if
          * the variable name matches.
          */
-         Exp opt_const_prop(std::unordered_map<std::string, Exp>&);
+        Exp opt_const_prop(std::unordered_map<std::string, Exp>&);
+        int opt_var_usage(std::string x) { return x == id ? 1 : 0; }
 };
 
 #endif
