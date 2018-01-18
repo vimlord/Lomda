@@ -311,7 +311,7 @@ class WhileExp : public Expression {
         Exp clone() { return new WhileExp(cond->clone(), body->clone(), alwaysEnter); }
         std::string toString();
 
-        Exp optimize() { cond->optimize(); body->optimize(); }
+        Exp optimize() { cond->optimize(); body->optimize(); return this; }
         Exp opt_const_prop(opt_varexp_map&, opt_varexp_map&);
         int opt_var_usage(std::string x) { return cond->opt_var_usage(x) | body->opt_var_usage(x); }
 };

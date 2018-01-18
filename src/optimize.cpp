@@ -292,7 +292,7 @@ Exp SetExp::opt_const_prop(opt_varexp_map &vs, opt_varexp_map &end) {
             vs.erase(tgt->toString());
             return this;
         }
-    }
+    } else return this;
 }
 
 Exp SequenceExp::optimize() {
@@ -352,6 +352,7 @@ int SequenceExp::opt_var_usage(std::string x) {
     while (it->hasNext() && use ^ 3) {
         use |= it->next()->opt_var_usage(x);
     }
+    return use;
 }
 
 Exp VarExp::opt_const_prop(opt_varexp_map &vs, opt_varexp_map &end) {

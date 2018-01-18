@@ -119,7 +119,7 @@ class VoidVal : public Value {
     public:
         std::string toString() { return "void"; }
         VoidVal* clone() { return new VoidVal; }
-        int set(Value*) {}
+        int set(Value* v) { return typeid(*v) == typeid(VoidVal); }
 };
 
 #endif
