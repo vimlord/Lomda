@@ -52,6 +52,7 @@ class Expression : public Stringable {
          * default: do nothing
          */
         virtual Expression* opt_const_prop(
+                std::unordered_map<std::string, Expression*>&,
                 std::unordered_map<std::string, Expression*>&
         ) { return this; };
         /**
@@ -60,6 +61,8 @@ class Expression : public Stringable {
         virtual int opt_var_usage(std::string) { return 3; }
 };
 typedef Expression* Exp;
+
+typedef std::unordered_map<std::string, Exp> opt_varexp_map;
 
 void throw_type_err(Expression *exp, std::string type);
 

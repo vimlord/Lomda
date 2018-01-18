@@ -145,6 +145,10 @@ LinkedList<struct arglist>* parseArgList(string str, bool ends) {
     alst.list = new LinkedList<struct arg>;
     alst.len = 0;
     options->add(0, alst);
+
+    alst.list = new LinkedList<struct arg>;
+    alst.len = 0;
+    arglists->add(0, alst);
     
     while (!options->isEmpty()) {
         // Get a possible path
@@ -748,6 +752,14 @@ ParsedPrgms parseLambdaExp2(string str, bool ends) {
         // The function takes zero arguments. So, we skip the search.
         str = str.substr(i);
         len += i;
+
+        if ((i = parseLit(str, "->")) < 0)
+            return res;
+        else {
+            str = str.substr(i);
+            len += i;
+        }
+
     } else while (1) {
         
         parsed_id arg = parseId(str);

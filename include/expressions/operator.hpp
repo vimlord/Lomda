@@ -15,7 +15,7 @@ class OperatorExp : public Expression {
         virtual Val op(Val, Val) = 0;
 
         Exp optimize();
-        Exp opt_const_prop(std::unordered_map<std::string, Exp>&);
+        Exp opt_const_prop(std::unordered_map<std::string, Exp>&, opt_varexp_map&);
         int opt_var_usage(std::string x) { return left->opt_var_usage(x) | right->opt_var_usage(x); }
 };
 

@@ -370,6 +370,7 @@ Val LetExp::valueOf(Env env) {
 
     int argc = 0;
     for (; exps[argc]; argc++);
+    throw_debug("env", "adding " + to_string(argc) + " vars to env " + env->toString());
 
     // I want to make all of the lambdas recursive.
     // So, I will track my lambdas for now
@@ -384,13 +385,14 @@ Val LetExp::valueOf(Env env) {
         Val v = exps[i]->valueOf(env);
         if (!v) {
             // Garbage collection will happen here
-            delete env;
+            env->rem_ref();
             return NULL;
         }
         
         // Add it to the environment
         Val x = v->clone();
         env = new ExtendEnv(ids[i], x, env);
+        throw_debug("env", env->toString());
         
         // Drop references
         v->rem_ref();
@@ -408,8 +410,6 @@ Val LetExp::valueOf(Env env) {
     }
 
     // Display the env if necessary
-    if (VERBOSITY())
-        throw_debug("env", env->toString());
 
     // Compute the result
     Val y = body->valueOf(env);

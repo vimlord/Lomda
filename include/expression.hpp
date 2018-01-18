@@ -150,7 +150,7 @@ class LetExp : public Expression {
         std::string toString();
 
         Exp optimize();
-        Exp opt_const_prop(std::unordered_map<std::string, Exp>&);
+        Exp opt_const_prop(opt_varexp_map&, opt_varexp_map&);
         int opt_var_usage(std::string x);
 };
 
@@ -238,7 +238,7 @@ class SequenceExp : public Expression {
         std::string toString();
 
         Exp optimize();
-        Exp opt_const_prop(std::unordered_map<std::string, Exp>&);
+        Exp opt_const_prop(opt_varexp_map&, opt_varexp_map&);
         int opt_var_usage(std::string x);
 };
 
@@ -261,7 +261,7 @@ class SetExp : public Expression {
         std::string toString();
 
         Exp optimize();
-        Exp opt_const_prop(std::unordered_map<std::string, Exp>&);
+        Exp opt_const_prop(opt_varexp_map&, opt_varexp_map&);
         int opt_var_usage(std::string x) { return exp->opt_var_usage(x) | (tgt->opt_var_usage(x) >> 1); }
 };
 
@@ -312,6 +312,7 @@ class WhileExp : public Expression {
         std::string toString();
 
         Exp optimize() { cond->optimize(); body->optimize(); }
+        Exp opt_const_prop(opt_varexp_map&, opt_varexp_map&);
         int opt_var_usage(std::string x) { return cond->opt_var_usage(x) | body->opt_var_usage(x); }
 };
 

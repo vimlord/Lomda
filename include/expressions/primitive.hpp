@@ -49,8 +49,8 @@ class LambdaExp : public Expression {
         std::string toString();
 
         Exp optimize() { exp = exp->optimize(); return this; }
-        Exp opt_const_prop(std::unordered_map<std::string, Exp> vs) 
-                { exp = exp->opt_const_prop(vs); return this; }
+        Exp opt_const_prop(opt_varexp_map& vs, opt_varexp_map& end) 
+                { exp = exp->opt_const_prop(vs, end); return this; }
         int opt_var_usage(std::string);
 };
 
@@ -73,6 +73,7 @@ class ListExp : public Expression {
         std::string toString();
 
         int opt_var_usage(std::string);
+        // TODO: int opt_const_prop(opt_varexp_map&, opt_varexp_map&);
 };
 
 // Expression for a real number.
@@ -134,8 +135,8 @@ class VarExp : public Expression {
          * Constant propagation will trivially replace the variable if
          * the variable name matches.
          */
-        Exp opt_const_prop(std::unordered_map<std::string, Exp>&);
-        int opt_var_usage(std::string x) { return x == id ? 1 : 0; }
+        Exp opt_const_prop(opt_varexp_map&, opt_varexp_map&);
+        int opt_var_usage(std::string x) { return x == id ? 2 : 0; }
 };
 
 #endif

@@ -68,7 +68,7 @@ int IfExp::opt_var_usage(string x) {
 int LambdaExp::opt_var_usage(string x) {
     for (int i = 0; xs[i] != ""; i++)
         if (xs[i] == x) return 0;
-
+    
     return exp->opt_var_usage(x);
 }
 
@@ -87,7 +87,8 @@ Exp LetExp::optimize() {
     // expression and replace them wherever possible. Then, we can allow
     // constant folding to further reduce.
 
-    unordered_map<string, Exp> consts;
+    opt_varexp_map consts;
+    opt_varexp_map ends;
     
     int i;
     for (i = 0; exps[i]; i++) {
@@ -98,16 +99,24 @@ Exp LetExp::optimize() {
         if (is_const_exp(exps[i])) {
             throw_debug("postprocessor", "will attempt to propagate constant " + ids[i] + " as " + exps[i]->toString());
             consts[ids[i]] = exps[i]->clone();
+            ends[ids[i]] = exps[i]->clone();
         }
     }
     
     // Now, we must make the changes to the syntax tree depending on whether
     // or not any variables are known to be constants.
     if (consts.size() > 0) {
-        body = body->opt_const_prop(consts);
+        body = body->opt_const_prop(consts, ends);
 
         for (auto x : consts)
             delete x.second;
+        
+        // Replace any variables with the new versions.
+        for (i = 0; exps[i]; i++)
+            if (ends.count(ids[i])) {
+                delete exps[i];
+                exps[i] = ends[ids[i]];
+            }
     }
 
     // Then, we do plain optimization.
@@ -120,7 +129,11 @@ Exp LetExp::optimize() {
         // We only keep variables that will be used for now.
         // In the future, we may wish to handle cases where the current value of x
         // is changed, but not used.
-        int use = body->opt_var_usage(ids[i]);
+        int use = 0;
+        for (int j = 0; j < nvars && !use; j++)
+            if (i != j) use = exps[j]->opt_var_usage(ids[i]);
+        if (!use) use = body->opt_var_usage(ids[i]);
+
         if ((keep[i] = use)) {
             kept++;
         } else
@@ -174,13 +187,13 @@ int LetExp::opt_var_usage(string x) {
 
     return use | body->opt_var_usage(x);
 }
-Exp LetExp::opt_const_prop(unordered_map<string, Exp>& consts) {
+Exp LetExp::opt_const_prop(opt_varexp_map& consts, opt_varexp_map &end) {
     // The principle is similar to with the set-exp.
 
     // Then, we will update the scope.
     for (int i = 0; exps[i]; i++) {
         exps[i] = exps[i]
-                ->opt_const_prop(consts)
+                ->opt_const_prop(consts, end)
                 ->optimize();
         
         // If the expression is constant, propagate it.
@@ -192,7 +205,7 @@ Exp LetExp::opt_const_prop(unordered_map<string, Exp>& consts) {
     }
 
     // Perform propagation.
-    body = body->opt_const_prop(consts);
+    body = body->opt_const_prop(consts, end);
     
     return this;
 }
@@ -232,11 +245,11 @@ Exp OperatorExp::optimize() {
         return this;
 }
 
-Exp OperatorExp::opt_const_prop(unordered_map<string, Exp> &vs) {
+Exp OperatorExp::opt_const_prop(opt_varexp_map &vs, opt_varexp_map &end) {
     // The operator expression will simply propagate the constant to its
     // child expressions.
-    left = left->opt_const_prop(vs);
-    right = right->opt_const_prop(vs);
+    left = left->opt_const_prop(vs, end);
+    right = right->opt_const_prop(vs, end);
 
     return this;
 }
@@ -246,9 +259,9 @@ Exp SetExp::optimize() {
     exp->optimize();
     return this;
 }
-Exp SetExp::opt_const_prop(unordered_map<string, Exp> &vs) {
+Exp SetExp::opt_const_prop(opt_varexp_map &vs, opt_varexp_map &end) {
     // Propagate the value
-    exp = exp->opt_const_prop(vs);
+    exp = exp->opt_const_prop(vs, end);
 
     if (
     typeid(*tgt) == typeid(VarExp) &&
@@ -258,6 +271,10 @@ Exp SetExp::opt_const_prop(unordered_map<string, Exp> &vs) {
         // the value of the constant in the table or remove it
         // altogether.
         exp = exp->optimize(); // Optimize right now.
+        
+        // We will save the value as the final outcome
+        delete end[tgt->toString()];
+        end[tgt->toString()] = exp->clone();
 
         if (is_const_exp(exp)) {
             // Replace (the var is still constant)
@@ -303,12 +320,12 @@ Exp SequenceExp::optimize() {
     
     return this;
 }
-Exp SequenceExp::opt_const_prop(unordered_map<string, Exp> &vs) {
+Exp SequenceExp::opt_const_prop(opt_varexp_map &vs, opt_varexp_map &end) {
     auto exps = new LinkedList<Exp>;
 
     while (!seq->isEmpty()) {
         Exp exp = seq->remove(0);
-        exp = exp->opt_const_prop(vs);
+        exp = exp->opt_const_prop(vs, end);
         
         // Keep necessary statements
         if (!is_const_exp(exp) || seq->isEmpty())
@@ -337,7 +354,7 @@ int SequenceExp::opt_var_usage(std::string x) {
     }
 }
 
-Exp VarExp::opt_const_prop(unordered_map<string, Exp> &vs) {
+Exp VarExp::opt_const_prop(opt_varexp_map &vs, opt_varexp_map &end) {
     if (vs.count(id)) {
         // Because the value is known, we can simply return the
         // value of the variable.
@@ -347,4 +364,9 @@ Exp VarExp::opt_const_prop(unordered_map<string, Exp> &vs) {
     } else return this;
 }
 
+Exp WhileExp::opt_const_prop(opt_varexp_map& vs, opt_varexp_map& end) {
+    cond->opt_const_prop(vs, end);
+    body->opt_const_prop(vs, end);
+    return this;
+}
 
