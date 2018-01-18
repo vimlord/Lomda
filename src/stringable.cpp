@@ -31,7 +31,7 @@ string ApplyExp::toString() {
     return s;
 }
 string CastExp::toString() {
-    return "(" + type + ") " + exp->toString();
+    return exp->toString() + " as " + type;
 }
 string DerivativeExp::toString() {
     string s = "d/d" + var; 

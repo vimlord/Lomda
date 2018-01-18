@@ -5,8 +5,6 @@
 #include "baselang/expression.hpp"
 #include "baselang/environment.hpp"
 
-#include "linalg/matrix.hpp"
-
 class BoolVal : public Value {
     private:
         bool val;

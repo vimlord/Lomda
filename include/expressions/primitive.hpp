@@ -3,7 +3,6 @@
 
 #include "baselang/expression.hpp"
 #include "value.hpp"
-#include "linalg/matrix.hpp"
 
 // Generates false
 class FalseExp : public Expression {
@@ -49,8 +48,6 @@ class LambdaExp : public Expression {
         std::string toString();
 
         Exp optimize() { exp = exp->optimize(); return this; }
-        Exp opt_const_prop(opt_varexp_map& vs, opt_varexp_map& end) 
-                { exp = exp->opt_const_prop(vs, end); return this; }
         int opt_var_usage(std::string);
 };
 

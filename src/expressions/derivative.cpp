@@ -5,6 +5,7 @@
 #include "config.hpp"
 
 #include <cstdlib>
+#include <cmath>
 
 using namespace std;
 
