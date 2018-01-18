@@ -180,7 +180,6 @@ int LetExp::opt_var_usage(string x) {
     int use = 0;
     
     for (int i = 0; exps[i] && (use ^ 3); i++) {
-        std::cout << "check '" << exps[i]->toString() << "' for use of " << x << "\n";
         use |= exps[i]->opt_var_usage(x);
         if (ids[i] == x)
             return use;
