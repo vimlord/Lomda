@@ -120,15 +120,9 @@ int testexp4() {
     as[0] = "x"; as[1] = "";
     bs[0] = new IntExp(1); bs[1] = NULL;
 
-    Expression **xs = new Expression*[2];
-    Expression **zs = new Expression*[2];
-
-    xs[0] = new VarExp("x"), xs[1] = NULL;
-    zs[0] = new IntExp(2); zs[1] = NULL;
-
     SequenceExp *seq = new SequenceExp;
     seq->getSeq()->add(0, new VarExp("x"));
-    seq->getSeq()->add(0, new SetExp(xs, zs));
+    seq->getSeq()->add(0, new SetExp(new VarExp("x"), new IntExp(2)));
 
     exp = new LetExp(as, bs, seq);
     env = new EmptyEnv();

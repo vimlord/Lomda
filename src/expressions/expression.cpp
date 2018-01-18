@@ -7,6 +7,38 @@
 
 using namespace std;
 
+Exp reexpress(Val v) {
+    if (!v) return NULL;
+    else if (typeid(*v) == typeid(IntVal))
+        return new IntExp(((IntVal*) v)->get());
+    else if (typeid(*v) == typeid(RealVal))
+        return new RealExp(((RealVal*) v)->get());
+    else if (typeid(*v) == typeid(BoolVal))
+        return ((BoolVal*) v)->get() 
+                ? (Exp) new TrueExp
+                : (Exp) new FalseExp;
+    else if (typeid(*v) == typeid(ListVal)) {
+        ListVal *lv = (ListVal*) v;
+        LinkedList<Exp> *list = new LinkedList<Exp>;
+
+        auto it = lv->get()->iterator();
+        while (it->hasNext()) list->add(list->size(), reexpress(it->next()));
+
+        return new ListExp(list);
+    } else if (typeid(*v) == typeid(LambdaVal)) {
+        LambdaVal *lv = (LambdaVal*) v;
+
+        int argc = 0;
+        while (lv->getArgs()[argc] != "");
+
+        std::string *xs = new std::string[argc+1];
+        xs[argc] = "";
+        while (argc--) xs[argc] = lv->getArgs()[argc];
+
+        return new LambdaExp(xs, lv->getBody());
+    } else
+        return NULL;
+}
 
 void throw_warning(string form, string mssg) {
     if (WERROR()) throw_err(form, mssg);
@@ -22,12 +54,12 @@ void throw_debug(string form, string mssg) {
         std::cout << "\x1b[34m\x1b[1m" << (form == "" ? "debug" : form)
                   << ":\x1b[0m " << mssg << "\n";
 }
-void throw_type_err(Expression *exp, std::string type) {
+void throw_type_err(Exp exp, std::string type) {
     throw_err("type", "expression '" + exp->toString() + "' does not evaluate as " + type);
 }
 
 
-ApplyExp::ApplyExp(Expression *f, Expression **xs) {
+ApplyExp::ApplyExp(Exp f, Exp *xs) {
     op = f;
     args = xs;
 }
@@ -38,7 +70,7 @@ ApplyExp::~ApplyExp() {
     delete op;
 }
 
-IfExp::IfExp(Expression *b, Expression *t, Expression *f) {
+IfExp::IfExp(Exp b, Exp t, Exp f) {
     cond = b;
     tExp = t;
     fExp = f;
@@ -47,12 +79,12 @@ IfExp::IfExp(Expression *b, Expression *t, Expression *f) {
 IntExp::IntExp(int n) { val = n; }
 
 // Expression for generating lambdas.
-LambdaExp::LambdaExp(string *ids, Expression *rator) {
+LambdaExp::LambdaExp(string *ids, Exp rator) {
     xs = ids;
     exp = rator;
 }
 
-LetExp::LetExp(string *vs, Expression **xs, Expression *y) {
+LetExp::LetExp(string *vs, Exp *xs, Exp y) {
     ids = vs;
     exps = xs;
     body = y;
@@ -63,7 +95,7 @@ ListExp::ListExp(Expression** exps) : ListExp::ListExp() {
         list->add(i, exps[i]);
 }
 
-OperatorExp::OperatorExp(Expression *a, Expression *b) {
+OperatorExp::OperatorExp(Exp a, Exp b) {
     left = a;
     right = b;
 }
@@ -82,9 +114,9 @@ Exp SequenceExp::clone() {
 
 }
 
-SetExp::SetExp(Expression **xs, Expression **vs) {
-    tgts = xs;
-    exps = vs;
+SetExp::SetExp(Exp xs, Exp vs) {
+    tgt = xs;
+    exp = vs;
 }
 
 

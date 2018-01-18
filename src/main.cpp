@@ -74,7 +74,9 @@ int main(int argc, char *argv[]) {
             set_verbosity(true);
         } else if (!strcmp(argv[i], "--werror"))
             set_werror(true);
-        else {
+        else if (!strcmp(argv[i], "-O") || !strcmp(argv[i], "--optimize")) {
+            set_optimize(true);
+        } else {
             filename = argv[i];
             break;
         }

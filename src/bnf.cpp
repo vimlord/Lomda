@@ -1233,15 +1233,9 @@ ParsedPrgms parseSetExp(string str, bool ends) {
         while (!rights->isEmpty()) {
             parsed_prgm prog = rights->remove(0);
             
-            // Build the left and right side
-            Exp *l = new Exp[2];
-            l[0] = left.item->clone(); l[1] = NULL;
-            Exp *r = new Exp[2];
-            r[0] = prog.item; r[1] = NULL;
-            
             // Create the program outcome
             prog.len += left.len;
-            prog.item = new SetExp(l, r);
+            prog.item = new SetExp(left.item->clone(), prog.item);
             
             // Add it
             res->add(0, prog);

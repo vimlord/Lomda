@@ -635,7 +635,8 @@ ParsedPrgms parsePemdas(string str, bool ends) {
     delete res;
     res = parseDerivative(str, ends);
     if (!res->isEmpty()) return res;
-
+    
+    // Parse for calculation
     delete res;
     res = parseSetExp(str, ends);
 

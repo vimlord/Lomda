@@ -8,3 +8,7 @@ bool verbosity = false;
 bool VERBOSITY() { return verbosity; }
 void set_verbosity(bool b) { verbosity = b; }
 
+bool optimize = false;
+bool OPTIMIZE() { return optimize; }
+void set_optimize(bool b) { optimize = b; }
+

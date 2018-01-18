@@ -8,6 +8,8 @@
 #include "expressions/list.hpp"
 #include "expressions/stdlib.hpp"
 
+Exp reexpress(Val);
+
 // Calling functions; {a->b, a} -> b
 class ApplyExp : public Expression {
     private:
@@ -37,6 +39,8 @@ class CastExp : public Expression {
 
         Exp clone() { return new CastExp(type, exp->clone()); }
         std::string toString();
+
+        Exp optimize() { exp->optimize(); return this; }
 };
 
 class DerivativeExp : public Expression {
@@ -83,6 +87,8 @@ class ForExp : public Expression {
 
         Exp clone() { return new ForExp(id, set->clone(), body->clone()); }
         std::string toString();
+
+        Exp optimize() { body->optimize(); return this; }
 };
 
 // Condition expression that chooses paths
@@ -100,6 +106,8 @@ class IfExp : public Expression {
         
         Exp clone() { return new IfExp(cond->clone(), tExp->clone(), fExp->clone()); }
         std::string toString();
+
+        Exp optimize();
 };
 
 class InputExp : public Expression {
@@ -132,6 +140,9 @@ class LetExp : public Expression {
         
         Exp clone();
         std::string toString();
+
+        Exp optimize();
+        Exp opt_const_prop(std::unordered_map<std::string, Exp>&);
 };
 
 class MagnitudeExp : public Expression {
@@ -189,6 +200,8 @@ class NotExp : public Expression {
         
         Exp clone() { return new NotExp(exp->clone()); }
         std::string toString();
+
+        Exp optimize();
 };
 
 class SequenceExp : public Expression {
@@ -205,18 +218,21 @@ class SequenceExp : public Expression {
         
         Exp clone();
         std::string toString();
+
+        Exp optimize();
+        Exp opt_const_prop(std::unordered_map<std::string, Exp>&);
 };
 
 // Expression for redefining values in a store
 class SetExp : public Expression {
     private:
-        Exp *tgts;
-        Exp *exps;
+        Exp tgt;
+        Exp exp;
     public:
-        SetExp(Exp*, Exp*);
+        SetExp(Exp, Exp);
         ~SetExp() {
-            for (int i = 0; tgts[i]; i++) { delete tgts[i]; delete exps[i]; }
-            delete[] tgts; delete[] exps;
+            delete tgt;
+            delete exp;
         }
 
         Val valueOf(Env);
@@ -224,6 +240,9 @@ class SetExp : public Expression {
         
         Exp clone();
         std::string toString();
+
+        Exp optimize();
+        Exp opt_const_prop(std::unordered_map<std::string, Exp>&);
 };
 
 class ThunkExp : public Expression {
@@ -270,6 +289,8 @@ class WhileExp : public Expression {
 
         Exp clone() { return new WhileExp(cond->clone(), body->clone(), alwaysEnter); }
         std::string toString();
+
+        Exp optimize() { cond->optimize(); body->optimize(); }
 };
 
 #endif

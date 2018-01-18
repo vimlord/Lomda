@@ -175,15 +175,7 @@ string SequenceExp::toString() {
     return s;
 }
 string SetExp::toString() {
-    string s = "";
-    
-    // Display each of the arguments
-    for (int i = 0; exps[i]; i++) {
-        if (i) s += ", ";
-        s += tgts[i]->toString() + " = " + exps[i]->toString();
-    }
-
-    return s;
+    return tgt->toString() + " = " + exp->toString();
 }
 string StdlibOpExp::toString() {
     string s = "";

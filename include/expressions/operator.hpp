@@ -13,6 +13,9 @@ class OperatorExp : public Expression {
         Val valueOf(Env);
         
         virtual Val op(Val, Val) = 0;
+
+        Exp optimize();
+        Exp opt_const_prop(std::unordered_map<std::string, Exp>&);
 };
 
 class AndExp : public OperatorExp {

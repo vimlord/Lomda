@@ -9,9 +9,9 @@
 class FalseExp : public Expression {
     public:
         FalseExp() {}
-        Value* valueOf(Environment*);
+        Val valueOf(Environment*);
         
-        Expression* clone() { return new FalseExp(); }
+        Exp clone() { return new FalseExp(); }
         std::string toString() { return "false"; }
 };
 
@@ -21,10 +21,10 @@ class IntExp : public Expression {
         int val;
     public:
         IntExp(int = 0);
-        Value* valueOf(Environment*);
-        Value* derivativeOf(std::string, Environment*, Environment*);
+        Val valueOf(Environment*);
+        Val derivativeOf(std::string, Environment*, Environment*);
         
-        Expression* clone() { return new IntExp(val); }
+        Exp clone() { return new IntExp(val); }
         std::string toString();
 };
 
@@ -32,35 +32,39 @@ class IntExp : public Expression {
 class LambdaExp : public Expression {
     private:
         std::string *xs;
-        Expression *exp;
+        Exp exp;
     public:
-        LambdaExp(std::string*, Expression*);
+        LambdaExp(std::string*, Exp);
         ~LambdaExp() { delete[] xs; delete exp; }
-        Value* valueOf(Environment*);
-        Value* derivativeOf(std::string, Environment*, Environment*);
+        Val valueOf(Environment*);
+        Val derivativeOf(std::string, Environment*, Environment*);
 
         std::string *getXs() { return xs; }
         
-        Expression* clone();
+        Exp clone();
         std::string toString();
+
+        Exp optimize() { exp = exp->optimize(); return this; }
+        Exp opt_const_prop(std::unordered_map<std::string, Exp> vs) 
+                { exp = exp->opt_const_prop(vs); return this; }
 };
 
 class ListExp : public Expression {
     private:
-        List<Expression*> *list;
+        List<Exp> *list;
     public:
-        ListExp() : list(new LinkedList<Expression*>) {}
+        ListExp() : list(new LinkedList<Exp>) {}
         ~ListExp() {
             while (!list->isEmpty()) delete list->remove(0);
             delete list;
         }
 
-        ListExp(Expression**);
-        ListExp(List<Expression*>* l) : list(l) {}
-        Value* valueOf(Environment*);
-        Value* derivativeOf(std::string, Environment*, Environment*);
+        ListExp(Exp*);
+        ListExp(List<Exp>* l) : list(l) {}
+        Val valueOf(Environment*);
+        Val derivativeOf(std::string, Environment*, Environment*);
         
-        Expression* clone();
+        Exp clone();
         std::string toString();
 };
 
@@ -70,10 +74,10 @@ class RealExp : public Expression {
         float val;
     public:
         RealExp(float = 0);
-        Value* valueOf(Environment*);
-        Value* derivativeOf(std::string, Environment*, Environment*);
+        Val valueOf(Environment*);
+        Val derivativeOf(std::string, Environment*, Environment*);
         
-        Expression* clone() { return new RealExp(val); }
+        Exp clone() { return new RealExp(val); }
         std::string toString();
 };
 
@@ -83,9 +87,9 @@ class StringExp : public Expression {
     public:
         StringExp(std::string s) : val(s) {}
 
-        Value* valueOf(Environment*) { return new StringVal(val); }
+        Val valueOf(Environment*) { return new StringVal(val); }
 
-        Expression* clone() { return new StringExp(val); }
+        Exp clone() { return new StringExp(val); }
         std::string toString();
 };
 
@@ -93,9 +97,9 @@ class StringExp : public Expression {
 class TrueExp : public Expression {
     public:
         TrueExp() {}
-        Value* valueOf(Environment*);
+        Val valueOf(Environment*);
         
-        Expression* clone() { return new TrueExp(); }
+        Exp clone() { return new TrueExp(); }
         std::string toString() { return "true"; }
 };
 
@@ -106,12 +110,18 @@ class VarExp : public Expression {
     public:
         VarExp(std::string s) : id(s) {}
 
-        Value* valueOf(Environment *env);
+        Val valueOf(Environment *env);
         
-        Expression* clone() { return new VarExp(id); }
+        Exp clone() { return new VarExp(id); }
         std::string toString();
 
-        Value* derivativeOf(std::string, Environment*, Environment*);
+        Val derivativeOf(std::string, Environment*, Environment*);
+
+        /**
+         * Constant propagation will trivially replace the variable if
+         * the variable name matches.
+         */
+         Exp opt_const_prop(std::unordered_map<std::string, Exp>&);
 };
 
 #endif

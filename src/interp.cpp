@@ -17,7 +17,12 @@ using namespace std;
 Val run(string program) {
     Exp exp = compile(program);
     if (exp) {
-        // A tree was successfully parsed, so run it.
+        // If optimization is requested, grant it.
+        if (OPTIMIZE()) {
+            exp = exp->optimize();
+            throw_debug("postprocessor", "program '" + program + "' optimized to '" + exp->toString() + "'");
+        }
+
         Env env = new EmptyEnv();
         Val val = exp->valueOf(env);
         delete exp;
@@ -840,87 +845,78 @@ Val SequenceExp::valueOf(Env env) {
 Val SetExp::valueOf(Env env) {
     Val v = NULL;
 
-    for (int i = 0; exps[i]; i++) {
-        if (typeid(*exps[i]) == typeid(ListAccessExp)) {
-            ListAccessExp *acc = (ListAccessExp*) tgts[i];
-            
-            Val u = acc->getList()->valueOf(env);
-            if (!u) {
-                if (v) v->rem_ref();
-                return NULL;
-            } else if (typeid(*u) != typeid(ListVal)) {
-                u->rem_ref();
-                if (v) v->rem_ref();
-                return NULL;
-            }
+    if (typeid(*exp) == typeid(ListAccessExp)) {
+        ListAccessExp *acc = (ListAccessExp*) tgt;
+        
+        Val u = acc->getList()->valueOf(env);
+        if (!u) {
+            return NULL;
+        } else if (typeid(*u) != typeid(ListVal)) {
+            u->rem_ref();
+            return NULL;
+        }
 
-            ListVal *lst = (ListVal*) u;
+        ListVal *lst = (ListVal*) u;
 
-            Val index = acc->getIdx()->valueOf(env);
-            if (!index) {
-                u->rem_ref();
-                if (v) v->rem_ref();
-                return NULL;
-            }
+        Val index = acc->getIdx()->valueOf(env);
+        if (!index) {
+            u->rem_ref();
+            return NULL;
+        }
 
-            if (typeid(*index) != typeid(IntVal)) {
-                index->rem_ref();
-                u->rem_ref();
-                if (v) v->rem_ref();
-                return NULL;
-            }
-
-            int idx = ((IntVal*) index)->get();
+        if (typeid(*index) != typeid(IntVal)) {
             index->rem_ref();
-            
-            if (idx < 0 || lst->get()->size() <= idx) {
-                u->rem_ref();
-                if (v) v->rem_ref();
-                return NULL;
-            }
-            
-            if (!(v = exps[i]->valueOf(env))) {
-                u->rem_ref();
-                return NULL;
-            } else {
-                lst->get()->remove(idx)->rem_ref();
-                lst->get()->add(idx, v);
-            }
+            u->rem_ref();
+            return NULL;
+        }
 
-        } else if (typeid(*exps[i]) == typeid(VarExp)) {
-            VarExp *var = (VarExp*) tgts[i];
-            
-            v = exps[i]->valueOf(env);
-            if (!v) return NULL;
-            
-            env->set(var->toString(), v);
-
+        int idx = ((IntVal*) index)->get();
+        index->rem_ref();
+        
+        if (idx < 0 || lst->get()->size() <= idx) {
+            u->rem_ref();
+            return NULL;
+        }
+        
+        if (!(v = exp->valueOf(env))) {
+            u->rem_ref();
+            return NULL;
         } else {
-            // Get info for modifying the environment
-            Val u = tgts[i]->valueOf(env);
-            if (!u)
-                // The variable doesn't exist
-                return NULL;
+            lst->get()->remove(idx)->rem_ref();
+            lst->get()->add(idx, v);
+        }
 
-            // Evaluate the expression
-            v = exps[i]->valueOf(env);
+    } else if (typeid(*exp) == typeid(VarExp)) {
+        VarExp *var = (VarExp*) tgt;
+        
+        v = exp->valueOf(env);
+        if (!v) return NULL;
+        
+        env->set(var->toString(), v);
 
-            if (!v)
-                // The value could not be evaluated.
-                return NULL;
-            
-            // Set the new value
-            if (u->set(v)) {
-                v->rem_ref();
-                return NULL;
-            }
+    } else {
+        // Get info for modifying the environment
+        Val u = tgt->valueOf(env);
+        if (!u)
+            // The variable doesn't exist
+            return NULL;
+
+        // Evaluate the expression
+        v = exp->valueOf(env);
+
+        if (!v)
+            // The value could not be evaluated.
+            return NULL;
+        
+        // Set the new value
+        if (u->set(v)) {
+            v->rem_ref();
+            return NULL;
         }
     }
     
-    // To be simple, we return void on completion
-    // as opposed to NULL, which indicates a failure.
-    if (v) v->add_ref();
-    return v ? v : new VoidVal;
+    v->add_ref();
+    return v;
 }
 
 Val StdlibOpExp::valueOf(Env env) {

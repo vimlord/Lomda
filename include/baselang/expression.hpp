@@ -10,6 +10,8 @@ void throw_warning(std::string form, std::string mssg);
 void throw_err(std::string form, std::string mssg);
 void throw_debug(std::string form, std::string mssg);
 
+#include <unordered_map>
+
 // Interface for expressions.
 class Expression : public Stringable {
     public:
@@ -37,6 +39,22 @@ class Expression : public Stringable {
          * Creates a deep copy of the expression.
          */
         virtual Expression* clone() = 0;
+        
+
+        /**
+         * Performs optimization operations on an expression.
+         * default: do nothing
+         */
+        virtual Expression* optimize() { return this; };
+        /**
+         * Optimization operation that performs 'constant propagation', in which
+         * constant variables are replaced with constants to reduce computation
+         * time.
+         * default: do nothing
+         */
+        virtual Expression* opt_const_prop(
+                std::unordered_map<std::string, Expression*>&
+        ) { return this; };
 
 };
 typedef Expression* Exp;

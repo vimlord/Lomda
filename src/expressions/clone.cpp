@@ -70,18 +70,6 @@ Exp PrintExp::clone() {
 }
 
 Exp SetExp::clone() {
-    int i;
-    for (i = 0; exps[i]; i++);
-
-    Exp *a = new Exp[i+1];
-    Exp *b = new Exp[i+1];
-    a[i] = b[i] = NULL;
-
-    while (i--) {
-        a[i] = tgts[i];
-        b[i] = exps[i];
-    }
-
-    return new SetExp(a, b);
+    return new SetExp(tgt->clone(), exp->clone());
 }
 

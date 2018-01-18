@@ -106,39 +106,6 @@ Val deriveConstVal(Val x, Val v, int c) {
         return deriveConstVal(x, c);
 }
 
-Exp reexpress(Val v) {
-    if (!v) return NULL;
-    else if (typeid(*v) == typeid(IntVal))
-        return new IntExp(((IntVal*) v)->get());
-    else if (typeid(*v) == typeid(RealVal))
-        return new RealExp(((RealVal*) v)->get());
-    else if (typeid(*v) == typeid(BoolVal))
-        return ((BoolVal*) v)->get() 
-                ? (Exp) new TrueExp
-                : (Exp) new FalseExp;
-    else if (typeid(*v) == typeid(ListVal)) {
-        ListVal *lv = (ListVal*) v;
-        LinkedList<Exp> *list = new LinkedList<Exp>;
-
-        auto it = lv->get()->iterator();
-        while (it->hasNext()) list->add(list->size(), reexpress(it->next()));
-
-        return new ListExp(list);
-    } else if (typeid(*v) == typeid(LambdaVal)) {
-        LambdaVal *lv = (LambdaVal*) v;
-
-        int argc = 0;
-        while (lv->getArgs()[argc] != "");
-
-        std::string *xs = new std::string[argc+1];
-        xs[argc] = "";
-        while (argc--) xs[argc] = lv->getArgs()[argc];
-
-        return new LambdaExp(xs, lv->getBody());
-    } else
-        return NULL;
-}
-
 Val AndExp::derivativeOf(string x, Env env, Env denv) {
     throw_calc_err(this);
     return NULL;
@@ -770,32 +737,125 @@ Val SetExp::derivativeOf(string x, Env env, Env denv) {
     Val v = NULL;
     Val dv = NULL;
 
-    for (int i = 0; exps[i]; i++) {
+    if (typeid(*exp) == typeid(ListAccessExp)) {
+        ListAccessExp *acc = (ListAccessExp*) tgt;
+        
+        Val u = acc->getList()->valueOf(env);
+        Val du;
+
+        if (!u) {
+            return NULL;
+        } else if (typeid(*u) != typeid(ListVal)) {
+            u->rem_ref();
+            return NULL;
+        } else if (!(du = acc->getList()->derivativeOf(x, env, denv))) {
+            u->rem_ref();
+            return NULL;
+        }
+
+        ListVal *lst = (ListVal*) u;
+        ListVal *dlst = (ListVal*) du;
+
+        Val index = acc->getIdx()->valueOf(env);
+        if (!index) {
+            u->rem_ref();
+            du->rem_ref();
+            return NULL;
+        }
+
+        if (typeid(*index) != typeid(IntVal)) {
+            index->rem_ref();
+            u->rem_ref();
+            return NULL;
+        }
+
+        int idx = ((IntVal*) index)->get();
+        index->rem_ref();
+        
+        if (idx < 0 || lst->get()->size() <= idx) {
+            u->rem_ref();
+            du->rem_ref();
+            return NULL;
+        }
+        
+        if (!(v = exp->valueOf(env))) {
+            u->rem_ref();
+            du->rem_ref();
+            return NULL;
+        } else if (!(dv = exp->derivativeOf(x, env, denv))) {
+            u->rem_ref();
+            du->rem_ref();
+            v->rem_ref();
+            return NULL;
+        } else {
+            lst->get()->remove(idx)->rem_ref();
+            lst->get()->add(idx, v);
+            dlst->get()->remove(idx)->rem_ref();
+            dlst->get()->add(idx, dv);
+        }
+
+    } else if (typeid(*exp) == typeid(VarExp)) {
+        VarExp *var = (VarExp*) tgt;
+        
+        v = exp->valueOf(env);
+        if (!v) return NULL;
+        dv = exp->derivativeOf(x, env, denv);
+        if (!dv) { v->rem_ref(); return NULL; }
+        
+        env->set(var->toString(), v);
+        denv->set(var->toString(), dv);
+
+    } else {
         // Get info for modifying the environment
-        Val u = tgts[i]->valueOf(env);
-        Val du = tgts[i]->derivativeOf(x, env, denv);
+        Val u = tgt->valueOf(env);
         if (!u)
             // The variable doesn't exist
             return NULL;
+        Val du = tgt->derivativeOf(x, env, denv);
+        if (!du) {
+            u->rem_ref();
+            du->rem_ref();
+        }
 
         // Evaluate the expression
-        v = exps[i]->valueOf(env);
+        v = exp->valueOf(env);
 
-        dv = exps[i]->derivativeOf(x, env, denv);
+        if (!v) {
+            u->rem_ref();
+            du->rem_ref();
 
-        if (!v || !dv)
             // The value could not be evaluated.
             return NULL;
+        }
+
+        // Evaluate the expression
+        dv = exp->derivativeOf(x, env, denv);
+
+        if (!dv) {
+            u->rem_ref();
+            du->rem_ref();
+            v->rem_ref();
+            return NULL;
+        }
         
         // Set the new value
-        if (u->set(v) | du->set(dv))
+        if (u->set(v)) {
+            u->rem_ref();
+            du->rem_ref();
+            v->rem_ref();
+            dv->rem_ref();
             return NULL;
-
+        } else if (du->set(dv)) {
+            u->rem_ref();
+            du->rem_ref();
+            v->rem_ref();
+            dv->rem_ref();
+            return NULL;
+        }
     }
     
-    // To be simple, we return 0 on completion
-    // as opposed to NULL, which indicates a failure.
-    return v ? v : new VoidVal;
+    dv->add_ref();
+    return dv;
 }
 
 Val StdlibOpExp::derivativeOf(string id, Env env, Env denv) {

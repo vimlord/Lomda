@@ -8,4 +8,7 @@ void set_werror(bool b);
 bool VERBOSITY();
 void set_verbosity(bool b);
 
+bool OPTIMIZE();
+void set_optimize(bool b);
+
 #endif
