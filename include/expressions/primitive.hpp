@@ -13,6 +13,7 @@ class FalseExp : public Expression {
         Exp clone() { return new FalseExp(); }
         std::string toString() { return "false"; }
 
+        Exp opt_const_prop(opt_varexp_map&, opt_varexp_map&) { return this; }
         int opt_var_usage(std::string) { return 0; }
 };
 
@@ -24,10 +25,13 @@ class IntExp : public Expression {
         IntExp(int = 0);
         Val valueOf(Environment*);
         Val derivativeOf(std::string, Environment*, Environment*);
+
+        int get() { return val; }
         
         Exp clone() { return new IntExp(val); }
         std::string toString();
 
+        Exp opt_const_prop(opt_varexp_map&, opt_varexp_map&) { return this; }
         int opt_var_usage(std::string) { return 0; }
 };
 
@@ -63,14 +67,18 @@ class ListExp : public Expression {
 
         ListExp(Exp*);
         ListExp(List<Exp>* l) : list(l) {}
+
         Val valueOf(Environment*);
         Val derivativeOf(std::string, Environment*, Environment*);
         
         Exp clone();
         std::string toString();
 
+        List<Exp>* getList() { return list; }
+        
+        Exp optimize();
+        Exp opt_const_prop(opt_varexp_map&, opt_varexp_map&);
         int opt_var_usage(std::string);
-        // TODO: int opt_const_prop(opt_varexp_map&, opt_varexp_map&);
 };
 
 // Expression for a real number.
@@ -85,6 +93,7 @@ class RealExp : public Expression {
         Exp clone() { return new RealExp(val); }
         std::string toString();
 
+        Exp opt_const_prop(opt_varexp_map&, opt_varexp_map&) { return this; }
         int opt_var_usage(std::string) { return 0; }
 };
 
@@ -99,6 +108,7 @@ class StringExp : public Expression {
         Exp clone() { return new StringExp(val); }
         std::string toString();
 
+        Exp opt_const_prop(opt_varexp_map&, opt_varexp_map&) { return this; }
         int opt_var_usage(std::string) { return 0; }
 };
 
@@ -111,6 +121,7 @@ class TrueExp : public Expression {
         Exp clone() { return new TrueExp(); }
         std::string toString() { return "true"; }
 
+        Exp opt_const_prop(opt_varexp_map&, opt_varexp_map&) { return this; }
         int opt_var_usage(std::string) { return 0; }
 };
 
@@ -134,6 +145,19 @@ class VarExp : public Expression {
          */
         Exp opt_const_prop(opt_varexp_map&, opt_varexp_map&);
         int opt_var_usage(std::string x) { return x == id ? 2 : 0; }
+};
+
+class VoidExp : public Expression {
+    public:
+        VoidExp() {}
+
+        Val valueOf(Env) { return new VoidVal; }
+        std::string toString() { return "void"; }
+
+        Exp clone() { return new VoidExp; }
+        
+        Exp opt_const_prop(opt_varexp_map&, opt_varexp_map&) { return this; }
+        int opt_var_usage(std::string) { return 0; }
 };
 
 #endif

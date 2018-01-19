@@ -75,7 +75,9 @@ class FoldExp : public Expression {
         Exp clone() { return new FoldExp(list->clone(), func->clone(), base->clone()); }
         std::string toString();
 
-        Exp optimize() { list = list->optimize(); func = func->optimize(); base = base->optimize(); return this; }
+        Exp optimize();
+        Exp opt_const_prop(opt_varexp_map&, opt_varexp_map&);
+        int opt_var_usage(std::string x);
 };
 
 class ForExp : public Expression {
@@ -92,7 +94,8 @@ class ForExp : public Expression {
         Exp clone() { return new ForExp(id, set->clone(), body->clone()); }
         std::string toString();
 
-        Exp optimize() { body->optimize(); return this; }
+        Exp optimize();
+        Exp opt_const_prop(opt_varexp_map&, opt_varexp_map&);
         int opt_var_usage(std::string x);
 };
 
@@ -113,6 +116,7 @@ class IfExp : public Expression {
         std::string toString();
 
         Exp optimize();
+        Exp opt_const_prop(opt_varexp_map&, opt_varexp_map&);
         int opt_var_usage(std::string x);
 };
 
@@ -186,6 +190,8 @@ class MapExp : public Expression {
         std::string toString();
 
         Exp optimize() { list = list->optimize(); func = func->optimize(); return this; }
+        Exp opt_const_prop(opt_varexp_map&, opt_varexp_map&);
+        int opt_var_usage(std::string x) { return func->opt_var_usage(x) | list->opt_var_usage(x); }
 };
 
 class NormExp : public Expression {
@@ -311,7 +317,7 @@ class WhileExp : public Expression {
         Exp clone() { return new WhileExp(cond->clone(), body->clone(), alwaysEnter); }
         std::string toString();
 
-        Exp optimize() { cond->optimize(); body->optimize(); return this; }
+        Exp optimize();
         Exp opt_const_prop(opt_varexp_map&, opt_varexp_map&);
         int opt_var_usage(std::string x) { return cond->opt_var_usage(x) | body->opt_var_usage(x); }
 };

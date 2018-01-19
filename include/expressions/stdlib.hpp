@@ -14,6 +14,10 @@ class PrintExp : public Expression {
 
         Exp clone();
         std::string toString();
+
+        Exp optimize();
+        Exp opt_const_prop(opt_varexp_map&, opt_varexp_map&);
+        int opt_var_usage(std::string x);
 };
 
 enum StdlibOp {
@@ -32,6 +36,10 @@ class StdlibOpExp : public Expression {
         
         Exp clone() { return new StdlibOpExp(op, x->clone()); }
         std::string toString();
+
+        Exp optimize();
+        Exp opt_const_prop(opt_varexp_map &vs, opt_varexp_map &end) { x = x->opt_const_prop(vs, end); return this; }
+        int opt_var_usage(std::string v) { return x->opt_var_usage(v); }
 };
 
 #endif

@@ -20,6 +20,8 @@ class ListAccessExp : public Expression {
 
         Exp getList() { return list; }
         Exp getIdx() { return idx; }
+
+        Exp optimize();
 };
 
 // For adding to a list

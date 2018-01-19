@@ -1,14 +1,32 @@
+#include "optimize.hpp"
 #include "expression.hpp"
 
 using namespace std;
 
+bool is_const_list(ListExp *exp) {
+    bool res = true;
+
+    auto it = exp->getList()->iterator();
+    while (it->hasNext() && res)
+        res = is_const_exp(it->next());
+
+    delete it;
+
+    return res;
+}
+
 inline bool is_const_exp(Exp exp) {
+    
+    if (typeid(*exp) == typeid(ListExp))
+        return is_const_list((ListExp*) exp);
+
     return
         typeid(*exp) == typeid(FalseExp) ||
         typeid(*exp) == typeid(IntExp) ||
         typeid(*exp) == typeid(RealExp) ||
         typeid(*exp) == typeid(StringExp) ||
-        typeid(*exp) == typeid(TrueExp);
+        typeid(*exp) == typeid(TrueExp) ||
+        typeid(*exp) == typeid(VoidExp);
 }
 int ApplyExp::opt_var_usage(string x) {
     // The initial use is verifiable if it is a lambda-exp.
@@ -23,6 +41,79 @@ int ApplyExp::opt_var_usage(string x) {
     return use;
 }
 
+Exp FoldExp::optimize() {
+    list = list->optimize();
+    func = func->optimize();
+    base = base->optimize();
+    return this;
+}
+Exp FoldExp::opt_const_prop(opt_varexp_map &vs, opt_varexp_map &ends) {
+    list = list->opt_const_prop(vs, ends);
+    base = base->opt_const_prop(vs, ends);
+    
+    if (typeid(*func) == typeid(ListExp) && ((ListExp*) list)->getList()->size() == 0) {
+        // map [] into f = [] forall f
+        Exp e = list; list = NULL;
+        delete this;
+        return e;
+    } if (typeid(*func) == typeid(LambdaExp)) {
+        // We can see if the function has side effects
+        for (auto x : vs) {
+            if (func->opt_var_usage(x.first) & 1) {
+                delete vs[x.first];
+                vs.erase(x.first);
+            }
+        }
+        
+        // Now that any variables chosen will not be affected, we can
+        // simply proceed with propagation.
+        func = func->opt_const_prop(vs, ends);
+
+        return this;
+    } else {
+        // No assumptions can be made about the usage of the variables.
+        // So, we must drop all of them.
+        for (auto x : vs) {
+            delete vs[x.first];
+            vs.erase(x.first);
+        }
+
+        return this;
+    }
+}
+int FoldExp::opt_var_usage(string x) {
+    return func->opt_var_usage(x)
+        | list->opt_var_usage(x)
+        | base->opt_var_usage(x);
+}
+
+Exp ForExp::optimize() {
+    set = set->optimize();
+    body = body->optimize();
+
+    if (typeid(*set) == typeid(ListExp) && ((ListExp*) set)->getList()->size() == 0) {
+        // If the list is always an empty list, then the body will never execute.
+        delete this;
+        return new VoidExp;
+    } else
+        return this;
+}
+Exp ForExp::opt_const_prop(opt_varexp_map &vs, opt_varexp_map &ends) {
+    set = set->opt_const_prop(vs, ends);
+    
+    // Now, we filter out the modified variables.
+    for (auto x : vs) {
+        if (body->opt_var_usage(x.first) & 1) {
+            delete vs[x.first];
+            vs.erase(x.first);
+        }
+    }
+
+    body = body->opt_const_prop(vs, ends);
+
+    return this;
+
+}
 int ForExp::opt_var_usage(string x) {
     if (id == x) return 0;
     else return set->opt_var_usage(x) | body->opt_var_usage(x);
@@ -62,6 +153,50 @@ Exp IfExp::optimize() {
         return this;
     }
 }
+Exp IfExp::opt_const_prop(opt_varexp_map &vs, opt_varexp_map &ends) {
+    
+    cond = cond
+            // We will propagate into the condition.
+            ->opt_const_prop(vs, ends)
+            // Then, we optimize the condition.
+            ->optimize();
+    
+    if (typeid(*cond) == typeid(TrueExp)) {
+        // We now know that the expression is always true.
+        Exp e = tExp;
+        tExp = NULL;
+
+        delete this;
+        
+        // Hence, we will use that branch to proceed.
+        return e->opt_const_prop(vs, ends);
+    } else if (typeid(*cond) == typeid(FalseExp)) {
+        // We now know that the expression is always true.
+        Exp e = fExp;
+        fExp = NULL;
+
+        delete this;
+        
+        // Hence, we will use that branch to proceed.
+        return e->opt_const_prop(vs, ends);
+    }
+    
+    // Otherwise, we will only allow propagation to continue for vars
+    // that are not affected by either body.
+    for (auto a : vs) {
+        if (tExp->opt_var_usage(a.first) & 1
+        ||  fExp->opt_var_usage(a.first) & 1) {
+            delete vs[a.first];
+            vs.erase(a.first);
+        }
+    }
+    
+    // Now, we proceed with modifications.
+    tExp = opt_const_prop(vs, ends);
+    fExp = opt_const_prop(vs, ends);
+
+    return this;
+}
 int IfExp::opt_var_usage(string x) {
     return
         cond->opt_var_usage(x)
@@ -74,16 +209,6 @@ int LambdaExp::opt_var_usage(string x) {
         if (xs[i] == x) return 0;
     
     return exp->opt_var_usage(x);
-}
-
-int ListExp::opt_var_usage(string x) {
-    int use = 0;
-    auto it = list->iterator();
-    
-    while (it->hasNext() && use ^ 3)
-        use |= it->next()->opt_var_usage(x);
-    
-    return use;
 }
 
 Exp LetExp::optimize() {
@@ -214,6 +339,93 @@ Exp LetExp::opt_const_prop(opt_varexp_map& consts, opt_varexp_map &end) {
     return this;
 }
 
+Exp ListExp::optimize() {
+    auto tmp = new LinkedList<Exp>;
+    
+    // Optimize each element one by one.
+    while (!list->isEmpty())
+        tmp->add(0, list->remove(0)->optimize());
+    
+    // Reassemble the list.
+    while (!tmp->isEmpty())
+        list->add(0, tmp->remove(0));
+
+    return this;
+}
+Exp ListExp::opt_const_prop(opt_varexp_map& vs, opt_varexp_map &end) {
+    auto tmp = new LinkedList<Exp>;
+    
+    // Optimize each element one by one.
+    while (!list->isEmpty())
+        tmp->add(0, list->remove(0)->opt_const_prop(vs, end));
+    
+    // Reassemble the list.
+    while (!tmp->isEmpty())
+        list->add(0, tmp->remove(0));
+
+    return this;
+}
+int ListExp::opt_var_usage(string x) {
+    int use = 0;
+    auto it = list->iterator();
+    
+    while (it->hasNext() && use ^ 3)
+        use |= it->next()->opt_var_usage(x);
+    
+    return use;
+}
+
+Exp ListAccessExp::optimize() {
+    list = list->optimize();
+    idx = idx->optimize();
+
+    if (typeid(*list) == typeid(ListExp) && typeid(*idx) == typeid(IntExp)) {
+        int i = ((IntExp*) idx)->get();
+        auto lst = ((ListExp*) list)->getList();
+        if (i >= 0 && i < lst->size()) {
+            Exp e = lst->remove(i);
+            delete this;
+            return e;
+        } else {
+            return this;
+        }
+    }
+}
+
+Exp MapExp::opt_const_prop(opt_varexp_map &vs, opt_varexp_map &ends) {
+    list = list->opt_const_prop(vs, ends);
+    
+    if (typeid(*func) == typeid(ListExp) && ((ListExp*) list)->getList()->size() == 0) {
+        // map [] into f = [] forall f
+        Exp e = list; list = NULL;
+        delete this;
+        return e;
+    } if (typeid(*func) == typeid(LambdaExp)) {
+        // We can see if the function has side effects
+        for (auto x : vs) {
+            if (func->opt_var_usage(x.first) & 1) {
+                delete vs[x.first];
+                vs.erase(x.first);
+            }
+        }
+        
+        // Now that any variables chosen will not be affected, we can
+        // simply proceed with propagation.
+        func = func->opt_const_prop(vs, ends);
+
+        return this;
+    } else {
+        // No assumptions can be made about the usage of the variables.
+        // So, we must drop all of them.
+        for (auto x : vs) {
+            delete vs[x.first];
+            vs.erase(x.first);
+        }
+
+        return this;
+    }
+}
+
 Exp NotExp::optimize() {
     exp = exp->optimize();
 
@@ -256,6 +468,36 @@ Exp OperatorExp::opt_const_prop(opt_varexp_map &vs, opt_varexp_map &end) {
     right = right->opt_const_prop(vs, end);
 
     return this;
+}
+
+Exp PrintExp::optimize() {
+    int i;
+    for (i = 0; args[i]; i++) {
+        args[i] = args[i]->optimize();
+
+        if (is_const_exp(args[i])) {
+            // Precompute the string
+            string s = args[i]->toString();
+            delete args[i];
+            args[i] = new StringExp(s);
+        }
+    }
+
+    return this;
+}
+Exp PrintExp::opt_const_prop(opt_varexp_map& vs, opt_varexp_map& end) {
+    int i;
+    for (i = 0; args[i]; i++)
+        args[i] = args[i]->opt_const_prop(vs, end);
+
+    return this;
+}
+int PrintExp::opt_var_usage(string x) {
+    int res = 0;
+    for (int i = 0; res ^ 3 && args[i]; i++)
+        res |= args[i]->opt_var_usage(x);
+
+    return res;
 }
 
 Exp SetExp::optimize() {
@@ -359,6 +601,18 @@ int SequenceExp::opt_var_usage(std::string x) {
     return use;
 }
 
+Exp StdlibOpExp::optimize() {
+    x = x->optimize();
+    if (is_const_exp(x)) {
+        Val v = valueOf(NULL);
+        Exp e = reexpress(v);
+        delete v;
+        delete this;
+        return e;
+    } else
+        return this;
+}
+
 Exp VarExp::opt_const_prop(opt_varexp_map &vs, opt_varexp_map &end) {
     if (vs.count(id)) {
         // Because the value is known, we can simply return the
@@ -369,6 +623,18 @@ Exp VarExp::opt_const_prop(opt_varexp_map &vs, opt_varexp_map &end) {
     } else return this;
 }
 
+Exp WhileExp::optimize() {
+    cond = cond->optimize();
+
+    if (typeid(*cond) == typeid(FalseExp)) {
+        // The condition is always false, hence it will never execute.
+        delete this;
+        return new VoidExp;
+    } else {
+        body = body->optimize();
+        return this;
+    }
+}
 Exp WhileExp::opt_const_prop(opt_varexp_map& vs, opt_varexp_map& end) {
     // We will stop propagating any variables that will change as a result of the loop.
     for (auto x : vs) {
