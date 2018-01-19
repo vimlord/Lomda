@@ -5,20 +5,25 @@
 
 #include "value.hpp"
 
-// Definition of the empty environment.
 class EmptyEnv : public Environment {
     public:
         EmptyEnv();
         ~EmptyEnv();
-        Value* apply(std::string);
+
+        /**
+         * Attempts to (and fails) to find the value of the variable.
+         *
+         * @param x The variable to search for.
+         *
+         * @return The value of the expression (almost certain to be NULL).
+         */
+        Value* apply(std::string x);
 
         Environment* clone();
-        void destroy(int);
 
         std::string toString();
 };
 
-// Definition of an extending environment.
 class ExtendEnv : public Environment {
     private:
         // Identifier -> Value mapping
@@ -27,15 +32,25 @@ class ExtendEnv : public Environment {
     public:
         ExtendEnv(std::string, Value*, Environment* = NULL);
         ~ExtendEnv();
-
-        Val apply(std::string);
+        
+        /**
+         * Searches this environment for the value of the given variable.
+         *
+         * Given the name of a variable, attempts to compute the value of a
+         * variable. If the top layer contains the value, then return the
+         * stored value. Otherwise, continue the search in the next layer.
+         *
+         * @param x The variable to search for.
+         *
+         * @return The value of the variable if it is defined, otherwise NULL.
+         */
+        Val apply(std::string x);
         int set(std::string s, Val v) {if (s == id) { ref->rem_ref(); ref = v; return 0;} else return subenv->set(s, v); }
 
         std::string topId() { return id; }
         Value* topVal() { return ref; }
 
         Environment* clone();
-        void destroy(int);
 
         std::string toString();
 };

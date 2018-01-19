@@ -11,7 +11,11 @@ inline bool is_const_exp(Exp exp) {
         typeid(*exp) == typeid(TrueExp);
 }
 int ApplyExp::opt_var_usage(string x) {
-    int use = op->opt_var_usage(x);
+    // The initial use is verifiable if it is a lambda-exp.
+    // Otherwise, we assume that the variable will be used.
+    int use = typeid(*op) == typeid(LambdaExp)
+            ? op->opt_var_usage(x)
+            : 3;
 
     for (int i = 0; args[i] && (use ^ 3); i++)
         use |= args[i]->opt_var_usage(x);
@@ -366,6 +370,12 @@ Exp VarExp::opt_const_prop(opt_varexp_map &vs, opt_varexp_map &end) {
 }
 
 Exp WhileExp::opt_const_prop(opt_varexp_map& vs, opt_varexp_map& end) {
+    // We will stop propagating any variables that will change as a result of the loop.
+    for (auto x : vs) {
+        if (opt_var_usage(x.first) & 1)
+            vs.erase(x.first);
+    }
+
     cond->opt_const_prop(vs, end);
     body->opt_const_prop(vs, end);
     return this;

@@ -6,13 +6,13 @@
 
 using namespace std;
 
-// Displays a stringable object
 std::ostream &operator<< (std::ostream &os, Stringable &obj) {
     os << obj.toString();
     return os;
 }
 
 /* EXPRESSIONS */
+
 string AndExp::toString() {
     return left->toString() + " and " + right->toString();
 }
@@ -216,6 +216,7 @@ string WhileExp::toString() {
 }
 
 /* ENVIRONMENTS */
+
 string EmptyEnv::toString() {
     return "{}";
 }
@@ -234,6 +235,7 @@ string ExtendEnv::toString() {
 }
 
 /* VALUES */
+
 string BoolVal::toString() { return val ? "true" : "false"; }
 string IntVal::toString() { return to_string(val); }
 string LambdaVal::toString() {

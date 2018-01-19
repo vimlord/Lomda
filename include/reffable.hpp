@@ -12,7 +12,7 @@ class Reffable {
         /**
          * Increments the reference count of the object.
          *
-         * Notify the object that another reference has been
+         * Notifies the object that another reference has been
          * created to acknowledge it.
          */
         virtual void add_ref();

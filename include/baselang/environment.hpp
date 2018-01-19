@@ -19,10 +19,25 @@ class Environment : public Stringable, public Reffable {
         // The majority of environments have subenvironments
         Environment* subenv = NULL;
     public:
-        // Applies an identifier to the environment to get its Value.
-        virtual Val apply(std::string) { return NULL; }
-        virtual int set(std::string, Val) { return 1; }
+        /**
+         * Attempts to apply a variable name to an expression.
+         *
+         * @param x The variable to lookup.
+         *
+         * @return The value of the given variable, or NULL if it was not found.
+         */
+        virtual Val apply(std::string x) { return NULL; }
 
+        /**
+         * Reassigns the value of a variable.
+         *
+         * @param x The name of the variable.
+         * @param v The value to assign to the variable (must be of the same type).
+         *
+         * @return Zero if the value is successfully assigned, otherwise non-zero.
+         */
+        virtual int set(std::string x, Val v) { return 1; }
+        
         virtual void add_ref() {
             this->Reffable::add_ref();
             if (subenv) subenv->add_ref();
@@ -33,7 +48,12 @@ class Environment : public Stringable, public Reffable {
         }
 
         virtual Environment* clone() = 0;
-
+        
+        /**
+         * Gathers the child environment of this environment.
+         *
+         * @return The child environment.
+         */
         Environment* subenvironment();
 };
 typedef Environment* Env;
