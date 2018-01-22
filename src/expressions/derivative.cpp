@@ -416,7 +416,7 @@ Val MagnitudeExp::derivativeOf(string x, Env env, Env denv) {
 }
 
 Val FoldExp::derivativeOf(string x, Env env, Env denv) {
-    // f(L, c) = g(g(...g(c,L[0]),L[1],...))
+    // f(L, c) = g(g(...g(c,L[0]),L[1],...),L[N-1])
     // g'(a,b) = a' * g_a(a,b) + b' * g_b(a,b)
     // f' = g'(g(...(c, L[0]), L[1]), ...), L[N-1])
     //      = g'(g(...(c, L[0]),...), L[N-2]) * g_a(...(c,L[0])...,L[N-1])
@@ -524,9 +524,11 @@ Val FoldExp::derivativeOf(string x, Env env, Env denv) {
         
         // We will construct an expression to handle the ordeal
         Expression *cell = new SumExp(
-            new MultExp(reexpress(dc), reexpress(fa)),
-            new MultExp(reexpress(v), reexpress(fb))
+            new MultExp(reexpress(fa), reexpress(dc)),
+            new MultExp(reexpress(fb), reexpress(v))
         );
+
+        //std::cout << "must compute " << *cell << "\n";
 
         v = cell->valueOf(env);
 
@@ -704,10 +706,19 @@ Val MultExp::derivativeOf(string x, Env env, Env denv) {
     Val r = right->valueOf(env);
     if (!r) { dl->rem_ref(); dr->rem_ref(); l->rem_ref(); return NULL; }
     
+    /*
+    std::cout << "d/d" << x << " " << *this << " info:\n";
+    std::cout << "l = " << *l << "\n";
+    std::cout << "r = " << *r << "\n";
+    std::cout << "d/d" << x << " l = " << *dl << "\n";
+    std::cout << "d/d" << x << " r = " << *dr << "\n";
+    */
+    
     // Utility object
     SumExp sum(NULL, NULL);
+    MultExp mult(NULL, NULL);
 
-    Val a = op(l, dr);
+    Val a = mult.op(l, dr);
     l->rem_ref();
     dr->rem_ref();
 
@@ -717,7 +728,9 @@ Val MultExp::derivativeOf(string x, Env env, Env denv) {
         return NULL;
     }
 
-    Val b = op(r, dl);
+    //std::cout << "l*r': " << *a << "\n";
+
+    Val b = mult.op(r, dl);
     r->rem_ref();
     dl->rem_ref();
 
@@ -725,11 +738,19 @@ Val MultExp::derivativeOf(string x, Env env, Env denv) {
         a->rem_ref();
         return NULL;
     }
+
+    //std::cout << "r*l': " << *b << "\n";
     
     Val c = sum.op(a, b);
 
     a->rem_ref();
     b->rem_ref();
+
+    /*
+    if (c) std::cout << "l*r' + r*l' = " << *c << "\n";
+    else std::cout << "l*r' + r*l' is undefined\n";
+    std::cout << "\n";
+    */
 
     return c;
 }

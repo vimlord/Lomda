@@ -305,7 +305,7 @@ Val dot_table(ListVal *a, ListVal *b) {
 
                 Val v = mult.op(ait->next(), bit->next());
 
-                while (v && ait->hasNext()) {
+                while (v && ait->hasNext() && bit->hasNext()) {
                     Val u = mult.op(ait->next(), bit->next());
                     if (u) {
                         Val w = sum.op(v, u);
@@ -320,6 +320,12 @@ Val dot_table(ListVal *a, ListVal *b) {
                         v = NULL;
                     }
                 }
+
+                if (ait->hasNext() || bit->hasNext()) {
+                throw_err("runtime", "pure dot product between '" + a->toString() + "' and '" + b->toString() + "' is not defined");
+                    v = NULL;
+                }
+
                 delete ait;
                 delete bit;
                 
@@ -546,7 +552,7 @@ Val SumExp::op(Value *a, Value *b) {
                 if (left && right)
                     throw_err("runtime", "cannot add lists '" + left->toString() + "' and '" + right->toString() + "' of differing lengths");
                 else
-                    throw_err("runtime", "cannot add lists of differing lengths");
+                    throw_err("runtime", "cannot add lists '" + a->toString() + "' and '" + b->toString() + "' of differing lengths");
                 return NULL;
             }
 
