@@ -233,6 +233,7 @@ ListVal* nd_array(int *size, int d, int x = 0) {
 }
 
 ListVal* transpose(ListVal *lst) {
+    if (!lst) return NULL;
     if (!is_rect_tensor(lst)) {
         throw_err("runtime", "tensor defined by '" + lst->toString() + "' is not properly formed");
         return NULL;
@@ -284,171 +285,137 @@ ListVal* transpose(ListVal *lst) {
     return res;
 }
 
-Val dot_table(ListVal *a, ListVal *b) {
+Val pure_dot_table(Val a, Val b) {
+    MultExp mult(NULL, NULL);
+    SumExp sum(NULL, NULL);
 
-    if (typeid(*(b->get()->get(0))) != typeid(ListVal)) {
+    if (typeid(*a) == typeid(ListVal)) {
+        Val v = NULL;
 
-        MultExp mult(NULL, NULL);
-        SumExp sum(NULL, NULL);
+        auto ait = ((ListVal*) a)->get()->iterator();
+        auto bit = ((ListVal*) b)->get()->iterator();
 
-        auto rit = a->get()->iterator();
-
-        if (typeid(*(a->get()->get(0))) == typeid(ListVal)) {
-            //std::cout << "left dot table between " << *a << " and " << *b << "\n";
-            ListVal *tensor = new ListVal;
-
-            while (rit->hasNext()) {
-                ListVal *r = (ListVal*) rit->next();
-
-                auto ait = r->get()->iterator();
-                auto bit = ((ListVal*) b)->get()->iterator();
-
-                Val v = mult.op(ait->next(), bit->next());
-
-                while (v && ait->hasNext() && bit->hasNext()) {
-                    Val u = mult.op(ait->next(), bit->next());
-                    if (u) {
-                        Val w = sum.op(v, u);
-
-                        u->rem_ref();
-                        v->rem_ref();
-                        
-                        v = w ? w : NULL;
-
-                    } else {
-                        v->rem_ref();
-                        v = NULL;
-                    }
-                }
-
-                if (ait->hasNext() || bit->hasNext()) {
-                throw_err("runtime", "pure dot product between '" + a->toString() + "' and '" + b->toString() + "' is not defined");
-                    v = NULL;
-                }
-
-                delete ait;
-                delete bit;
-                
-                if (v)
-                    tensor->get()->add(tensor->get()->size(), v);
-                else {
-                    delete rit;
-                    delete tensor;
-                    return NULL;
-                }
-            }
-
-            delete rit;
-
-            return tensor;
-        
-        } else {
-            //std::cout << "pure dot table between " << *a << " and " << *b << "\n";
-
-
-            auto bit = ((ListVal*) b)->get()->iterator();
-
-            Val v = mult.op(rit->next(), bit->next());
-
-            while (v && bit->hasNext() && rit->hasNext()) {
-                Val R = rit->next();
-                Val B = bit->next();
-
-                Val u = mult.op(R, B);
-                if (u) {
-                    Val w = sum.op(v, u);
-                    
-                    u->rem_ref();
-                    v->rem_ref();
-
-                    v = w;
-
-                } else {
-                    delete rit;
-                    delete bit;
-
-                    v->rem_ref();
-                    v = NULL;
-
-                    return NULL;
-                }
-            }
-
-            if (rit->hasNext() || bit->hasNext()) {
-                throw_err("runtime", "pure dot product between '" + a->toString() + "' and '" + b->toString() + "' is not defined");
-                v->rem_ref();
-                v = NULL;
-            }
-
+        if (!ait->hasNext() || !bit->hasNext()) {
+            delete ait;
             delete bit;
-            delete rit;
-
-            return v;
+            delete v;
+            return NULL;
         }
-        
-    } else if (typeid(*(a->get()->get(0))) == typeid(ListVal)) {
-        //std::cout << "non-reduced dot table between " << *a << " and " << *b << "\n";
 
-        // 2+d by 2+d
+        do {
+            // Proceed through the next step of the computation
+            if (v)
+                v = sum.op(v, pure_dot_table(ait->next(), bit->next()));
+            else
+                v = pure_dot_table(ait->next(), bit->next());
+
+        } while (v && ait->hasNext() && bit->hasNext());
+        
+        if (v && (ait->hasNext() || bit->hasNext())) {
+            v->rem_ref();
+            v = NULL;
+        }
+
+        delete ait;
+        delete bit;
+
+        return v;
+
+    } else
+        return mult.op(a, b);
+
+    return NULL;
+}
+
+Val dot_table(ListVal *a, ListVal *b, int order) {
+    
+    if (order > 0) {
+        //std::cout << "dot table btwn " << *a << " and " << *b << "\n";
+        // Left heavy order-wise
         ListVal *tensor = new ListVal;
+
         auto rit = a->get()->iterator();
         while (rit->hasNext()) {
             ListVal *r = (ListVal*) rit->next();
+
+            Val v = order > 1
+                        ? dot_table(r, b, order - 1)
+                        : pure_dot_table(r, b);
+
+            if (!v) {
+                tensor->rem_ref();
+                delete rit;
+                return NULL;
+            }
+
+            tensor->get()->add(tensor->get()->size(), v);
+        }
+        delete rit;
+
+        //if (tensor) std::cout << "dot table: " << *tensor << "\n";
+
+        return tensor;
+
+    } else if (order < 0) {
+        //std::cout << "transpose dot table btwn " << *a << " and " << *b << "\n";
+
+        // Right heavy order-wise
+        ListVal *aT = transpose(a);
+        ListVal *bT = transpose(b);
+
+        Val cT = dot_table(bT, aT, -order);
+        aT->rem_ref();
+        bT->rem_ref();
+
+        if (!cT) return NULL;
+
+        Val c = transpose((ListVal*) cT);
+        cT->rem_ref();
+
+        //if (c) std::cout << "transpose dot table: " << *c << "\n";
+
+        return c;
+
+    } else {
+        if (a->get()->size() != b->get()->size())
+            return NULL;
+
+        //std::cout << "pure dot table btwn " << *a << " and " << *b << "\n";
+
+        ListVal *tensor = new ListVal;
+
+        auto rit = a->get()->iterator();
+
+        while (rit->hasNext()) {
+            Val r = rit->next();
 
             ListVal *row = new ListVal;
             tensor->get()->add(tensor->get()->size(), row);
 
             auto cit = b->get()->iterator();
             while (cit->hasNext()) {
-                ListVal *c = (ListVal*) cit->next();
+                Val c = cit->next();
 
-                Val v = dot_table(r, c);
-                if (v)
-                    row->get()->add(row->get()->size(), v);
-                else {
+                Val v = pure_dot_table(r, c);
+
+                if (!v) {
+                    tensor->rem_ref();
                     delete rit;
                     delete cit;
-                    delete tensor;
                     return NULL;
                 }
+
+                row->get()->add(row->get()->size(), v);
             }
+
             delete cit;
+
         }
-        delete rit;
-
-        return tensor;
-
-    } else {
-        //std::cout << "right dot table between " << *a << " and " << *b << "\n";
-
-        MultExp mult(NULL, NULL);
-        SumExp sum(NULL, NULL);
-
-        auto rit = b->get()->iterator();
-        auto ait = a->get()->iterator();
-
-        Val tensor = mult.op(ait->next(), rit->next());
-
-        while (tensor && rit->hasNext()) {
-            Val r = (ListVal*) rit->next();
-            Val x = ait->next();
-
-            Val v = mult.op(x, r);
-            if (v) {
-                Val w = sum.op(tensor, v);
-                
-                v->rem_ref();
-
-                tensor = w ? w : NULL;
-
-            } else {
-                tensor->rem_ref();
-                tensor = NULL;
-            }
-        }
-        delete ait;
-        delete rit;
         
+        delete rit;
+
+        //if (tensor) std::cout << "pure dot table: " << *tensor << "\n";
+
         return tensor;
     }
 }
@@ -478,10 +445,20 @@ Val MultExp::op(Value *a, Value *b) {
             }
 
             //std::cout << "to compute " << *a << " * " << *b << ", we assemble dot from right:\ndot list: " << *bT << "\n";
-            
-            Val res = dot_table((ListVal*) a, bT);
 
+            int ordA = 0, ordB = 0;
+            for (Val A = a; typeid(*A) == typeid(ListVal); ordA++)
+                A = ((ListVal*) A)->get()->get(0);
+            for (Val B = b; typeid(*B) == typeid(ListVal); ordB++)
+                B = ((ListVal*) B)->get()->get(0);
+
+            int ord = ordA - ordB;
+            
+            Val res = dot_table((ListVal*) a, bT, ord);
             bT->rem_ref();
+
+            if (!res)
+                throw_err("runtime", "multiplication is not defined on non-matching lists\nsee:\n" + (left ? left->toString() : a->toString()) + "\n" + (right ? right->toString() : b->toString()));
 
             return res;
         } else {

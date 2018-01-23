@@ -621,7 +621,7 @@ Val ListSliceExp::valueOf(Env env) {
         // The list
         List<Val> *vals = ((ListVal*) lst)->get();
 
-        if (i < 0 || j < 0 || i >= vals->size() || j >= vals->size()) {
+        if (i < 0 || j < 0 || i >= vals->size() || j > vals->size()) {
             throw_err("runtime", "index " + to_string(i) + " is out of bounds (len: " + to_string(vals->size()) + ")");
             lst->rem_ref();
             return NULL;
@@ -649,7 +649,7 @@ Val ListSliceExp::valueOf(Env env) {
         // String
         string s = lst->toString();
 
-        if (i < 0 || j < 0 || i >= s.length() || j >= s.length()) {
+        if (i < 0 || j < 0 || i >= s.length() || j > s.length()) {
             throw_err("runtime", "index " + to_string(i) + " is out of bounds (len: " + to_string(s.length()) + ")");
             lst->rem_ref();
             return NULL;

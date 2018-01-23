@@ -73,30 +73,33 @@ Val deriveConstVal(Val v, int c) {
         return new IntVal(c);
 }
 
-Val deriveConstVal(Val x, Val v, int c) {
+/**
+ * Computes dy/dx ~= c
+ */
+Val deriveConstVal(Val y, Val x, int c) {
 
-    //return deriveConstVal(x, c);
+    //return deriveConstVal(y, c);
 
-    if (typeid(*v) == typeid(StringVal) ||
-        typeid(*v) == typeid(BoolVal))
+    if (typeid(*x) == typeid(StringVal) ||
+        typeid(*x) == typeid(BoolVal))
         // Certain types are non-differentiable
         return NULL;
-    else if (typeid(*v) == typeid(ListVal)) {
-        auto it = ((ListVal*) v)->get()->iterator();
+    else if (typeid(*x) == typeid(ListVal)) {
+        auto it = ((ListVal*) x)->get()->iterator();
         LinkedList<Val> *lst = new LinkedList<Val>;
         Val res = new ListVal(lst);
 
         while (it->hasNext()) {
             Val u = it->next();
-            Val dx = deriveConstVal(x, u, 0);
+            Val dy = deriveConstVal(y, u, 0);
 
-            if (!dx) {
+            if (!dy) {
                 res->rem_ref();
                 delete it;
                 return NULL;
             }
 
-            lst->add(lst->size(), dx);
+            lst->add(lst->size(), dy);
         }
         delete it;
 
@@ -104,7 +107,7 @@ Val deriveConstVal(Val x, Val v, int c) {
 
         return res;
     } else
-        return deriveConstVal(x, c);
+        return deriveConstVal(y, c);
 }
 
 Val AndExp::derivativeOf(string x, Env env, Env denv) {
@@ -706,13 +709,10 @@ Val MultExp::derivativeOf(string x, Env env, Env denv) {
     Val r = right->valueOf(env);
     if (!r) { dl->rem_ref(); dr->rem_ref(); l->rem_ref(); return NULL; }
     
-    /*
-    std::cout << "d/d" << x << " " << *this << " info:\n";
-    std::cout << "l = " << *l << "\n";
-    std::cout << "r = " << *r << "\n";
-    std::cout << "d/d" << x << " l = " << *dl << "\n";
-    std::cout << "d/d" << x << " r = " << *dr << "\n";
-    */
+    throw_debug("calculus", "l = " + l->toString());
+    throw_debug("calculus", "r = " + r->toString());
+    throw_debug("calculus", "d/d" + x + " l = " + dl->toString());
+    throw_debug("calculus", "d/d" + x + " r = " + dr->toString());
     
     // Utility object
     SumExp sum(NULL, NULL);
@@ -728,9 +728,9 @@ Val MultExp::derivativeOf(string x, Env env, Env denv) {
         return NULL;
     }
 
-    //std::cout << "l*r': " << *a << "\n";
+    throw_debug("calculus", "l r' = " + a->toString());
 
-    Val b = mult.op(r, dl);
+    Val b = mult.op(r, dl);//(r, dl);
     r->rem_ref();
     dl->rem_ref();
 
@@ -739,18 +739,16 @@ Val MultExp::derivativeOf(string x, Env env, Env denv) {
         return NULL;
     }
 
-    //std::cout << "r*l': " << *b << "\n";
+
+    throw_debug("calculus", "r l' = " + b->toString());
     
     Val c = sum.op(a, b);
 
     a->rem_ref();
     b->rem_ref();
-
-    /*
-    if (c) std::cout << "l*r' + r*l' = " << *c << "\n";
-    else std::cout << "l*r' + r*l' is undefined\n";
-    std::cout << "\n";
-    */
+    
+    if (c) throw_debug("calculus", "l r' + r l' = " + c->toString());
+    else throw_debug("calc\x1b[37m_\x1b[31merror", "l r' + r l' is non-computable");
 
     return c;
 }
