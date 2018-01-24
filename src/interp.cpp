@@ -989,6 +989,7 @@ Val StdlibOpExp::valueOf(Env env) {
     ||  typeid(*v) == typeid(StringVal)
     ) {
         throw_type_err(x, "numerical");
+        return NULL;
     }
 
     auto z = typeid(*v) == typeid(IntVal)
