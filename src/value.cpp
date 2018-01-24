@@ -5,6 +5,23 @@ using namespace std;
 
 #include <string>
 
+bool is_zero_val(Val e) {
+    if (!e) return false;
+    else if (typeid(*e) == typeid(IntVal))
+        return ((IntVal*) e)->get();
+    else if (typeid(*e) == typeid(RealVal))
+        return ((RealVal*) e)->get();
+    else if (typeid(*e) == typeid(ListVal)) {
+        auto it = ((ListVal*) e)->get()->iterator();
+
+        bool isZero = true;
+        while (it->hasNext()) isZero = is_zero_val(it->next());
+
+        return isZero;
+
+    } else return false;
+}
+
 // Booleans
 BoolVal::BoolVal(bool n) { val = n; }
 bool BoolVal::get() { return val; }

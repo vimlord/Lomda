@@ -611,6 +611,49 @@ ParsedPrgms parseMapExp(string str, bool ends) {
     return res;
 }
 
+ParsedPrgms parseExplicitThunk(string str, bool ends) {
+    ParsedPrgms res = new LinkedList<parsed_prgm>;
+
+    int len = parseLit(str, "thunk");
+    if (len < 0) return res;
+    else str = str.substr(len);
+
+    int i = parseLit(str, "{");
+    if (i < 0) return res;
+    else {
+        len += i;
+        str = str.substr(i);
+    }
+
+    ParsedPrgms exps = parsePemdas(str, false);
+    
+    while (!exps->isEmpty()) {
+        parsed_prgm p = exps->remove(0);
+        string s = str.substr(p.len);
+
+        p.len += len;
+
+        if ((i = parseLit(s, "}")) < 0) {
+            delete p.item;
+            continue;
+        } else {
+            p.len += i;
+            s = s.substr(i);
+        }
+
+        if (ends && parseSpaces(s) == s.length()) {
+            delete p.item;
+            continue;
+        } else {
+            // Convert the expression to a thunk and add it to the result
+            p.item = new ThunkExp(p.item);
+            res->add(0, p);
+        }
+    }
+
+    return res;
+}
+
 /**
  * top-level pemdas-exp
  */
@@ -634,6 +677,11 @@ ParsedPrgms parsePemdas(string str, bool ends) {
     // Parse for derivative
     delete res;
     res = parseDerivative(str, ends);
+    if (!res->isEmpty()) return res;
+
+    // Parse for an explicitly defined thunk
+    delete res;
+    res = parseExplicitThunk(str, ends);
     if (!res->isEmpty()) return res;
     
     // Parse for calculation

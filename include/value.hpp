@@ -5,6 +5,8 @@
 #include "baselang/expression.hpp"
 #include "baselang/environment.hpp"
 
+bool is_zero_val(Val e);
+
 class BoolVal : public Value {
     private:
         bool val;
