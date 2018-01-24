@@ -937,9 +937,10 @@ Val VarExp::derivativeOf(string x, Env env, Env denv) {
     // We have a list of derivatives, from which we can easily perform
     // a lookup.
     Val dv = denv->apply(id);
-    if (!dv)
+    if (!dv) {
         throw_err("calculus", "derivative of variable '" + id + "' is not known within this context");
-    else
+        if (VERBOSITY()) throw_debug("runtime error", "error ocurred w/ scope:\n" + denv->toString());
+    } else
         dv->add_ref();
 
     return dv;

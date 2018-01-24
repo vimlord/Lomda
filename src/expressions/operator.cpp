@@ -555,6 +555,11 @@ Val SumExp::op(Value *a, Value *b) {
             throw_err("runtime", "type of '" + l->toString() + "' and '" + r->toString() + "' do not properly match");
             return NULL;
         }
+    } else if (typeid(*b) == typeid(ListVal)) {
+        Stringable *l = left ? (Stringable*) left : (Stringable*) a;
+        Stringable *r = right ? (Stringable*) right : (Stringable*) b;
+        throw_err("runtime", "type of '" + l->toString() + "' and '" + r->toString() + "' do not properly match");
+        return NULL;
     }
 
     auto x = 

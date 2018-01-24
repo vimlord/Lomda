@@ -25,6 +25,9 @@ Val run(string program) {
         }
 
         Env env = new EmptyEnv();
+
+        throw_debug("init", "initial env Γ := " + env->toString());
+
         Val val = exp->valueOf(env);
         delete exp;
         env->rem_ref();
@@ -209,7 +212,8 @@ Val DerivativeExp::valueOf(Env env) {
             // Trivial derivative: d/dx c = 0, d/dx x = x
             int c = id == var ? 1 : 0;
             
-            v = deriveConstVal(v, env->apply(var), c);
+            Val V = env->apply(var);
+            v = V ? deriveConstVal(v, V, c) : NULL;
 
             if (v) {
                 // The value is of a differentiable type
@@ -219,6 +223,10 @@ Val DerivativeExp::valueOf(Env env) {
             }
         }
     }
+
+    throw_debug("calc_init", "computing " + toString() + " under:\n"
+               +"           Γ := " + env->toString() + "\n"
+               +"           d/d" + var + " Γ := " + denv->toString());
 
     // Now, we have the variable, the environment, and the differentiable
     // environment. So, we can simply derive and return the result.
@@ -374,7 +382,7 @@ Val LetExp::valueOf(Env env) {
 
     int argc = 0;
     for (; exps[argc]; argc++);
-    throw_debug("env", "adding " + to_string(argc) + " vars to env " + env->toString());
+    throw_debug("env", "adding " + to_string(argc) + " vars to env Γ := " + env->toString());
 
     // I want to make all of the lambdas recursive.
     // So, I will track my lambdas for now
@@ -396,7 +404,6 @@ Val LetExp::valueOf(Env env) {
         // Add it to the environment
         Val x = v->clone();
         env = new ExtendEnv(ids[i], x, env);
-        throw_debug("env", env->toString());
         
         // Drop references
         v->rem_ref();
@@ -414,6 +421,7 @@ Val LetExp::valueOf(Env env) {
     }
 
     // Display the env if necessary
+    throw_debug("original env Γ extended to env Γ' := ", env->toString());
 
     // Compute the result
     Val y = body->valueOf(env);
@@ -1012,8 +1020,10 @@ Val TrueExp::valueOf(Env env) { return new BoolVal(true); }
 
 Val VarExp::valueOf(Env env) {
     Val res = env->apply(id);
-    if (!res) throw_err("runtime", "variable '" + id + "' was not recognized");
-    else res->add_ref(); // This necessarily creates a new reference. So, we must track it.
+    if (!res) {
+        throw_err("runtime", "variable '" + id + "' was not recognized");
+        if (VERBOSITY()) throw_debug("runtime error", "error ocurred w/ scope:\n" + env->toString());
+    } else res->add_ref(); // This necessarily creates a new reference. So, we must track it.
 
     return res;
 }
