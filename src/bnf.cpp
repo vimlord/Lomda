@@ -487,8 +487,44 @@ ParsedPrgms parseAndExp(string str, bool ends) {
     return res;
 }
 
+ParsedPrgms parseUnaryExp(string str, bool ends) {
+    int i;
+
+    ParsedPrgms res = parseNotExp(str, ends);
+    if (!res->isEmpty())
+        return res;
+
+    if ((i = parseLit(str, "+")) >= 0) {
+        // Number remains positive
+        ParsedPrgms pos = parseUnaryExp(str.substr(i), ends);
+
+        while (!pos->isEmpty()) {
+            parsed_prgm p = pos->remove(0);
+            p.len += i;
+            res->add(0, p);
+        }
+        delete pos;
+
+        return res;
+
+    } else if ((i = parseLit(str, "-")) >= 0) {
+        // Negation
+        ParsedPrgms neg = parseUnaryExp(str.substr(i), ends);
+
+        while (!neg->isEmpty()) {
+            parsed_prgm p = neg->remove(0);
+            p.item = new MultExp(new IntExp(-1), p.item);
+            p.len += i;
+            res->add(0, p);
+        }
+        delete neg;
+
+        return res;
+    }
+}
+
 ParsedPrgms parseCastExp(string str, bool ends) {
-    ParsedPrgms exps = parseNotExp(str, false);
+    ParsedPrgms exps = parseUnaryExp(str, false);
     
     ParsedPrgms res = new LinkedList<parsed_prgm>;
 
@@ -997,6 +1033,7 @@ ParsedPrgms parseMultiplicative(string str, bool ends) {
             delete exp;
         }
     }
+
     delete mult;
 
     return res;
