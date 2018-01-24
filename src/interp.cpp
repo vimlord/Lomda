@@ -42,12 +42,10 @@ Val run(string program) {
  * Checks the type of a value and unpacks it if it is a thunk.
  */
 inline Val unpack_thunk(Val v) {
-    if (v)
-        throw_debug("thunk", "unpacking thunk defined by " + v->toString());
-
     // If the function is a thunk, then we need to unpack it.
     while (v && typeid(*v) == typeid(Thunk)) {
         // Unpack
+        throw_debug("thunk", "unpacking thunk defined by " + v->toString());
         Thunk *t = (Thunk*) v;
         v = t->get();
         t->rem_ref();
@@ -421,7 +419,7 @@ Val LetExp::valueOf(Env env) {
     }
 
     // Display the env if necessary
-    throw_debug("original env Γ extended to env Γ' := ", env->toString());
+    throw_debug("env", "original env Γ extended to env Γ' := " + env->toString());
 
     // Compute the result
     Val y = body->valueOf(env);
