@@ -557,28 +557,13 @@ Val FoldExp::derivativeOf(string x, Env env, Env denv) {
 
 }
 
-Val MapExp::derivativeOf(string x, Env env, Env denv) {
-    Val vs = list->valueOf(env);
-    if (!vs) return NULL;
-
-    Val dvs = list->derivativeOf(x, env, denv);
-    if (!dvs) {
-        // The list could not be differentiated
-        vs->rem_ref();
-        return NULL;
-    }
-    
+Val MapExp::derivativeOf(string x, Env env, Env denv) { 
     Val f = func->valueOf(env);
-    if (!f) {
-        vs->rem_ref();
-        dvs->rem_ref();
+    if (!f)
         return NULL;
-    }
     
     if (typeid(*f) != typeid(LambdaVal)) {
         throw_type_err(func, "lambda");
-        vs->rem_ref();
-        dvs->rem_ref();
         f->rem_ref();
         return NULL;
     }
@@ -588,19 +573,30 @@ Val MapExp::derivativeOf(string x, Env env, Env denv) {
     if (fn->getArgs()[0] == "" || fn->getArgs()[1] != "") {
         throw_err("runtime", "map function '" + fn->toString() + "' does not take exactly one argument");
         fn->rem_ref();
-        vs->rem_ref();
-        dvs->rem_ref();
         return NULL;
     }
     
+    // Then, we differentiate it.
     string var = fn->getArgs()[0];
     fn->rem_ref();
     f = func->derivativeOf(var, env, denv);
     if (!f) {
-        vs->rem_ref();
-        dvs->rem_ref();
         return NULL;
     } else fn = (LambdaVal*) f;
+    
+    Val vs = list->valueOf(env);
+    if (!vs) {
+        fn->rem_ref();
+        return NULL;
+    }
+
+    Val dvs = list->derivativeOf(x, env, denv);
+    if (!dvs) {
+        // The list could not be differentiated
+        fn->rem_ref();
+        vs->rem_ref();
+        return NULL;
+    }
 
     if (typeid(*vs) == typeid(ListVal)) {
         // Given a list, map each element of the list

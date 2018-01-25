@@ -393,14 +393,7 @@ Exp ListAccessExp::optimize() {
 }
 
 Exp MapExp::opt_const_prop(opt_varexp_map &vs, opt_varexp_map &ends) {
-    list = list->opt_const_prop(vs, ends);
-    
-    if (typeid(*func) == typeid(ListExp) && ((ListExp*) list)->getList()->size() == 0) {
-        // map [] into f = [] forall f
-        Exp e = list; list = NULL;
-        delete this;
-        return e;
-    } if (typeid(*func) == typeid(LambdaExp)) {
+    if (typeid(*func) == typeid(LambdaExp)) {
         // We can see if the function has side effects
         for (auto x : vs) {
             if (func->opt_var_usage(x.first) & 1) {
@@ -412,8 +405,6 @@ Exp MapExp::opt_const_prop(opt_varexp_map &vs, opt_varexp_map &ends) {
         // Now that any variables chosen will not be affected, we can
         // simply proceed with propagation.
         func = func->opt_const_prop(vs, ends);
-
-        return this;
     } else {
         // No assumptions can be made about the usage of the variables.
         // So, we must drop all of them.
@@ -421,9 +412,19 @@ Exp MapExp::opt_const_prop(opt_varexp_map &vs, opt_varexp_map &ends) {
             delete vs[x.first];
             vs.erase(x.first);
         }
-
-        return this;
     }
+
+    list = list->opt_const_prop(vs, ends);
+
+    if (typeid(*list) == typeid(ListExp) && ((ListExp*) list)->getList()->size() == 0) {
+        // map [] into f = [] forall f
+        list = list->opt_const_prop(vs, ends);
+        Exp e = list; list = NULL;
+        return e;
+    }
+
+    return this;
+    
 }
 
 Exp NotExp::optimize() {

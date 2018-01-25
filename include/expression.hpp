@@ -180,7 +180,7 @@ class MapExp : public Expression {
         Exp func;
         Exp list;
     public:
-        MapExp(Exp l, Exp f) : func(f), list(l) {}
+        MapExp(Exp f, Exp l) : func(f), list(l) {}
         ~MapExp() { delete func; delete list; }
         Exp clone() { return new MapExp(list->clone(), func->clone()); }
 
@@ -189,7 +189,7 @@ class MapExp : public Expression {
         
         std::string toString();
 
-        Exp optimize() { list = list->optimize(); func = func->optimize(); return this; }
+        Exp optimize() { func = func->optimize(); list = list->optimize(); return this; }
         Exp opt_const_prop(opt_varexp_map&, opt_varexp_map&);
         int opt_var_usage(std::string x) { return func->opt_var_usage(x) | list->opt_var_usage(x); }
 };

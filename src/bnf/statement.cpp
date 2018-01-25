@@ -574,16 +574,16 @@ ParsedPrgms parseMapExp(string str, bool ends) {
     str = str.substr(len);
     
     // The possible indices
-    ParsedPrgms sets = parsePemdas(str, false);
+    ParsedPrgms functions = parsePemdas(str, false);
     
-    while (!sets->isEmpty()) {
-        parsed_prgm set = sets->remove(0);
+    while (!functions->isEmpty()) {
+        parsed_prgm fun = functions->remove(0);
 
-        string s = str.substr(set.len);
-        int length = len + set.len;
+        string s = str.substr(fun.len);
+        int length = len + fun.len;
         
-        if ((i = parseLit(s, "to")) < 0) {
-            delete set.item;
+        if ((i = parseLit(s, "over")) < 0) {
+            delete fun.item;
             continue;
         }
 
@@ -591,20 +591,20 @@ ParsedPrgms parseMapExp(string str, bool ends) {
         length += i;
 
         // Now, parse for the truth body
-        ParsedPrgms lambdas = parsePemdas(s, ends);
+        ParsedPrgms lists = parsePemdas(s, ends);
         
-        while (!lambdas->isEmpty()) {
-            parsed_prgm fn = lambdas->remove(0);
-            fn.len += length;
+        while (!lists->isEmpty()) {
+            parsed_prgm lst = lists->remove(0);
+            lst.len += length;
             
-            fn.item = new MapExp(set.item, fn.item);
-            res->add(0, fn);
+            lst.item = new MapExp(fun.item, lst.item);
+            res->add(0, lst);
 
-            set.item = set.item->clone();
+            fun.item = fun.item->clone();
         }
-        delete lambdas;
+        delete lists;
     }
-    delete sets;
+    delete functions;
 
     return res;
 }

@@ -696,18 +696,14 @@ Val MagnitudeExp::valueOf(Env env) {
     return res;
 }
 
-Val MapExp::valueOf(Env env) {
-    Val vs = list->valueOf(env);
-    unpack_thunk(vs);
-    if (!vs) return NULL;
-
+Val MapExp::valueOf(Env env) { 
     Val f = func->valueOf(env);
     unpack_thunk(f);
-    if (!f) { vs->rem_ref(); return NULL; }
+    if (!f) return NULL;
     
     if (typeid(*f) != typeid(LambdaVal)) {
         throw_type_err(func, "lambda");
-        vs->rem_ref();
+        f->rem_ref();
         return NULL;
     }
 
@@ -716,7 +712,13 @@ Val MapExp::valueOf(Env env) {
     if (fn->getArgs()[0] == "" || fn->getArgs()[1] != "") {
         throw_err("runtime", "map function '" + fn->toString() + "' does not take exactly one argument");
         fn->rem_ref();
-        vs->rem_ref();
+        return NULL;
+    }
+    
+    Val vs = list->valueOf(env);
+    unpack_thunk(vs);
+    if (!vs) {
+        fn->rem_ref();
         return NULL;
     }
 
