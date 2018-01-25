@@ -278,7 +278,7 @@ class ThunkExp : public Expression {
         ThunkExp(Exp e) : exp(e) {}
         ~ThunkExp() { delete exp; }
 
-        Val valueOf(Env env) { return new Thunk(exp->clone(), env->clone()); }
+        Val valueOf(Env env) { env->add_ref(); return new Thunk(exp->clone(), env); }
         Val derivativeOf(std::string x, Env e, Env d) { return exp->derivativeOf(x, e, d); }
 
         Exp optimize() { exp = exp->optimize(); return this; }

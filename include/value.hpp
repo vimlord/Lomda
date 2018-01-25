@@ -101,7 +101,7 @@ class Thunk : public Value {
         Val val;
     public:
         Thunk(Exp ex, Env en, Val v = NULL) : exp(ex), env(en), val(v) {}
-        ~Thunk() { delete exp; if (val) val->rem_ref(); }
+        ~Thunk() { delete exp; if (val) val->rem_ref(); if (env) env->rem_ref(); }
         
         Val get(Env e = NULL);
         int set(Value*);
