@@ -437,17 +437,15 @@ ParsedPrgms parseLetExp(string str, bool ends) {
                 continue;
             }
 
-            ParsedPrgms args = parsePemdas(s, false);
+           //std::cout << "parse for body in " << s << "\n";
 
-            if (args->isEmpty()) {
-                delete args;
-                delete lst.list;
-                continue;
-            }
-            
+            ParsedPrgms args = parseCodeBlock(s, false);
+
             // Act on each possible branch
             while (!args->isEmpty()) {
                 parsed_prgm prgm = args->remove(0);
+
+               //std::cout << "found " << prgm.item->toString() << "\n";
 
                 struct arglist newlst;
                 newlst.len = lst.len + len + prgm.len;

@@ -11,14 +11,15 @@ using namespace std;
 
 void execute(string program) {
     Val v = run(program);
-    if (v) {
-        if (typeid(*v) == typeid(Thunk)) {
-            // Thunks should be evaluated.
-            Val t = v;
-            v = ((Thunk*) t)->get();
-            t->rem_ref();
-        }
 
+    while (v && typeid(*v) == typeid(Thunk)) {
+        // Thunks should be evaluated.
+        Val t = v;
+        v = ((Thunk*) t)->get();
+        t->rem_ref();
+    }
+
+    if (v) {
         if (VERBOSITY()) cout << "(" << v << ")\n==> " << *v << "\n";
         else if (typeid(*v) != typeid(VoidVal)) cout << *v << "\n";
         v->rem_ref();

@@ -377,8 +377,10 @@ Val dot_table(ListVal *a, ListVal *b, int order) {
         return c;
 
     } else {
+        /*
         if (a->get()->size() != b->get()->size())
             return NULL;
+        */
 
         //std::cout << "pure dot table btwn " << *a << " and " << *b << "\n";
 
@@ -457,8 +459,33 @@ Val MultExp::op(Value *a, Value *b) {
             Val res = dot_table((ListVal*) a, bT, ord);
             bT->rem_ref();
 
-            if (!res)
-                throw_err("runtime", "multiplication is not defined on non-matching lists\nsee:\n" + (left ? left->toString() : a->toString()) + "\n" + (right ? right->toString() : b->toString()));
+            if (!res) {
+                if (left && right)
+                    throw_err("runtime", "multiplication is not defined on non-matching lists (see: " + toString() + ")");
+                else
+                    throw_err("runtime", "multiplication is not defined on non-matching lists (see: " + (left ? left->toString() : a->toString()) + " * " + (right ? right->toString() : b->toString()) + ")");
+                
+                // TODO: Remove
+                Val V;
+                V = a;
+                for (int i = 0; typeid(*V) == typeid(ListVal); i++) {
+                    if (i) std::cout << "x";
+                    std::cout << ((ListVal*) V)->get()->size();
+                    V = ((ListVal*) V)->get()->get(0);
+                }
+                
+                std::cout << " by ";
+
+                V = b;
+                for (int i = 0; typeid(*V) == typeid(ListVal); i++) {
+                    if (i) std::cout << "x";
+                    std::cout << ((ListVal*) V)->get()->size();
+                    V = ((ListVal*) V)->get()->get(0);
+                }
+
+                std::cout << "\n";
+
+            }
 
             return res;
         } else {

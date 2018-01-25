@@ -169,8 +169,11 @@ LinkedList<struct arglist>* parseArgList(string str, bool ends) {
 
             // Add all of the items
             auto it = alst.list->iterator();
-            while (it->hasNext())
-                lst.list->add(lst.list->size(), it->next());
+            while (it->hasNext()) {
+                auto a = it->next();
+                a.exp = a.exp->clone();
+                lst.list->add(lst.list->size(), a);
+            }
             delete it;
             
             // And the new one
@@ -317,14 +320,15 @@ ParsedPrgms parseAccessor(string str, bool ends) {
             lst.len += i;
             s = s.substr(i);
 
-            //std::cout << "found open parenthesis; there may be more in '" << s << "'\n";
+           //std::cout << "found open parenthesis; there may be more in '" << s << "'\n";
 
             LinkedList<struct arglist> *arglists = parseArgList(s, false);
 
-            //std::cout << "possible arglists: " << arglists->size() << "\n";
+           //std::cout << "possible arglists in '" << s << "': " << arglists->size() << "\n";
 
             while (!arglists->isEmpty()) {
                 struct arglist alst = arglists->remove(0);
+               //std::cout << "arglist size: " << alst.list->size() << "\n";
 
                 // Check the closing parenthesis
                 string st = s.substr(alst.len);
@@ -332,8 +336,11 @@ ParsedPrgms parseAccessor(string str, bool ends) {
                 i = parseLit(st, ")");
                 if (i < 0) {
                     // Garbage collection on the useless argument list
-                    while (!alst.list->isEmpty())
-                        delete alst.list->remove(0).exp;
+                    while (!alst.list->isEmpty()) {
+                        Exp e = alst.list->remove(0).exp;
+                       //std::cout << "deleting " << e << "\n";
+                        delete e;
+                    }
                     delete alst.list;
                     continue;
                 }
@@ -342,16 +349,19 @@ ParsedPrgms parseAccessor(string str, bool ends) {
                 alst.len += i;
 
                 Exp *args = new Exp[alst.list->size() + 1];
-                for (i = 0; !alst.list->isEmpty(); i++)
-                    args[i] = alst.list->remove(0).exp;
+                for (i = 0; !alst.list->isEmpty(); i++) {
+                    Exp e = alst.list->remove(0).exp;
+                   //std::cout << "transferring " << e << "\n";
+                    args[i] = e;
+                }
                 args[i] = NULL;
                 delete alst.list; // The list is empty and useless (destroy it)
 
                 parsed_prgm p;
                 p.item = new ApplyExp(lst.item->clone(), args);
                 p.len = alst.len + lst.len;
-
-                //std::cout << "found apply-exp: '" << *(p.item) << "'\n";
+                
+               //std::cout << "found apply-exp: '" << *(p.item) << "'\n";
 
                 lists->add(0, p);
             }
@@ -361,6 +371,7 @@ ParsedPrgms parseAccessor(string str, bool ends) {
         
         delete lst.item;
     }
+
     delete lists;
 
     return res;
@@ -494,7 +505,7 @@ ParsedPrgms parseUnaryExp(string str, bool ends) {
     if (!res->isEmpty())
         return res;
 
-    if ((i = parseLit(str, "+")) >= 0) {
+    else if ((i = parseLit(str, "+")) >= 0) {
         // Number remains positive
         ParsedPrgms pos = parseUnaryExp(str.substr(i), ends);
 
@@ -520,7 +531,8 @@ ParsedPrgms parseUnaryExp(string str, bool ends) {
         delete neg;
 
         return res;
-    }
+    } else
+        return res;
 }
 
 ParsedPrgms parseCastExp(string str, bool ends) {
@@ -1089,10 +1101,8 @@ ParsedPrgms parseMagnitude(string str, bool ends) {
 
 ParsedPrgms parseNotExp(string str, bool ends) {
     int i = parseLit(str, "not");
-    if (i < 0) {
-        ParsedPrgms ps = parseAccessor(str, ends);
-        return ps;
-    }
+    if (i < 0)
+        return parseAccessor(str, ends);
 
     ParsedPrgms res = new LinkedList<parsed_prgm>;
 

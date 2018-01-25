@@ -730,7 +730,7 @@ Val MultExp::derivativeOf(string x, Env env, Env denv) {
 
     throw_debug("calculus", "l r' = " + a->toString());
 
-    Val b = mult.op(r, dl);//(r, dl);
+    Val b = mult.op(r, dl);/*(dl, r)*/;
     r->rem_ref();
     dl->rem_ref();
 

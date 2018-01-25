@@ -224,7 +224,7 @@ Val DerivativeExp::valueOf(Env env) {
 
     throw_debug("calc_init", "computing " + toString() + " under:\n"
                +"           Γ := " + env->toString() + "\n"
-               +"           d/d" + var + " Γ := " + denv->toString());
+               +"           dΓ/d" + var + " := " + denv->toString());
 
     // Now, we have the variable, the environment, and the differentiable
     // environment. So, we can simply derive and return the result.
@@ -334,8 +334,9 @@ Val ForExp::valueOf(Env env) {
 Val IfExp::valueOf(Env env) {
     Val b = cond->valueOf(env);
     unpack_thunk(b);
-
-    if (typeid(*b) != typeid(BoolVal)) {
+    
+    if (!b) return NULL;
+    else if (typeid(*b) != typeid(BoolVal)) {
         throw_type_err(cond, "boolean");
         return NULL;
     }
@@ -1021,9 +1022,11 @@ Val VarExp::valueOf(Env env) {
     if (!res) {
         throw_err("runtime", "variable '" + id + "' was not recognized");
         if (VERBOSITY()) throw_debug("runtime error", "error ocurred w/ scope:\n" + env->toString());
-    } else res->add_ref(); // This necessarily creates a new reference. So, we must track it.
-
-    return res;
+        return NULL;
+    } else {
+        res->add_ref(); // This necessarily creates a new reference. So, we must track it.
+        return res;
+    }
 }
 
 Val WhileExp::valueOf(Env env) {
