@@ -103,12 +103,7 @@ class Thunk : public Value {
         Thunk(Exp ex, Env en, Val v = NULL) : exp(ex), env(en), val(v) {}
         ~Thunk() { delete exp; if (val) val->rem_ref(); }
         
-        Val get(Env e = NULL) {
-            if (!e) e = env;
-            if (!val) val = exp->valueOf(env);
-            val->add_ref();
-            return val;
-        }
+        Val get(Env e = NULL);
         int set(Value*);
 
         std::string toString();

@@ -268,5 +268,5 @@ string ListVal::toString() {
 }
 string RealVal::toString() { return to_string(val); }
 string StringVal::toString() { return val; }
-string Thunk::toString() { return val ? val->toString() : ("thunk { " + exp->toString() + " | " + env->toString() + " }"); }
+string Thunk::toString() { return val ? val->toString() : ("" + exp->toString() + " | " + env->toString()); }
 

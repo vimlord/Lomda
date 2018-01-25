@@ -201,4 +201,25 @@ int Thunk::set(Val v) {
         return 0;
     } else return 1;
 }
+Val Thunk::get(Env e) {
+    if (!e) e = env;
+    if (!val) {
+        // Preemptive debug print
+        throw_debug("thunk", "evaluating " + exp->toString() + " | " + e->toString());
+
+        val = exp->valueOf(e);
+
+        if (val && VERBOSITY()) std::cout << "\x1b[34m\x1b[1mthunk:\x1b[0m created new ref " << val << "\n";
+    }
+
+    // Debug print the outcome
+    if (val) {
+        val->add_ref();
+        throw_debug("thunk ", "" + exp->toString() + " | " + e->toString() + " ↓ " + val->toString());
+        return val;
+    } else {
+        throw_debug("thunk", "" + exp->toString() + " | " + e->toString() + " cannot be computed");
+        return NULL;
+    }
+}
 

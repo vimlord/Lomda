@@ -11,13 +11,7 @@ using namespace std;
 
 void execute(string program) {
     Val v = run(program);
-
-    while (v && typeid(*v) == typeid(Thunk)) {
-        // Thunks should be evaluated.
-        Val t = v;
-        v = ((Thunk*) t)->get();
-        t->rem_ref();
-    }
+    v = unpack_thunk(v);
 
     if (v) {
         if (VERBOSITY()) cout << "(" << v << ")\n==> " << *v << "\n";

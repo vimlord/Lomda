@@ -4,4 +4,21 @@
 
 Value* run(std::string);
 
+/**
+ * Checks the type of a value and unpacks it if it is a thunk.
+ */
+inline Val unpack_thunk(Val v) {
+    // If the function is a thunk, then we need to unpack it.
+    while (v && typeid(*v) == typeid(Thunk)) {
+        // Unpack
+        throw_debug("thunk", "unpacking thunk defined by " + v->toString());
+        Thunk *t = (Thunk*) v;
+        v = t->get();
+        t->rem_ref();
+        throw_debug("thunk", "extracted " + v->toString());
+    }
+
+    return v;
+}
+
 #endif
