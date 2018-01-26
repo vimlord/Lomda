@@ -132,6 +132,26 @@ class InputExp : public Expression {
         int opt_var_usage(std::string x) { return 0; }
 };
 
+// Given an expression and a string denoting the type, decide
+// whether or not the types match.
+class IsaExp : public Expression {
+    private:
+        Exp exp;
+        std::string type;
+    public:
+        IsaExp(Exp e, std::string t) : exp(e), type(t) {}
+        ~IsaExp() { delete exp; }
+
+        Val valueOf(Env);
+
+        Exp clone() { return new IsaExp(exp->clone(), type); }
+        std::string toString();
+
+        Exp optimize() { exp = exp->optimize(); return this; }
+        Exp opt_const_prop(opt_varexp_map& a, opt_varexp_map& b) { exp = exp->opt_const_prop(a, b); return this; }
+        int opt_var_usage(std::string x) { return exp->opt_var_usage(x); }
+};
+
 // Expression for defining variables
 class LetExp : public Expression {
     private:

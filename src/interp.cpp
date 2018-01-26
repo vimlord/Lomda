@@ -94,6 +94,7 @@ Val ApplyExp::valueOf(Env env) {
 
 Val CastExp::valueOf(Env env) {
     Val val = exp->valueOf(env);
+    val = unpack_thunk(val);
 
     Val res = NULL;
 
@@ -147,6 +148,10 @@ Val CastExp::valueOf(Env env) {
             else if ((i = parseLit(s, "false")) >= 0 && i + parseSpaces(s.substr(i)) == s.length())
                 res = new BoolVal(false);
         }
+    } else {
+        throw_err("type", "type " + type + " is not a castable type");
+        val->rem_ref();
+        return NULL;
     }
     
     if (!res)
@@ -347,6 +352,29 @@ Val InputExp::valueOf(Env env) {
 
 Val IntExp::valueOf(Env env) {
     return new IntVal(val);
+}
+
+Val IsaExp::valueOf(Env env) {
+    Val val = exp->valueOf(env);
+    val = unpack_thunk(val);
+    if (!val) return NULL;
+    
+    // Compare the object type with the sought type
+    bool res;
+    if (typeid(*val) == typeid(IntVal))
+        res = type == "int" || type == "integer" || type == "number";
+    else if (typeid(*val) == typeid(RealVal))
+        res = type == "real" || type == "number";
+    else if (typeid(*val) == typeid(ListVal))
+        res = type == "list";
+    else if (typeid(*val) == typeid(LambdaVal))
+        res = type == "function" || type == "lambda";
+    else if (typeid(*val) == typeid(StringVal))
+        res = type == "string";
+    else
+        res = false;
+
+    return new BoolVal(res);
 }
 
 Val LambdaExp::valueOf(Env env) {

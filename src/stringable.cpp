@@ -79,6 +79,9 @@ string IfExp::toString() {
 string IntExp::toString() {
     return to_string(val);
 }
+string IsaExp::toString() {
+    return exp->toString() + " isa " + type;
+}
 string LambdaExp::toString() {
     string s = "lambda ("; 
 

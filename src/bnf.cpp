@@ -550,7 +550,10 @@ ParsedPrgms parseCastExp(string str, bool ends) {
         }
         
         int i;
-        if ((i = parseLit(s, "as")) < 0) {
+        int use = 0;
+        if ((i = parseLit(s, "isa")) >= 0)
+            use = 1;
+        else if ((i = parseLit(s, "as")) < 0) {
             if (ends)
                 delete p.item;
             else
@@ -577,9 +580,12 @@ ParsedPrgms parseCastExp(string str, bool ends) {
         if (
         type.item == "bool" || type.item == "boolean" ||
         type.item == "int" || type.item == "integer" ||
-        type.item == "real" ||
+        type.item == "real" || type.item == "number" ||
+        type.item == "lambda" || type.item == "list" ||
         type.item == "string") {
-            p.item = new CastExp(type.item, p.item);
+            p.item = use == 0
+                        ? (Exp) new CastExp(type.item, p.item)
+                        : (Exp) new IsaExp(p.item, type.item);
             res->add(0, p);
         }
 
