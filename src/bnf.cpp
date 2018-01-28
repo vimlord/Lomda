@@ -470,7 +470,10 @@ ParsedPrgms parseAndExp(string str, bool ends) {
         if (parseSpaces(s) == s.length()) {
             // The parsed expression is complete
             res->add(0, p);
-        } else if ((i = parseLit(s, "and")) >= 0) {
+        } else if (
+            (i = parseLit(s, "and")) >= 0 ||
+            (i = parseLit(s, "∧")) >= 0 // Logic symbol
+        ) {
             // The operation is addition
             s = s.substr(i);
             len += i;
@@ -1106,8 +1109,11 @@ ParsedPrgms parseMagnitude(string str, bool ends) {
 }
 
 ParsedPrgms parseNotExp(string str, bool ends) {
-    int i = parseLit(str, "not");
-    if (i < 0)
+    int i;
+    if (
+        (i = parseLit(str, "not")) < 0 &&
+        (i = parseLit(str, "¬")) < 0 // In case someone really wants to have the symbol
+    )
         return parseAccessor(str, ends);
 
     ParsedPrgms res = new LinkedList<parsed_prgm>;

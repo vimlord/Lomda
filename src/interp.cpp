@@ -978,7 +978,11 @@ Val SetExp::valueOf(Env env) {
         
         env->set(var->toString(), v);
 
+    } else if (WERROR()) {
+        throw_err("runtime", "assigning to right-handish expression '" + exp->toString() + "' is unsafe");
+        return NULL;
     } else {
+        throw_warning("runtime", "assigning to right-handish expression '" + exp->toString() + "' is unsafe");
         // Get info for modifying the environment
         Val u = tgt->valueOf(env);
         if (!u)

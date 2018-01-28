@@ -26,6 +26,7 @@ void display_config() {
     std::cout << "The following configuration is in use:\n";
     std::cout << "verbosity: " << VERBOSITY() << " (default: 0)\n";
     std::cout << "werror:    " << WERROR() << " (default: 0)\n";
+    std::cout << "optimize:  " << OPTIMIZE() << " (default: 0)\n";
 }
 
 /**
