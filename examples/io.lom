@@ -1,0 +1,6 @@
+
+print "input a string:";
+let x = input;
+
+print "You entered", x;
+

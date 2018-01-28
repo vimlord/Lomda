@@ -1,0 +1,8 @@
+
+let f(x) = x*x + 6*x + 9;
+let x = 2;
+
+print "f(x) =", f;
+print "f(2) =", f(x);
+print "f'(2) =", d/dx f(x)
+

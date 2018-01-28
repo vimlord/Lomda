@@ -1,0 +1,11 @@
+
+let square(x) = x*x;
+let factorial(n) = if n is 0 then 1 else n * factorial(n-1);
+let fibonacci(n) = if n < 2 then n else fibonacci(n-1) + fibonacci(n-2);
+
+print "6! =", factorial(6);
+print "Three squared is", square(3);
+print "fib(10) =", fibonacci(10);
+print "sin 3.14 =", (sin 3.14);
+
+
