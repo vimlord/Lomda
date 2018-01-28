@@ -107,8 +107,7 @@ int main(int argc, char *argv[]) {
         program += s;
     } while (file);
 
-    //std::cout << "program:\n" << program << "\n";
-
+    throw_debug("IO", "program: '" + program + "'\n");
     file.close();
 
     display_config();

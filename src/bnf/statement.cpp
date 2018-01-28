@@ -672,6 +672,11 @@ ParsedPrgms parsePemdas(string str, bool ends) {
     res = parseFoldExp(str, ends);
     if (!res->isEmpty()) return res;
 
+    // stdlib-exp
+    delete res;
+    res = parseStdlib(str, ends);
+    if (!res->isEmpty()) return res;
+
     // Parse for derivative
     delete res;
     res = parseDerivative(str, ends);
