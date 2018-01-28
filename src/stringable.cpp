@@ -76,6 +76,9 @@ string ForExp::toString() {
 string IfExp::toString() {
     return "if " + cond->toString() + " then " + tExp->toString() + " else " + fExp->toString();
 }
+string ImportExp::toString() {
+    return "import " + module + (name == module ? "" : (" as " + name)) + (exp ? ("; " + exp->toString()) : "");
+}
 string IntExp::toString() {
     return to_string(val);
 }

@@ -267,6 +267,65 @@ ParsedPrgms parseInsertExp(string str, bool ends) {
     return res;
 }
 
+ParsedPrgms parseImportExp(string str, bool ends) {
+    ParsedPrgms res = new LinkedList<parsed_prgm>;
+    int i, len;
+
+    if ((i = parseLit(str, "import")) < 0) return res;
+    
+    str = str.substr(i);
+    len = i;
+
+    parsed_id module = parseId(str);
+    if (module.len < 0) return res;
+
+    len += module.len;
+    str = str.substr(module.len);
+    
+    // There are three possibilities:
+    // 1) The module is renamed
+    // 2) The module is not renamed, and is followed by code
+    // 3) The import is all that remains
+    
+    string name;
+    if ((i = parseLit(str, "as")) >= 0) {
+        len += i;
+        str = str.substr(i);
+
+        parsed_id name = parseId(str);
+        if (name.len < 0) return res;
+        
+        len += name.len;
+        str = str.substr(name.len);
+    } else
+        name = module.item;
+
+    if ((i = parseLit(str, ";")) >= 0) {
+        len += i;
+        str = str.substr(i);
+
+        // Now, we find every possible branch
+        ParsedPrgms progs = parseProgram(str, ends);
+
+        while (!progs->isEmpty()) {
+            parsed_prgm p = progs->remove(0);
+            
+            p.item = new ImportExp(module.item, name, p.item);
+            p.len += len;
+
+            res->add(0, p);
+        }
+
+    } else if (!ends || parseSpaces(str) == str.length()) {
+        parsed_prgm p;
+        p.item = new ImportExp(module.item, name, NULL);
+        p.len = len;
+        res->add(0, p);
+    }
+
+    return res;
+}
+
 /**
  * <let-exp> ::= 'let' (<id> ('=' | 'equal') <pemdas>)+ ';' <program>
  */

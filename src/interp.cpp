@@ -13,6 +13,8 @@
 #include <cstdlib>
 #include <cmath>
 
+#include <fstream>
+
 using namespace std;
 
 Val run(string program) {
@@ -342,6 +344,53 @@ Val IfExp::valueOf(Env env) {
         return tExp->valueOf(env);
     else
         return fExp->valueOf(env);
+}
+
+Val ImportExp::valueOf(Env env) {
+    // Attempt to open the file
+    ifstream file;
+    file.open("./" + module + ".lom");
+    
+    // Ensure that the file exists
+    if (!file) {
+        throw_err("IO", "could not load module " + module);
+        return NULL;
+    }
+    
+    // Read the program from the input file
+    int i = 0;
+    string program = "";
+    do {
+        string s;
+        getline(file, s);
+
+        if (i++) program += " ";
+        program += s;
+    } while (file);
+
+    throw_debug("module IO", "module " + module + " is defined by '" + program + "'\n");
+    file.close();
+    
+    Val mod = run(program);
+
+    if (mod) {
+        throw_debug("module", "module " + module + " := " + mod->toString());
+        
+        // We will extend the environment with the newly found module
+        env->add_ref();
+        env = new ExtendEnv(name, mod, env);
+
+        Val v = exp->valueOf(env);
+
+        // Garbage collection
+        env->rem_ref();
+
+        return v;
+    } else {
+        throw_err("module", "module " + module + " could not be evaluated");
+        return NULL;
+    }
+
 }
 
 Val InputExp::valueOf(Env env) {

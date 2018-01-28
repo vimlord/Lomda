@@ -113,10 +113,14 @@ ParsedPrgms parseProgram(string str, bool ends) {
 
     // First, parse for a let expression
     prgms = parseLetExp(str, ends);
-    if (prgms->isEmpty()) {
-        delete prgms;
-        prgms = parseSequence(str, ends);
-    }
+    if (!prgms->isEmpty()) return prgms;
+    else delete prgms;
+
+    prgms = parseImportExp(str, ends);
+    if (!prgms->isEmpty()) return prgms;
+    else delete prgms;
+
+    prgms = parseSequence(str, ends);
     return prgms;
 
 }

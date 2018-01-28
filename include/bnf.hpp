@@ -62,6 +62,7 @@ ParsedPrgms parseInsertExp(std::string str, bool = true);
 ParsedPrgms parseRemoveExp(std::string str, bool = true);
 
 ParsedPrgms parseApplyExp(std::string, bool = true);
+ParsedPrgms parseImportExp(std::string, bool = true);
 ParsedPrgms parseLetExp(std::string, bool = true);
 ParsedPrgms parseSetExp(std::string, bool = true);
 ParsedPrgms parsePemdas(std::string, bool = true);

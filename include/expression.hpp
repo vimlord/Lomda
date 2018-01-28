@@ -120,6 +120,27 @@ class IfExp : public Expression {
         int opt_var_usage(std::string x);
 };
 
+class ImportExp : public Expression {
+    private:
+        std::string module;
+        std::string name;
+        Exp exp;
+    public:
+        // import m
+        ImportExp(std::string m, Exp e) : ImportExp(m, m, e) {}
+        // import m as n
+        ImportExp(std::string m, std::string n, Exp e)
+                : module(m), name(n), exp(e) {
+                    // Default behavior: return the expression
+                    if (!e) exp = new VarExp(m);
+        }
+
+        Val valueOf(Env);
+
+        Exp clone() { return new ImportExp(module, name, exp->clone()); }
+        std::string toString();
+};
+
 class InputExp : public Expression {
     public:
         InputExp() {}
