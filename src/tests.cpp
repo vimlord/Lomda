@@ -10,19 +10,21 @@ using namespace std;
 inline string txt_bold(string x) { return "\x1b[1m" + x + "\x1b[0m"; }
 
 int testcase(string x, string y) {
-    cout << txt_bold("Case ") + "'" + x + "': ";
+    cout << "Case '" + x + "'...";
 
     Val v = run(x);
+
+    cout << "\b\b\b ";
     
     if (!v) {
-        cout << "\x1b[31mFailed! (expected: " + y + ", threw error)\x1b[0m\n";
+        cout << "\x1b[31mfailed! (expected: " + y + ", threw error)\x1b[0m\n";
         return 1;
     } else if (v->toString() == y) {
-        cout << "\x1b[32mSuccess!\x1b[0m\n";
+        cout << "\x1b[32mpassed!\x1b[0m\n";
         v->rem_ref();
         return 0;
     } else {
-        cout << "\x1b[31mFailure (expected: " + y + ", got: " + v->toString() + ")\x1b[0m\n";
+        cout << "\x1b[31mfailed! (expected: " + y + ", got: " + v->toString() + ")\x1b[0m\n";
         v->rem_ref();
         return 1;
     }
@@ -49,6 +51,7 @@ int test() {
         // Let-exp
         "let x = 2; x + 3", "5",
         "let f(x) = x*x; f(3)", "9",
+        "let f() = 1; x()", "1",
     
         // Lists
         "[1, 2, 3, 4][2]", "3",
@@ -59,6 +62,8 @@ int test() {
 
         // Explicit typing
         "\"123\" as int", "123",
+        "3.14 isa int", "false",
+        "[1, 2] isa list", "true",
 
     ""};
 
