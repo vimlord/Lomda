@@ -454,6 +454,14 @@ ParsedPrgms parseLetExp(string str, bool ends) {
             if ((i = parseLit(s, ")")) >= 0) {
                 s = s.substr(i);
                 len += i;
+                
+                // Check for equal sign
+                if ((i = parseLit(s, "=")) >= 0) {
+                    s = s.substr(i);
+                    len += i;
+                } else
+                    parsed = false;
+
             } else while (1) {
                  
                 parsed_id arg = parseId(s);
@@ -496,7 +504,7 @@ ParsedPrgms parseLetExp(string str, bool ends) {
                 continue;
             }
 
-           //std::cout << "parse for body in " << s << "\n";
+           std::cout << "parse for body in " << s << "\n";
 
             ParsedPrgms args = parseCodeBlock(s, false);
 
