@@ -1,6 +1,8 @@
 #include "interp.hpp"
 #include "config.hpp"
 
+#include "tests.hpp"
+
 using namespace std;
 
 #include <iostream>
@@ -72,6 +74,9 @@ int main(int argc, char *argv[]) {
             set_werror(true);
         else if (!strcmp(argv[i], "-O") || !strcmp(argv[i], "--optimize")) {
             set_optimize(true);
+        } else if (!strcmp(argv[i], "-t")) {
+            // Run the lang tests
+            return test();
         } else {
             filename = argv[i];
             break;

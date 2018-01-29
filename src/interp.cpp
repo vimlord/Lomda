@@ -978,7 +978,7 @@ Val SequenceExp::valueOf(Env env) {
 Val SetExp::valueOf(Env env) {
     Val v = NULL;
 
-    if (typeid(*exp) == typeid(ListAccessExp)) {
+    if (typeid(*tgt) == typeid(ListAccessExp)) {
         ListAccessExp *acc = (ListAccessExp*) tgt;
         
         Val u = acc->getList()->valueOf(env);
@@ -1019,7 +1019,7 @@ Val SetExp::valueOf(Env env) {
             lst->get()->add(idx, v);
         }
 
-    } else if (typeid(*exp) == typeid(VarExp)) {
+    } else if (typeid(*tgt) == typeid(VarExp)) {
         VarExp *var = (VarExp*) tgt;
         
         v = exp->valueOf(env);
@@ -1028,10 +1028,10 @@ Val SetExp::valueOf(Env env) {
         env->set(var->toString(), v);
 
     } else if (WERROR()) {
-        throw_err("runtime", "assigning to right-handish expression '" + exp->toString() + "' is unsafe");
+        throw_err("runtime", "assigning to right-handish expression '" + tgt->toString() + "' is unsafe");
         return NULL;
     } else {
-        throw_warning("runtime", "assigning to right-handish expression '" + exp->toString() + "' is unsafe");
+        throw_warning("runtime", "assigning to right-handish expression '" + tgt->toString() + "' is unsafe");
         // Get info for modifying the environment
         Val u = tgt->valueOf(env);
         if (!u)
