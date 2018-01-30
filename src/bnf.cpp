@@ -1412,6 +1412,17 @@ ParsedPrgms parsePrimitive(string str, bool ends) {
     if (i > 0 && (!ends || i + parseSpaces(str.substr(i)) == str.length())) {
         parsed_prgm b; b.len = i; b.item = new FalseExp; res->add(0, b); return res;
     }
+
+    // Parse for void-exp
+    i = parseLit(str, "void");
+    if (i > 0 && (!ends || i + parseSpaces(str.substr(i)) == str.length())) {
+        parsed_prgm b; b.len = i; b.item = new VoidExp; res->add(0, b); return res;
+    }
+    // Parse for input-exp
+    i = parseLit(str, "input");
+    if (i > 0 && (!ends || i + parseSpaces(str.substr(i)) == str.length())) {
+        parsed_prgm b; b.len = i; b.item = new InputExp; res->add(0, b); return res;
+    }
     
     // Parse for string literal
     i = parseLit(str, "\"");
@@ -1440,10 +1451,7 @@ ParsedPrgms parsePrimitive(string str, bool ends) {
         // Build and then insert the program structure
         parsed_prgm prgm;
         prgm.len = ends ? str.length() : id.len;
-        if (id.item == "input")
-            prgm.item = new InputExp;
-        else
-            prgm.item = new VarExp(id.item);
+        prgm.item = new VarExp(id.item);
         res->add(0, prgm);
         return res;
     }

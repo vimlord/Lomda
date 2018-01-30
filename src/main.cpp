@@ -16,8 +16,8 @@ void execute(string program) {
     v = unpack_thunk(v);
 
     if (v) {
-        if (VERBOSITY()) cout << "(" << v << ")\n==> " << *v << "\n";
-        else if (typeid(*v) != typeid(VoidVal)) cout << *v << "\n";
+        if (VERBOSITY()) cout << "(" << v << ")\n==> ";
+        cout << *v << "\n";
         v->rem_ref();
     }
 }
