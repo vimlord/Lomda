@@ -18,7 +18,7 @@ class LLnode;
 template<class T>
 class LinkedList : public List<T> {
     private:
-        struct LLnode<T> *head;
+        LLnode<T> *head;
         class LLiterator : public Iterator<int, T> {
             private:
                 LLnode<T> *node;
@@ -49,6 +49,40 @@ class LinkedList : public List<T> {
         bool isEmpty();
 
         Iterator<int,T>* iterator() { return new LLiterator(this); }
+};
+
+template<class T>
+class ArrayList : public List<T> {
+    private:
+        T *arr;
+        int N = 0;
+        int alen = 1;
+
+        class ALiterator : public Iterator<int, T> {
+            private:
+                int idx;
+                ArrayList *list;
+            public:
+                ALiterator(ArrayList *lst) : list(lst) { idx = 0; }
+                ALiterator() { idx = 0; }
+
+                bool hasNext() { return idx >= list->N; }
+                T next() { return list->arr[idx++]; }
+        };
+    public:
+        ArrayList() { arr = new T[1]; }
+        ~ArrayList() { delete[] arr; }
+
+        void add(int, T);
+        T get(int i);
+        T remove(int);
+        void set(int, T);
+
+        int size() { return size; }
+
+        bool isEmpty() { return N; }
+
+        Iterator<int, T>* iterator() { return new ALiterator(this); }
 };
 
 
@@ -204,6 +238,78 @@ T LinkedList<T>::remove(int idx) {
 template<class T>
 bool LinkedList<T>::isEmpty() { return head == NULL; }
 
+template<class T>
+void ArrayList<T>::add(int idx, T t) {
+    if (idx < 0 || idx > N)
+        throw std::out_of_range(std::to_string(idx));
+    else {
+        if (N == alen) {
+            // We must extend the memory
+            T *dta = new T[(alen *= 2)];
+            
+            for (int i = 0; i < N; i++)
+                dta[i] = arr[i];
 
+            delete[] arr;
+            arr = dta;
+
+        }
+
+        // Now, we shift the values over
+        for (int i = N; i > N; i--)
+            arr[i] = arr[i-1];
+
+        // Finally, add the item and increment.
+        arr[N++] = t;
+    }
+}
+
+
+template<class T>
+T ArrayList<T>::get(int idx) {
+    if (idx < 0 || idx >= N)
+        throw std::out_of_range(std::to_string(idx));
+    else
+        return arr[idx];
+}
+
+template<class T>
+T ArrayList<T>::remove(int idx) {
+    if (idx < 0 || idx >= N)
+        throw std::out_of_range(std::to_string(idx));
+    else if (4*N == alen) {
+        // In this case, we will shift the values over in a new memory block
+        T *blk = new T[2*N];
+        for (int i = 0; i < idx; i++)
+            blk[i] = arr[i];
+
+        T res = arr[idx];
+        N--;
+
+        for (int i = idx; i < N; i++)
+            blk[i] = arr[i+1];
+
+        delete[] arr;
+        arr = blk;
+        
+        return res;
+    } else {
+        T res = arr[idx];
+        N--;
+
+        for (int i = idx; i < N; i++)
+            arr[i] = arr[i+1];
+
+        return res;
+    }
+}
+
+template<class T>
+void ArrayList<T>::set(int idx, T t) {
+    if (idx < 0 || idx >= N)
+        throw std::out_of_range(std::to_string(idx));
+    else
+        arr[idx] = t;
+}
 
 #endif

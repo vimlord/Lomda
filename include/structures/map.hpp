@@ -1,6 +1,8 @@
 #ifndef _STRUCTURES_MAP_HPP_
 #define _STRUCTURES_MAP_HPP_
 
+#include <string>
+
 template<class K, class V>
 class Map {
     public:
