@@ -4,6 +4,27 @@
 #include "baselang/expression.hpp"
 #include "value.hpp"
 
+// Dictionary generator
+class DictExp : public Expression {
+    private:
+        LinkedList<std::string> *keys;
+        LinkedList<Exp> *vals;
+    public:
+        DictExp() : keys(new LinkedList<std::string>), vals(new LinkedList<Exp>) {}
+        DictExp(LinkedList<std::string> *ks, LinkedList<Exp> *vs) : keys(ks), vals(vs) {}
+        
+        ~DictExp() {
+            delete keys;
+            while (!vals->isEmpty()) delete vals->remove(0);
+            delete vals;
+        }
+
+        Val valueOf(Env);
+        
+        Exp clone();
+        std::string toString();
+};
+
 // Generates false
 class FalseExp : public Expression {
     public:

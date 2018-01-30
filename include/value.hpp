@@ -18,6 +18,33 @@ class BoolVal : public Value {
         int set(Value*);
 };
 
+class DictVal : public Value {
+    private: 
+        LinkedList<std::string> *keys;
+        LinkedList<Val> *vals;
+    public:
+        DictVal() {
+            keys = new LinkedList<std::string>;
+            vals = new LinkedList<Val>;
+        }
+        DictVal(LinkedList<std::string> *ks, LinkedList<Val> *vs) {
+            keys = ks;
+            vals = vs;
+        }
+        ~DictVal() {
+            delete keys;
+            while (!vals->isEmpty()) vals->remove(0)->rem_ref();
+            delete vals;
+        }
+
+        LinkedList<std::string>* getKeys() { return keys; }
+        LinkedList<Val>* getVals() { return vals; }
+
+        std::string toString();
+        DictVal* clone();
+        int set(Value*);
+};
+
 class IntVal : public Value {
     private:
         int val;

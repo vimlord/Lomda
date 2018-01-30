@@ -32,6 +32,31 @@ int BoolVal::set(Val v) {
     } else return 1;
 }
 
+DictVal* DictVal::clone() {
+
+    auto ks = new LinkedList<std::string>;
+    auto vs = new LinkedList<Val>;
+    
+    // Keys
+    auto kt = keys->iterator();
+    while (kt->hasNext())
+        ks->add(ks->size(), kt->next());
+    delete kt;
+    
+    // Vals
+    auto vt = vals->iterator();
+    while (vt->hasNext()) {
+        Val v = vt->next();
+        v->add_ref();
+        vs->add(vs->size(), v);
+    }
+    delete vt;
+    
+    // Build the result
+    return new DictVal(ks, vs);
+}
+int DictVal::set(Val) { return 1; } // We will not allow setting of fields
+
 // Integers
 IntVal::IntVal(int n) { val = n; }
 int IntVal::get() { return val; }

@@ -51,10 +51,15 @@ int test() {
         // Let-exp
         "let x = 2; x + 3", "5",
         "let f(x) = x*x; f(3)", "9",
-        "let f() = 1; x()", "1",
+        "let f() = 1; f()", "1",
     
         // Lists
         "[1, 2, 3, 4][2]", "3",
+
+        // Dictionary
+        "{x:1,y:2}", "{x : 1, y : 2}",
+        "{}", "{}",
+        "let A = {x:1, y:2}; A[\"x\"] = A[\"y\"]; A", "{x : 2, y : 2}",
         
         // Loops
         "let x = 0; for i in [1, 2, 3] x = x + i; x", "6",

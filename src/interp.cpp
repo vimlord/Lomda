@@ -230,6 +230,30 @@ Val DerivativeExp::valueOf(Env env) {
     return res;
 }
 
+Val DictExp::valueOf(Env env) {
+    LinkedList<string> *ks = new LinkedList<string>;
+    LinkedList<Val> *vs = new LinkedList<Val>;
+
+    DictVal *res = new DictVal(ks, vs);
+    
+    auto kt = keys->iterator();
+    auto vt = vals->iterator();
+
+    while (kt->hasNext()) {
+        Val v = vt->next()->valueOf(env);
+        if (!v) {
+            delete res;
+            return NULL;
+        }
+
+        ks->add(ks->size(), kt->next());
+        vs->add(vs->size(), v);
+    }
+
+    return res;
+
+}
+
 Val FalseExp::valueOf(Env env) { return new BoolVal(false); }
 
 Val FoldExp::valueOf(Env env) {
@@ -527,8 +551,12 @@ Val ListAccessExp::valueOf(Env env) {
 
     if (!f)
         return NULL;
-    else if (typeid(*f) != typeid(ListVal) && typeid(*f) != typeid(StringVal)) {
-        throw_type_err(list, "list or string");
+    else if (
+    typeid(*f) != typeid(ListVal) &&
+    typeid(*f) != typeid(DictVal) &&
+    typeid(*f) != typeid(StringVal)
+    ) {
+        throw_type_err(list, "dict, list, or string");
         return NULL;
     }
     
@@ -536,19 +564,18 @@ Val ListAccessExp::valueOf(Env env) {
     Val index = idx->valueOf(env);
     index = unpack_thunk(index);
 
-    if (!index) return NULL;
-    else if (typeid(*index) != typeid(IntVal)) {
-        throw_type_err(idx, "integer");
-        return NULL;
-    }
-    int i = ((IntVal*) index)->get();
-    
-    // GC of the index
-    index->rem_ref();
+    if (!index) return NULL;  
 
     if (typeid(*f) == typeid(ListVal)) {
         // The list
         List<Val> *vals = ((ListVal*) f)->get();
+
+        if (typeid(*index) != typeid(IntVal)) {
+                throw_type_err(idx, "integer");
+                return NULL;
+        }
+        int i = ((IntVal*) index)->get();
+        index->rem_ref();
         
         // Bound check
         if (i < 0 || i >= vals->size()) {
@@ -565,9 +592,49 @@ Val ListAccessExp::valueOf(Env env) {
 
         return v;
     
+    } else if (typeid(*f) == typeid(DictVal)) {
+
+        if (typeid(*index) != typeid(StringVal)) {
+            index->rem_ref();
+            throw_type_err(idx, "string");
+            return NULL;
+        }
+        string i = ((StringVal*) index)->get();
+        index->rem_ref();
+        
+        // Keys
+        auto keys = ((DictVal*) f)->getKeys();
+        auto vals = ((DictVal*) f)->getVals();
+
+        auto kt = keys->iterator();
+        auto vt = vals->iterator();
+
+        while (kt->hasNext()) {
+            if (kt->next() == i) {
+                Val v = vt->next();
+                delete kt;
+                delete vt;
+                return v;
+            }
+            vt->next();
+        }
+
+        throw_err("runtime", "dictionary defined by '" + f->toString() + "' does not contain key \"" + i + "\"");
+
+        delete kt;
+        delete vt;
+        return NULL;
+
     } else {
         // The string
         string s = f->toString();
+        
+        if (typeid(*index) != typeid(IntVal)) {
+                throw_type_err(idx, "integer");
+                return NULL;
+        }
+        int i = ((IntVal*) index)->get();
+        index->rem_ref();
 
         // Bound check
         if (i < 0 || i >= s.length()) {
@@ -984,39 +1051,94 @@ Val SetExp::valueOf(Env env) {
         Val u = acc->getList()->valueOf(env);
         if (!u) {
             return NULL;
-        } else if (typeid(*u) != typeid(ListVal)) {
-            u->rem_ref();
-            return NULL;
-        }
+        } else if (typeid(*u) == typeid(ListVal)) { 
 
-        ListVal *lst = (ListVal*) u;
+            ListVal *lst = (ListVal*) u;
 
-        Val index = acc->getIdx()->valueOf(env);
-        if (!index) {
-            u->rem_ref();
-            return NULL;
-        }
+            Val index = acc->getIdx()->valueOf(env);
+            if (!index) {
+                u->rem_ref();
+                return NULL;
+            }
 
-        if (typeid(*index) != typeid(IntVal)) {
+            if (typeid(*index) != typeid(IntVal)) {
+                throw_type_err(acc->getIdx(), "integer");
+                index->rem_ref();
+                u->rem_ref();
+                return NULL;
+            }
+
+            int idx = ((IntVal*) index)->get();
             index->rem_ref();
-            u->rem_ref();
-            return NULL;
-        }
+            
+            if (idx < 0 || lst->get()->size() <= idx) {
+                u->rem_ref();
+                return NULL;
+            }
+            
+            if (!(v = exp->valueOf(env))) {
+                u->rem_ref();
+                return NULL;
+            } else {
+                lst->get()->remove(idx)->rem_ref();
+                lst->get()->add(idx, v);
+                lst->rem_ref();
+            }
+        
+        } else if (typeid(*u) == typeid(DictVal)) {
+            
+            auto lst = (DictVal*) u;
 
-        int idx = ((IntVal*) index)->get();
-        index->rem_ref();
-        
-        if (idx < 0 || lst->get()->size() <= idx) {
+            Val index = acc->getIdx()->valueOf(env);
+            if (!index) {
+                u->rem_ref();
+                return NULL;
+            }
+
+            if (typeid(*index) != typeid(StringVal)) {
+                throw_type_err(acc->getIdx(), "string");
+                index->rem_ref();
+                u->rem_ref();
+                return NULL;
+            }
+
+            string idx = ((StringVal*) index)->get();
+            index->rem_ref();
+
+            auto keys = lst->getKeys();
+            auto vals = lst->getVals();
+
+            auto kt = keys->iterator();
+            auto vt = vals->iterator();
+
+            bool done = false;
+            if (!(v = exp->valueOf(env))) {
+                u->rem_ref();
+                return NULL;
+            }
+            
+            for (int i = 0; !done && kt->hasNext(); i++) {
+                if (kt->next() == idx) {
+                    // Reassign
+                    vals->remove(i)->rem_ref();
+                    vals->add(i, v);
+                    done = true;
+                }
+            }
+
+            delete kt;
+            delete vt;
             u->rem_ref();
-            return NULL;
-        }
-        
-        if (!(v = exp->valueOf(env))) {
-            u->rem_ref();
-            return NULL;
+            
+            // On failure, new element
+            if (!done) {
+                keys->add(0, idx);
+                vals->add(0, v);
+            }
+           
         } else {
-            lst->get()->remove(idx)->rem_ref();
-            lst->get()->add(idx, v);
+            u->rem_ref();
+            return NULL;
         }
 
     } else if (typeid(*tgt) == typeid(VarExp)) {

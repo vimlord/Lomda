@@ -41,6 +41,21 @@ string DerivativeExp::toString() {
     );
     return s;
 }
+string DictVal::toString() {
+    string s = "{";
+
+    auto kt = keys->iterator();
+    auto vt = vals->iterator();
+
+    for (bool b = false; kt->hasNext(); b = true) {
+        if (b) s += ", ";
+        s += kt->next() + " : " + vt->next()->toString();
+    }
+
+    s += "}";
+
+    return s;
+}
 string DiffExp::toString() {
     return left->toString() + " - " + right->toString();
 }
@@ -243,6 +258,21 @@ string ExtendEnv::toString() {
 /* VALUES */
 
 string BoolVal::toString() { return val ? "true" : "false"; }
+string DictExp::toString() {
+    string s = "{";
+
+    auto kt = keys->iterator();
+    auto vt = vals->iterator();
+
+    for (bool b = false; kt->hasNext(); b = true) {
+        if (b) s += ", ";
+        s += kt->next() + " : " + vt->next()->toString();
+    }
+
+    s += "}";
+
+    return s;
+}
 string IntVal::toString() { return to_string(val); }
 string LambdaVal::toString() {
     string s =  "λ";

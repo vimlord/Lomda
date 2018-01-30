@@ -201,6 +201,180 @@ LinkedList<struct arglist>* parseArgList(string str, bool ends) {
 
 }
 
+ParsedPrgms parseDictExp(string str, bool ends) {
+    ParsedPrgms res = new LinkedList<parsed_prgm>;
+
+    int i;
+    
+    i = parseLit(str, "{");
+    if (i < 0) {
+        // This is not a let expression
+        return res;
+    } else {
+        string s = str.substr(i);
+        int j;
+        if ((j = parseLit(s, "}")) >= 0) {
+            s = s.substr(j);
+            if (!ends || parseSpaces(s) == s.length()) {
+                parsed_prgm prgm;
+                prgm.item = new DictExp();
+                prgm.len = i + j;
+
+                res->add(0, prgm);
+            }
+            return res;
+        }
+    }
+
+    struct arglist lst;
+    lst.len = i;
+    lst.list = new LinkedList<struct arg>;
+    
+    // The list of arglists
+    LinkedList<struct arglist> options;
+    options.add(0, lst);
+
+    // The list of complete arglists
+    LinkedList<struct arglist> lists;
+    
+    // Parse for arguments
+    while (!options.isEmpty()) {
+        // Get an argument list option
+        lst = options.remove(0);
+        string s = str.substr(lst.len);
+
+        int len = 0;
+
+        //std::cout << "parse for dict arg in '" << s << "'\n";
+        
+        // Parse the identifier
+        parsed_id d_id = parseId(s);
+        if (d_id.len < 0) {
+            while (!lst.list->isEmpty()) delete lst.list->remove(0).exp;
+            delete lst.list;
+            continue;
+        } else {
+            s = s.substr(d_id.len);
+            len += d_id.len;
+        }
+        
+        // Parse literal
+        if ((i = parseLit(s, ":")) >= 0) {
+            // Progress the string
+            s = s.substr(i);
+            len += i;
+
+            // Parse all possible expressions
+            ParsedPrgms args = parsePemdas(s, false);
+
+            if (args->isEmpty()) {
+                // No possible way to parse arguments
+                delete args;
+                delete lst.list;
+                continue;
+            }
+
+            // Act on each possible branch
+            while (!args->isEmpty()) {
+                parsed_prgm prgm = args->remove(0);
+
+                struct arglist newlst;
+                newlst.len = lst.len + len + prgm.len;
+
+                // Rebuild the list
+                newlst.list = new LinkedList<struct arg>;
+                
+                // Add each item from the old list
+                Iterator<int, struct arg> *lstit = lst.list->iterator();
+                i = 0;
+                while (lstit->hasNext()) newlst.list->add(i++, lstit->next());
+                delete lstit;
+
+                // Append the newest expression
+                struct arg arg;
+                arg.id = d_id.item;
+                arg.exp = prgm.item;
+                newlst.list->add(i, arg);
+
+                // Next, we want to split into three categories:
+                // (0) : Semicolon immediately follows: end the let
+                // (1) : Comma immediately follows: there is more to parse
+                // (2) : Otherwise, the tree is bad
+                string st = s.substr(prgm.len);
+                int semi = parseLit(st, "}"); // Perhaps we reached a semicolon terminator?
+                int comm = parseLit(st, ","); // Maybe we reached a comma separator?
+
+                if (semi < 0 && comm < 0) { // If not, the usage is illegal
+                    delete newlst.list;
+                    continue;
+                } else {
+                    // Adjust the length
+                    newlst.len += semi > comm ? semi : comm;
+
+                    //std::cout << "arg list defines " << arg.id << " as " << *(arg.exp) << "\n";
+
+                    // Now, we add this argument list as an option. Adding to the
+                    // front results in DFS, placing at end is approximately BFS.
+                    if (semi > comm) {
+                        //std::cout << "completed an argument list\n";
+                        lists.add(0, newlst);
+                    } else {
+                        //std::cout << "argument list is incomplete\n";
+                        options.add(0, newlst);
+                    }
+                }
+            }
+
+            delete args;
+            delete lst.list;
+
+        } else {
+            while (!lst.list->isEmpty()) delete lst.list->remove(0).exp;
+            delete lst.list;
+        }
+
+    }
+
+    //std::cout << "let-exp candidates: " << lists.size() << "\n";
+    
+    while (!lists.isEmpty()) {
+        lst = lists.remove(0);
+        string s = str.substr(lst.len);
+
+        if (ends && parseSpaces(s) != s.length()) {
+            while (!lst.list->isEmpty()) delete lst.list->remove(0).exp;
+            delete lst.list;
+            continue;
+        }
+
+        auto keys = new LinkedList<string>;
+        auto vals = new LinkedList<Exp>;
+        
+        auto lit = lst.list->iterator();
+        for (i = 0; lit->hasNext(); i++) {
+            struct arg a = lit->next();
+            keys->add(i, a.id);
+            vals->add(i, a.exp);
+        }
+        delete lit;
+        
+        parsed_prgm prgm;
+        prgm.item = new DictExp(keys, vals); // Collapse into target
+        prgm.len = lst.len;
+        //std::cout << "Found dict-exp '" << *(prgm.item) << "' (len: " << prgm.len << ")\n";
+        //std::cout << "Remaining: '" << s << "'\n";
+        
+        // Add the result
+        res->add(0, prgm);
+
+        delete lst.list;
+    }
+
+    return res;
+}
+
+
+
 /**
  * <codeblk> ::= '{' <program> '}' | <statement>
  */
@@ -1194,6 +1368,11 @@ ParsedPrgms parsePrimitive(string str, bool ends) {
 
     // Parse for list-exp
     tmp = parseListExp(str, ends);
+    if (!tmp->isEmpty()) return tmp;
+    delete tmp;
+
+    // Parse for dict-exp
+    tmp = parseDictExp(str, ends);
     if (!tmp->isEmpty()) return tmp;
     delete tmp;
 
