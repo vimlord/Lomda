@@ -602,28 +602,13 @@ Val ListAccessExp::valueOf(Env env) {
         string i = ((StringVal*) index)->get();
         index->rem_ref();
         
-        // Keys
-        auto keys = ((DictVal*) f)->getKeys();
-        auto vals = ((DictVal*) f)->getVals();
-
-        auto kt = keys->iterator();
-        auto vt = vals->iterator();
-
-        while (kt->hasNext()) {
-            if (kt->next() == i) {
-                Val v = vt->next();
-                delete kt;
-                delete vt;
-                return v;
-            }
-            vt->next();
-        }
-
-        throw_err("runtime", "dictionary defined by '" + f->toString() + "' does not contain key \"" + i + "\"");
-
-        delete kt;
-        delete vt;
-        return NULL;
+        Val v = ((DictVal*) f)->apply(i);
+        
+        // We will return a void-exp on failure.
+        if (!v)
+            v = new VoidVal;
+        
+        return v;
 
     } else {
         // The string

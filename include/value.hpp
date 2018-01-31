@@ -40,6 +40,8 @@ class DictVal : public Value {
         LinkedList<std::string>* getKeys() { return keys; }
         LinkedList<Val>* getVals() { return vals; }
 
+        Val apply(std::string);
+
         std::string toString();
         DictVal* clone();
         int set(Value*);

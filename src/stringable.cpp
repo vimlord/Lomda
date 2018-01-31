@@ -163,7 +163,7 @@ string MagnitudeExp::toString() {
     return "|" + exp->toString() + "|";
 }
 string MapExp::toString() {
-    return "map " + list->toString() + " to " + func->toString();
+    return "map " + list->toString() + " over " + func->toString();
 }
 string MultExp::toString() {
     return left->toString() + " * " + right->toString();
@@ -173,6 +173,9 @@ string NormExp::toString() {
 }
 string NotExp::toString() {
     return "not " + exp->toString();
+}
+string OrExp::toString() {
+    return left->toString() + " or " + right->toString();
 }
 string PrintExp::toString() {
     string s = "print";

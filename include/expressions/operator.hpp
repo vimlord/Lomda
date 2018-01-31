@@ -30,6 +30,19 @@ class AndExp : public OperatorExp {
         std::string toString();
 };
 
+class OrExp : public OperatorExp {
+    public:
+        using OperatorExp::OperatorExp;
+        Val op(Val, Val);
+        
+        Val derivativeOf(std::string, Env, Env);
+
+        Exp clone() { return new OrExp(left->clone(), right->clone()); }
+        std::string toString();
+};
+
+
+
 class DiffExp : public OperatorExp {
     public:
         using OperatorExp::OperatorExp;

@@ -56,6 +56,27 @@ DictVal* DictVal::clone() {
     return new DictVal(ks, vs);
 }
 int DictVal::set(Val) { return 1; } // We will not allow setting of fields
+Val DictVal::apply(string s) {
+    auto kt = keys->iterator();
+    auto vt = vals->iterator();
+
+    while (kt->hasNext()) {
+        string k = kt->next();
+        Val v = vt->next();
+
+        if (k == s) {
+            delete kt;
+            delete vt;
+
+            return v;
+        }
+    }
+
+    delete kt;
+    delete vt;
+    
+    return NULL;
+}
 
 // Integers
 IntVal::IntVal(int n) { val = n; }
