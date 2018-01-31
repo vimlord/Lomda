@@ -45,6 +45,12 @@ Val DiffExp::op(Value *a, Value *b) {
         typeid(*b) == typeid(LambdaVal)) {
         throw_err("runtime", "subtraction is not defined on lambdas or booleans\nsee:\n" + right->toString());
         return NULL;
+    } else if (typeid(*a) == typeid(DictVal)) {
+        throw_err("runtime", "subtraction is not defined on dictionaries\nsee:\n" + left->toString());
+        return NULL;
+    } else if (typeid(*b) == typeid(DictVal)) {
+        throw_err("runtime", "subtraction is not defined on dictionaries\nsee:\n" + right->toString());
+        return NULL;
     } else if (typeid(*a) == typeid(ListVal)) {
         if (typeid(*b) == typeid(ListVal)) {
             // Concatenate the two lists
@@ -109,6 +115,12 @@ Val DivExp::op(Value *a, Value *b) {
         typeid(*b) == typeid(LambdaVal)) {
         throw_err("runtime", "division is not defined on lambdas or booleans\nsee:\n" + right->toString());
         return NULL;
+    }else if (typeid(*a) == typeid(DictVal) || typeid(*a) == typeid(ListVal)) {
+        throw_err("runtime", "division is not defined on data structures\nsee:\n" + left->toString());
+        return NULL;
+    } else if (typeid(*b) == typeid(DictVal) || typeid(*b) == typeid(ListVal)) {
+        throw_err("runtime", "division is not defined on data structures\nsee:\n" + right->toString());
+        return NULL;
     }
     
     // The lhs is numerical
@@ -140,11 +152,11 @@ Val CompareExp::op(Value *a, Value *b) {
     } else if(typeid(*b) == typeid(LambdaVal)) {
         throw_err("runtime", "equality checking is not defined on lambdas\nsee:\n" + right->toString());
         return NULL;
-    } else if (typeid(*a) == typeid(ListVal)) {
-        throw_err("runtime", "equality checking is not defined on lists\nsee:\n" + left->toString());
+    } else if (typeid(*a) == typeid(ListVal) || typeid(*a) == typeid(DictVal)) {
+        throw_err("runtime", "equality checking is not defined on data structures\nsee:\n" + left->toString());
         return NULL;
-    } else if (typeid(*b) == typeid(ListVal)) {
-        throw_err("runtime", "equality checking is not defined on lists\nsee:\n" + right->toString());
+    } else if (typeid(*b) == typeid(ListVal) || typeid(*b) == typeid(DictVal)) {
+        throw_err("runtime", "equality checking is not defined on data structures\nsee:\n" + right->toString());
         return NULL;
     } else if (typeid(*a) == typeid(VoidVal) && typeid(*b) == typeid(VoidVal)) {
         return new BoolVal(operation == CompOp::EQ);
@@ -437,12 +449,16 @@ Val dot_table(ListVal *a, ListVal *b, int order) {
 Val MultExp::op(Value *a, Value *b) {
 
     if (typeid(*a) == typeid(BoolVal) ||
-        typeid(*a) == typeid(LambdaVal)) {
-        throw_err("runtime", "multiplication is not defined on lambdas or booleans\nsee:\n" + left->toString());
+        typeid(*a) == typeid(LambdaVal) ||
+        typeid(*a) == typeid(DictVal)
+    ) {
+        throw_err("runtime", "multiplication is not defined on dictionaries, lambdas or booleans\nsee:\n" + left->toString());
         return NULL;
     } else if (typeid(*b) == typeid(BoolVal) ||
-        typeid(*b) == typeid(LambdaVal)) {
-        throw_err("runtime", "multiplication is not defined on lambdas or booleans\nsee:\n" + right->toString());
+        typeid(*b) == typeid(LambdaVal) ||
+        typeid(*b) == typeid(DictVal)
+    ) {
+        throw_err("runtime", "multiplication is not defined on dictionaries, lambdas or booleans\nsee:\n" + right->toString());
         return NULL;
     } else if (typeid(*a) == typeid(ListVal)) {
 
@@ -475,27 +491,6 @@ Val MultExp::op(Value *a, Value *b) {
                     throw_err("runtime", "multiplication is not defined on non-matching lists (see: " + toString() + ")");
                 else
                     throw_err("runtime", "multiplication is not defined on non-matching lists (see: " + (left ? left->toString() : a->toString()) + " * " + (right ? right->toString() : b->toString()) + ")");
-                
-                // TODO: Remove
-                Val V;
-                V = a;
-                for (int i = 0; typeid(*V) == typeid(ListVal); i++) {
-                    if (i) std::cout << "x";
-                    std::cout << ((ListVal*) V)->get()->size();
-                    V = ((ListVal*) V)->get()->get(0);
-                }
-                
-                std::cout << " by ";
-
-                V = b;
-                for (int i = 0; typeid(*V) == typeid(ListVal); i++) {
-                    if (i) std::cout << "x";
-                    std::cout << ((ListVal*) V)->get()->size();
-                    V = ((ListVal*) V)->get()->get(0);
-                }
-
-                std::cout << "\n";
-
             }
 
             return res;
@@ -597,6 +592,12 @@ Val SumExp::op(Value *a, Value *b) {
         Stringable *l = left ? (Stringable*) left : (Stringable*) a;
         Stringable *r = right ? (Stringable*) right : (Stringable*) b;
         throw_err("runtime", "type of '" + l->toString() + "' and '" + r->toString() + "' do not properly match");
+        return NULL;
+    } else if (typeid(*a) == typeid(DictVal)) {
+        throw_err("runtime", "addition is not defined on dictionaries\nsee:\n" + left->toString());
+        return NULL;
+    } else if (typeid(*b) == typeid(DictVal)) {
+        throw_err("runtime", "addition is not defined on dictionaries\nsee:\n" + right->toString());
         return NULL;
     }
 
