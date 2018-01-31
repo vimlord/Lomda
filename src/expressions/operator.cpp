@@ -140,7 +140,18 @@ Val CompareExp::op(Value *a, Value *b) {
     } else if(typeid(*b) == typeid(LambdaVal)) {
         throw_err("runtime", "equality checking is not defined on lambdas\nsee:\n" + right->toString());
         return NULL;
+    } else if (typeid(*a) == typeid(ListVal)) {
+        throw_err("runtime", "equality checking is not defined on lists\nsee:\n" + left->toString());
+        return NULL;
+    } else if (typeid(*b) == typeid(ListVal)) {
+        throw_err("runtime", "equality checking is not defined on lists\nsee:\n" + right->toString());
+        return NULL;
+    } else if (typeid(*a) == typeid(VoidVal) && typeid(*b) == typeid(VoidVal)) {
+        return new BoolVal(operation == CompOp::EQ);
+    } else if (typeid(*a) == typeid(VoidVal) || typeid(*b) == typeid(VoidVal)) {
+        return new BoolVal(false);
     }
+
 
     auto A =
         typeid(*a) == typeid(BoolVal)
