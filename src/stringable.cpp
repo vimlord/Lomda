@@ -163,7 +163,7 @@ string MagnitudeExp::toString() {
     return "|" + exp->toString() + "|";
 }
 string MapExp::toString() {
-    return "map " + list->toString() + " over " + func->toString();
+    return "map " + func->toString() + " over " + list->toString();
 }
 string MultExp::toString() {
     return left->toString() + " * " + right->toString();
