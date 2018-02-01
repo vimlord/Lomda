@@ -79,7 +79,7 @@ Val DiffExp::op(Value *a, Value *b) {
         } else  {
             Stringable *l = left ? (Stringable*) left : (Stringable*) a;
             Stringable *r = right ? (Stringable*) right : (Stringable*) b;
-            throw_err("runtime", "type of '" + l->toString() + "' and '" + r->toString() + "' do not properly match");
+            throw_err("runtime", "addition is not defined between " + l->toString() + " and " + r->toString());
             return NULL;
         }
     } else if (val_is_number(a) && val_is_number(b)) {
@@ -95,7 +95,7 @@ Val DiffExp::op(Value *a, Value *b) {
             return new IntVal(z);
 
     } else {
-        throw_err("runtime", "addition is not defined between " + left->toString() + " and " + right->toString());
+        throw_err("runtime", "subtraction is not defined between " + left->toString() + " and " + right->toString());
         return NULL;
     }
 
@@ -524,7 +524,7 @@ Val SumExp::op(Value *a, Value *b) {
         } else  {
             Stringable *l = left ? (Stringable*) left : (Stringable*) a;
             Stringable *r = right ? (Stringable*) right : (Stringable*) b;
-            throw_err("runtime", "type of '" + l->toString() + "' and '" + r->toString() + "' do not properly match");
+            throw_err("runtime", "addition is not defined between " + l->toString() + " and " + r->toString());
             return NULL;
         }
     } else if (val_is_number(a) && val_is_number(b)) {
@@ -540,7 +540,7 @@ Val SumExp::op(Value *a, Value *b) {
             return new IntVal(z);
 
     } else {
-        throw_err("runtime", "subtraction is not defined between " + left->toString() + " and " + right->toString());
+        throw_err("runtime", "addition is not defined between " + left->toString() + " and " + right->toString());
         return NULL;
     }
 

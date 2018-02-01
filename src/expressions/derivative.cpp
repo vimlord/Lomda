@@ -114,6 +114,10 @@ Val AndExp::derivativeOf(string x, Env env, Env denv) {
     throw_calc_err(this);
     return NULL;
 }
+Val OrExp::derivativeOf(string x, Env env, Env denv) {
+    throw_calc_err(this);
+    return NULL;
+}
 
 Val ApplyExp::derivativeOf(string x, Env env, Env denv) {
     // d/dx f(u1(x), u2(x), ...) = df/du1 * du1/dx + df/du2 * du2/dx + ...
