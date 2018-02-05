@@ -5,7 +5,7 @@
 
 #include "value.hpp"
 
-class EmptyEnv : public Environment {
+class EmptyEnv : public Environment<Value> {
     public:
         EmptyEnv();
         ~EmptyEnv();
@@ -24,7 +24,7 @@ class EmptyEnv : public Environment {
         std::string toString();
 };
 
-class ExtendEnv : public Environment {
+class ExtendEnv : public Environment<Value> {
     private:
         // Identifier -> Value mapping
         std::string id;

@@ -15,7 +15,7 @@ class BoolVal : public Value {
         bool get();
         std::string toString();
         BoolVal* clone() { return new BoolVal(val); }
-        int set(Value*);
+        int set(Val);
 };
 
 class DictVal : public Value {
@@ -44,7 +44,7 @@ class DictVal : public Value {
 
         std::string toString();
         DictVal* clone();
-        int set(Value*);
+        int set(Val);
 };
 
 class IntVal : public Value {
@@ -55,7 +55,7 @@ class IntVal : public Value {
         int get();
         std::string toString();
         IntVal* clone() { return new IntVal(val); }
-        int set(Value*);
+        int set(Val);
 };
 
 // Represents a closure
@@ -63,21 +63,21 @@ class LambdaVal : public Value {
     private:
         std::string *xs;
         Expression *exp;
-        Environment *env;
+        Env env;
     public:
-        LambdaVal(std::string*, Expression*, Environment* = NULL);
+        LambdaVal(std::string*, Expression*, Env = NULL);
         ~LambdaVal();
         std::string toString();
-        Value* apply(Value **xs, Environment *e = NULL);
+        Val apply(Value **xs, Env e = NULL);
         LambdaVal* clone();
-        int set(Value*);
+        int set(Val);
 
         std::string* getArgs() { return xs; }
 
         Expression* getBody() { return exp; }
         
-        Environment* getEnv() { return env; }
-        void setEnv(Environment*);
+        Env getEnv() { return env; }
+        void setEnv(Env);
 };
 
 class ListVal : public Value {
@@ -85,15 +85,15 @@ class ListVal : public Value {
     // some form of map value in order to generalize certain
     // behaviors.
     private:
-        List<Value*> *list;
+        List<Val> *list;
     public:
-        ListVal() { list = new LinkedList<Value*>(); }
-        ListVal(List<Value*> *l) : list(l) {}
+        ListVal() { list = new LinkedList<Val>(); }
+        ListVal(List<Val> *l) : list(l) {}
         ~ListVal();
 
-        List<Value*>* get() { return list; }
+        List<Val>* get() { return list; }
         ListVal* clone();
-        int set(Value*);
+        int set(Val);
 
         std::string toString();
 };
@@ -104,7 +104,7 @@ class RealVal : public Value {
     public:
         RealVal(float = 0);
         float get();
-        int set(Value*);
+        int set(Val);
 
         std::string toString();
         RealVal* clone() { return new RealVal(val); }
@@ -117,7 +117,7 @@ class StringVal : public Value {
         StringVal(std::string s) : val(s) {}
 
         std::string get() { return val; }
-        int set(Value*);
+        int set(Val);
 
         std::string toString();
         StringVal* clone() { return new StringVal(val); }
@@ -133,7 +133,7 @@ class Thunk : public Value {
         ~Thunk() { delete exp; if (val) val->rem_ref(); if (env) env->rem_ref(); }
         
         Val get(Env e = NULL);
-        int set(Value*);
+        int set(Val);
 
         std::string toString();
         Thunk* clone() { if (val) val->add_ref(); return new Thunk(exp->clone(), env->clone(), val); }
@@ -143,7 +143,7 @@ class VoidVal : public Value {
     public:
         std::string toString() { return "void"; }
         VoidVal* clone() { return new VoidVal; }
-        int set(Value* v) { return typeid(*v) == typeid(VoidVal); }
+        int set(Val v) { return typeid(*v) == typeid(VoidVal); }
 };
 
 #endif

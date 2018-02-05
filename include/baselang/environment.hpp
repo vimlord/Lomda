@@ -14,6 +14,7 @@
 typedef List<Value*> Store;
 
 // Interface for environments.
+template<class T>
 class Environment : public Stringable, public Reffable {
     protected:
         // The majority of environments have subenvironments
@@ -26,7 +27,7 @@ class Environment : public Stringable, public Reffable {
          *
          * @return The value of the given variable, or NULL if it was not found.
          */
-        virtual Val apply(std::string x) { return NULL; }
+        virtual T* apply(std::string x) { return NULL; }
 
         /**
          * Reassigns the value of a variable.
@@ -36,7 +37,7 @@ class Environment : public Stringable, public Reffable {
          *
          * @return Zero if the value is successfully assigned, otherwise non-zero.
          */
-        virtual int set(std::string x, Val v) { return 1; }
+        virtual int set(std::string x, T* v) { return 1; }
         
         virtual void add_ref() {
             this->Reffable::add_ref();
@@ -48,15 +49,17 @@ class Environment : public Stringable, public Reffable {
             if (e) e->rem_ref();
         }
 
-        virtual Environment* clone() = 0;
+        virtual Environment<T>* clone() = 0;
         
         /**
          * Gathers the child environment of this environment.
          *
          * @return The child environment.
          */
-        Environment* subenvironment();
+        Environment<T>* subenvironment() { return subenv; }
 };
-typedef Environment* Env;
+
+// We will define Env as an environment of values
+typedef Environment<Value>* Env;
 
 #endif

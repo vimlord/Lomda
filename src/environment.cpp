@@ -11,7 +11,7 @@ using namespace std;
 
 
 EmptyEnv::EmptyEnv() {}
-ExtendEnv::ExtendEnv(string id, Value* val, Environment* env) {
+ExtendEnv::ExtendEnv(string id, Value* val, Env env) {
     // Store the id to track
     this->id = id;
 
@@ -48,13 +48,9 @@ Value* ExtendEnv::apply(string id) {
         return NULL;
 }
 
-Environment* EmptyEnv::clone() { return new EmptyEnv(); }
-Environment* ExtendEnv::clone() {
+Env EmptyEnv::clone() { return new EmptyEnv(); }
+Env ExtendEnv::clone() {
     return new ExtendEnv(id, ref, subenv->clone());
-}
-
-Environment* Environment::subenvironment() { 
-    return this->subenv;
 }
 
 
