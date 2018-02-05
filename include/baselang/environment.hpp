@@ -43,8 +43,9 @@ class Environment : public Stringable, public Reffable {
             if (subenv) subenv->add_ref();
         }
         virtual void rem_ref() {
+            Environment *e = subenv;
             this->Reffable::rem_ref();
-            if (subenv) subenv->rem_ref();
+            if (e) e->rem_ref();
         }
 
         virtual Environment* clone() = 0;

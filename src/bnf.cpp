@@ -583,9 +583,8 @@ ParsedPrgms parseAdditive(string str, bool ends) {
             ParsedPrgms subps = parseAdditive(s, ends);
             
             // Then, add all of the possible outcomes
-            auto pit = subps->iterator();
-            while (pit->hasNext()) {
-                parsed_prgm prog = pit->next();
+            while (!subps->isEmpty()) {
+                parsed_prgm prog = subps->remove(0);
                 prog.item = new SumExp(exp, prog.item);
                 prog.len += len;
 
@@ -593,6 +592,8 @@ ParsedPrgms parseAdditive(string str, bool ends) {
                 
                 res->add(0, prog);
             }
+            delete subps;
+            delete exp;
         } else if ((i = parseLit(s, "-")) >= 0) {
             s = s.substr(i);
             len += i;
@@ -601,9 +602,8 @@ ParsedPrgms parseAdditive(string str, bool ends) {
             ParsedPrgms subps = parseAdditive(s, ends);
             
             // Then, add all of the possible outcomes
-            auto pit = subps->iterator();
-            while (pit->hasNext()) {
-                parsed_prgm prog = pit->next();
+            while (!subps->isEmpty()) {
+                parsed_prgm prog = subps->remove(0);
                 prog.item = new DiffExp(exp, prog.item);
                 prog.len += len;
 
@@ -611,6 +611,8 @@ ParsedPrgms parseAdditive(string str, bool ends) {
                 
                 res->add(0, prog);
             }
+            delete subps;
+            delete exp;
         } else if (!ends) {
             res->add(0, p);
         } else {
@@ -1193,9 +1195,8 @@ ParsedPrgms parseMultiplicative(string str, bool ends) {
             ParsedPrgms subps = parseMultiplicative(s, ends);
             
             // Then, add all of the possible outcomes
-            auto pit = subps->iterator();
-            while (pit->hasNext()) {
-                parsed_prgm prog = pit->next();
+            while (!subps->isEmpty()) {
+                parsed_prgm prog = subps->remove(0);
                 prog.item = new MultExp(exp, prog.item);
                 prog.len += len;
 
@@ -1203,6 +1204,7 @@ ParsedPrgms parseMultiplicative(string str, bool ends) {
                 
                 res->add(0, prog);
             }
+            delete subps;
         } else if ((i = parseLit(s, "/")) >= 0) {
             // The operation is addition
             s = s.substr(i);
@@ -1212,9 +1214,8 @@ ParsedPrgms parseMultiplicative(string str, bool ends) {
             ParsedPrgms subps = parseMultiplicative(s, ends);
             
             // Then, add all of the possible outcomes
-            auto pit = subps->iterator();
-            while (pit->hasNext()) {
-                parsed_prgm prog = pit->next();
+            while (!subps->isEmpty()) {
+                parsed_prgm prog = subps->remove(0);
                 prog.item = new DivExp(exp, prog.item);
                 prog.len += len;
 
@@ -1222,6 +1223,7 @@ ParsedPrgms parseMultiplicative(string str, bool ends) {
                 
                 res->add(0, prog);
             }
+            delete subps;
         } else if (!ends) {
             res->add(0, p);
         } else {
@@ -1287,8 +1289,9 @@ ParsedPrgms parseNotExp(string str, bool ends) {
     if (
         (i = parseLit(str, "not")) < 0 &&
         (i = parseLit(str, "¬")) < 0 // In case someone really wants to have the symbol
-    )
+    ) {
         return parseAccessor(str, ends);
+    }
 
     ParsedPrgms res = new LinkedList<parsed_prgm>;
 
