@@ -161,282 +161,143 @@ Val CompareExp::op(Value *a, Value *b) {
     }
 }
 
-bool is_rect_tensor(ListVal *lst) {
-    if (!lst) return false;
-    else if (typeid(*lst->get()->get(0)) == typeid(ListVal)) {
-        int size = 0;
-        auto it = lst->get()->iterator();
-        while (it->hasNext()) {
-            Val v = it->next();
-            if (!size) size = ((ListVal*) v)->get()->size();
-            else if (typeid(*v) != typeid(ListVal) || ((ListVal*) v)->get()->size() != size) {
-                delete it;
-                return false;
-            }
-        }
-        delete it;
-        
-        // Subtensors should be rectangular
-        bool res = true;
-        it = lst->get()->iterator();
-        while (res && it->hasNext()) {
-            ListVal *v = (ListVal*) it->next();
-            res = is_rect_tensor(v);
-        }
-        delete it;
-        
-        // Subtensors should have matching sizes
-        it = lst->get()->iterator();
-        Val u = it->next();
-        while (res && it->hasNext()) {
-            Val v = it->next();
-            Val w = u;
-            while (typeid(*v) == typeid(ListVal) && typeid(*w) == typeid(ListVal)) {
-                v = ((ListVal*) v)->get()->get(0);
-                w = ((ListVal*) w)->get()->get(0);
-            }
-
-            res = ((typeid(*v) == typeid(ListVal)) == (typeid(*w) == typeid(ListVal)));
-        }
-        delete it;
-
-        return res;
-    } else {
-        return true;
-    }
-}
-
-ListVal* nd_array(int *size, int d, int x = 0) {
-    if (x == d) return NULL;
-    
-    ListVal *lst = new ListVal;
-
-    for (int i = 0; i < size[d-x-1]; i++) {
-        lst->get()->add(0, nd_array(size, d, x+1));
-    }
-    
-    return lst;
-
-}
-
-ListVal* transpose(ListVal *lst) {
-    if (!lst) return NULL;
-    if (!is_rect_tensor(lst)) {
-        throw_err("runtime", "tensor defined by '" + lst->toString() + "' is not properly formed");
-        return NULL;
-    }
-
-    int order = 0;
-    Val v = lst;
-    while (typeid(*v) == typeid(ListVal)) {
-        order++;
-        v = ((ListVal*) v)->get()->get(0);
-    }
-
-    int *dim = new int[order];
-    int *idx = new int[order];
-
-    v = lst;
-    for (int i = 0; i < order; i++) {
-        dim[i] = ((ListVal*) v)->get()->size();
-        idx[i] = 0;
-
-        v = ((ListVal*) v)->get()->get(0);
-    }
-
-    ListVal *res = nd_array(dim, order);
-
-    while (idx[order-1] < dim[0]) {
-        ListVal *u = lst;
-        ListVal *v = res;
-        
-        for (int i = order-1; i > 0; i--) {
-            u = (ListVal*) u->get()->get(idx[i]);
-            v = (ListVal*) v->get()->get(idx[order-1-i]);
-        }
-        
-        Val x = u->get()->get(idx[0]);
-        x->add_ref();
-        v->get()->set(idx[order-1], x);
-
-        idx[0] += 1;
-        for (int i = 0; idx[i] == dim[order-1-i] && i < order-1; i++) {
-            idx[i] = 0;
-            idx[i+1]++;
-        }
-    }
-
-    delete dim;
-    delete idx;
-
-    return res;
-}
-
-Val pure_dot_table(Val a, Val b) {
-    MultExp mult(NULL, NULL);
-    SumExp sum(NULL, NULL);
-
-    if (typeid(*a) == typeid(ListVal)) {
-        Val v = NULL;
-
-        auto ait = ((ListVal*) a)->get()->iterator();
-        auto bit = ((ListVal*) b)->get()->iterator();
-
-        if (!ait->hasNext() || !bit->hasNext()) {
-            delete ait;
-            delete bit;
-            delete v;
-            return NULL;
-        }
-
-        do {
-            // Proceed through the next step of the computation
-            if (v)
-                v = sum.op(v, pure_dot_table(ait->next(), bit->next()));
-            else
-                v = pure_dot_table(ait->next(), bit->next());
-
-        } while (v && ait->hasNext() && bit->hasNext());
-        
-        if (v && (ait->hasNext() || bit->hasNext())) {
-            v->rem_ref();
-            v = NULL;
-        }
-
-        delete ait;
-        delete bit;
-
-        return v;
-
-    } else
-        return mult.op(a, b);
-
-    return NULL;
-}
-
-Val dot_table(ListVal *a, ListVal *b, int order) {
-    
-    if (order > 0) {
-        //std::cout << "dot table btwn " << *a << " and " << *b << "\n";
-        // Left heavy order-wise
-        ListVal *tensor = new ListVal;
-
-        auto rit = a->get()->iterator();
-        while (rit->hasNext()) {
-            ListVal *r = (ListVal*) rit->next();
-
-            Val v = order > 1
-                        ? dot_table(r, b, order - 1)
-                        : pure_dot_table(r, b);
-
-            if (!v) {
-                tensor->rem_ref();
-                delete rit;
-                return NULL;
-            }
-
-            tensor->get()->add(tensor->get()->size(), v);
-        }
-        delete rit;
-
-        //if (tensor) std::cout << "dot table: " << *tensor << "\n";
-
-        return tensor;
-
-    } else if (order < 0) {
-        //std::cout << "transpose dot table btwn " << *a << " and " << *b << "\n";
-
-        // Right heavy order-wise
-        ListVal *aT = transpose(a);
-        ListVal *bT = transpose(b);
-
-        Val cT = dot_table(bT, aT, -order);
-        aT->rem_ref();
-        bT->rem_ref();
-
-        if (!cT) return NULL;
-
-        Val c = transpose((ListVal*) cT);
-        cT->rem_ref();
-
-        //if (c) std::cout << "transpose dot table: " << *c << "\n";
-
-        return c;
-
-    } else {
-        /*
-        if (a->get()->size() != b->get()->size())
-            return NULL;
-        */
-
-        //std::cout << "pure dot table btwn " << *a << " and " << *b << "\n";
-
-        ListVal *tensor = new ListVal;
-
-        auto rit = a->get()->iterator();
-
-        while (rit->hasNext()) {
-            Val r = rit->next();
-
-            ListVal *row = new ListVal;
-            tensor->get()->add(tensor->get()->size(), row);
-
-            auto cit = b->get()->iterator();
-            while (cit->hasNext()) {
-                Val c = cit->next();
-
-                Val v = pure_dot_table(r, c);
-
-                if (!v) {
-                    tensor->rem_ref();
-                    delete rit;
-                    delete cit;
-                    return NULL;
-                }
-
-                row->get()->add(row->get()->size(), v);
-            }
-
-            delete cit;
-
-        }
-        
-        delete rit;
-
-        //if (tensor) std::cout << "pure dot table: " << *tensor << "\n";
-
-        return tensor;
-    }
-}
-
 // Expression for multiplying studd
 Val MultExp::op(Value *a, Value *b) {
 
     if (typeid(*a) == typeid(ListVal)) {
-
         if (typeid(*b) == typeid(ListVal)) {
-            ListVal *bT = transpose((ListVal*) b);
-            
-            if (!bT)
+            std::cout << "compute " << *a << " * " << *b << "\n";
+
+            if (((ListVal*) a)->get()->size() == 0) {
+                throw_err("runtime", "multiplication is not defined on empty lists");
                 return NULL;
-            else if (!is_rect_tensor((ListVal*) a)) {
-                throw_err("runtime", "multiplication is not defined on non-rectangular lists\nsee:\n" + left->toString() + "'");
-                bT->rem_ref();
+            } else if (((ListVal*) b)->get()->size() == 0) {
+                throw_err("runtime", "multiplication is not defined on empty lists");
                 return NULL;
             }
-
-            //std::cout << "to compute " << *a << " * " << *b << ", we assemble dot from right:\ndot list: " << *bT << "\n";
 
             int ordA = 0, ordB = 0;
             for (Val A = a; typeid(*A) == typeid(ListVal); ordA++)
                 A = ((ListVal*) A)->get()->get(0);
+
+            if (ordA > 2) {
+                throw_err("runtime", "multiplication is not defined on tensors of rank " + to_string(ordA));
+                return NULL;
+            }
+
             for (Val B = b; typeid(*B) == typeid(ListVal); ordB++)
                 B = ((ListVal*) B)->get()->get(0);
 
-            int ord = ordA - ordB;
+            if (ordB > 2) {
+                throw_err("runtime", "multiplication is not defined on tensors of rank " + to_string(ordB));
+                return NULL;
+            }
+
+            Val res = NULL;
             
-            Val res = dot_table((ListVal*) a, bT, ord);
-            bT->rem_ref();
+            if (ordA == 2) {
+                LinkedList<Val> *lst = new LinkedList<Val>;
+                res = new ListVal(lst);
+
+                MultExp mult(NULL, NULL);
+
+                if (ordB == 1) {
+                    std::cout << "2 by 1\n";
+                    // Matrix by vector
+                    auto it = ((ListVal*) a)->get()->iterator();
+
+                    while (res && it->hasNext()) {
+                        Val v = mult.op(it->next(), b);
+                        
+                        if (!v) {
+                            res->rem_ref();
+                            res = NULL;
+                        } else
+                            lst->add(lst->size(), v);
+                    }
+                    delete it;
+                } else {
+                    // Matrix by matrix
+                    std::cout << "2 by 2\n";
+                    
+                    auto it = ((ListVal*) a)->get()->iterator();
+                    while (res && it->hasNext()) {
+                        Val v = mult.op(it->next(), b);
+                        if (!v) {
+                            res->rem_ref();
+                            res = NULL;
+                        } else
+                            lst->add(lst->size(), v);
+                    }
+
+                    delete it;
+                }
+
+            } else if (ordB == 2) {
+                std::cout << "1 by 2\n";
+                // List by matrix
+                auto ait = ((ListVal*) a)->get()->iterator();
+                auto bit = ((ListVal*) b)->get()->iterator();
+
+                MultExp mult(NULL, NULL);
+                SumExp sum(NULL, NULL);
+
+                res = mult.op(ait->next(), bit->next());
+                if (res)
+                    std::cout << "init: " << *res << "\n";
+                
+                while (res && ait->hasNext() && bit->hasNext()) {
+                    Val u = mult.op(ait->next(), bit->next());
+                    if (u) {
+                        Val v = sum.op(res, u);
+                        u->rem_ref();
+
+                        res->rem_ref();
+                        res = v;
+                    } else {
+                        res->rem_ref();
+                        res = NULL;
+                    }
+                }
+
+                if (ait->hasNext() || bit->hasNext()) {
+                    if (res) res->rem_ref();
+                    res = NULL;
+                }
+
+            } else {
+                std::cout << "1 by 1\n";
+                // Dot product
+                res = new IntVal;
+                
+                auto ait = ((ListVal*) a)->get()->iterator();
+                auto bit = ((ListVal*) a)->get()->iterator();
+
+                SumExp sum(NULL, NULL);
+                
+                while (res && ait->hasNext() && bit->hasNext()) {
+                    Val v = op(ait->next(), bit->next());
+                    if (!v) {
+                        res->rem_ref();
+                        res = NULL;
+                    } else {
+                        Val s = sum.op(res, v);
+                        v->rem_ref();
+
+                        res->rem_ref();
+                        res = s;
+                    }
+                }
+
+                if (ait->hasNext() || bit->hasNext()) {
+                    if (res) res->rem_ref();
+                    res = NULL;
+                }
+
+                delete ait;
+                delete bit;
+
+            }
 
             if (!res) {
                 if (left && right)
@@ -462,6 +323,8 @@ Val MultExp::op(Value *a, Value *b) {
             delete it;
             return res;
         }
+    } else if (val_is_list(b)) {
+        return op(b, a);
     } else if (val_is_number(a) && val_is_number(b)) {
 
         // The lhs is numerical
@@ -487,7 +350,7 @@ Val MultExp::op(Value *a, Value *b) {
                 return new IntVal(z);
         }
     } else {
-        throw_err("runtime", "multiplication is not defined between " + left->toString() + " and " + right->toString());
+        throw_err("runtime", "multiplication is not defined between " + (left ? left->toString() : a->toString()) + " and " + (right ? right->toString() : b->toString()));
         return NULL;
     }
 }
