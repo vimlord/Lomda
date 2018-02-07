@@ -755,7 +755,7 @@ Val ListSliceExp::valueOf(Env env) {
         }
 
         // Get the item
-        LinkedList<Val> *vs = new LinkedList<Val>;
+        auto vs = new ArrayList<Val>;
         
         auto it = vals->iterator();
         int x;

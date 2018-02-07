@@ -78,7 +78,7 @@ class ArrayList : public List<T> {
         T remove(int);
         void set(int, T);
 
-        int size() { return size; }
+        int size() { return N; }
 
         bool isEmpty() { return N; }
 

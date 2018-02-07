@@ -85,13 +85,13 @@ class ListVal : public Value {
     // some form of map value in order to generalize certain
     // behaviors.
     private:
-        List<Val> *list;
+        ArrayList<Val> *list;
     public:
-        ListVal() { list = new LinkedList<Val>(); }
-        ListVal(List<Val> *l) : list(l) {}
+        ListVal() { list = new ArrayList<Val>(); }
+        ListVal(ArrayList<Val> *l) : list(l) {}
         ~ListVal();
 
-        List<Val>* get() { return list; }
+        ArrayList<Val>* get() { return list; }
         ListVal* clone();
         int set(Val);
 

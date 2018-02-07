@@ -53,7 +53,8 @@ Val deriveConstVal(Val v, int c) {
         return NULL;
     else if (typeid(*v) == typeid(ListVal)) {
         auto it = ((ListVal*) v)->get()->iterator();
-        LinkedList<Val> *lst = new LinkedList<Val>;
+
+        auto lst = new ArrayList<Val>;
         Val res = new ListVal(lst);
 
         while (it->hasNext()) {
@@ -86,7 +87,8 @@ Val deriveConstVal(Val y, Val x, int c) {
         return NULL;
     else if (typeid(*x) == typeid(ListVal)) {
         auto it = ((ListVal*) x)->get()->iterator();
-        LinkedList<Val> *lst = new LinkedList<Val>;
+
+        auto lst = new ArrayList<Val>;
         Val res = new ListVal(lst);
 
         while (it->hasNext()) {

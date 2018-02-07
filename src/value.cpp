@@ -211,7 +211,7 @@ int ListVal::set(Val v) {
     if (typeid(*v) == typeid(ListVal)) {
         auto lst = list;
 
-        list = new LinkedList<Val>;
+        list = new ArrayList<Val>;
         
         // Add each value to the new list
         auto vs = ((ListVal*) v)->list;

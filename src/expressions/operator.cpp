@@ -53,14 +53,14 @@ Val DiffExp::op(Value *a, Value *b) {
     if (val_is_list(a)) {
         if (val_is_list(b)) {
             // Concatenate the two lists
-            List<Val> *A = ((ListVal*) a)->get();
-            List<Val> *B = ((ListVal*) b)->get();
+            ArrayList<Val> *A = ((ListVal*) a)->get();
+            ArrayList<Val> *B = ((ListVal*) b)->get();
             if (A->size() != B->size()) {
                 throw_err("runtime", "cannot subtract lists '" + left->toString() + "' and '" + right->toString() + "' of differing lengths");
                 return NULL;
             }
 
-            List<Val> *C = new LinkedList<Val>;
+            ArrayList<Val> *C = new ArrayList<Val>;
             
             auto ait = A->iterator();
             auto bit = B->iterator();
@@ -196,7 +196,7 @@ Val MultExp::op(Value *a, Value *b) {
             Val res = NULL;
             
             if (ordA == 2) {
-                LinkedList<Val> *lst = new LinkedList<Val>;
+                auto lst = new ArrayList<Val>;
                 res = new ListVal(lst);
 
                 MultExp mult(NULL, NULL);
@@ -368,7 +368,7 @@ Val SumExp::op(Value *a, Value *b) {
                 return NULL;
             }
 
-            List<Val> *C = new LinkedList<Val>;
+            auto C = new ArrayList<Val>;
             
             auto ait = A->iterator();
             auto bit = B->iterator();
