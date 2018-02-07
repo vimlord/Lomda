@@ -325,9 +325,6 @@ Val ForExp::valueOf(Env env) {
     // Gather an iterator
     Iterator<int, Val> *it = list->iterator();
 
-    // Value to be return
-    Val v = new VoidVal;
-
     while (it->hasNext()) {
         // Get the next item from the list
         Val x = it->next();
@@ -336,15 +333,20 @@ Val ForExp::valueOf(Env env) {
         env->add_ref();
         Env e = new ExtendEnv(id, x, env);
 
-        v->rem_ref();
-        v = body->valueOf(e);
-        
+        Val v = body->valueOf(e);  
         e->rem_ref();
+
+        if (!v) {
+            delete it;
+            listExp->rem_ref();
+            return NULL;
+        }
     }
 
     delete it;
+    listExp->rem_ref();
 
-    return v;
+    return new VoidVal;
 
 }
 
@@ -1207,7 +1209,6 @@ Val VarExp::valueOf(Env env) {
 
 Val WhileExp::valueOf(Env env) {
     bool skip = alwaysEnter;
-    Val v = new VoidVal;
 
     while (true) {
         Val c = cond->valueOf(env);
@@ -1223,10 +1224,13 @@ Val WhileExp::valueOf(Env env) {
             // Compute the new outcome. If it is
             // NULL, computation failed, so NULL
             // should be returned.
-            if (!(v = body->valueOf(env)))
+            Val v = body->valueOf(env);
+            if (!v)
                 return NULL;
+            else
+                v->rem_ref();
         } else
-            return v;
+            return new VoidVal;
     }
 }
 
