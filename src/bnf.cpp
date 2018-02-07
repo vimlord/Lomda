@@ -444,8 +444,19 @@ ParsedPrgms parseAccessor(string str, bool ends) {
             s = s.substr(i);
 
             //std::cout << "found open bracket; may be array access in '" << s << "'\n";
+            ParsedPrgms indices;
 
-            ParsedPrgms indices = parsePemdas(s, false);
+            if ((i = parseLit(s, ":")) >= 0) {
+                // The next thing is a colon, so it is to start from zero
+                parsed_prgm p;
+                p.len = 0;
+                p.item = NULL;
+
+                indices = new LinkedList<parsed_prgm>;
+                indices->add(0, p);
+            } else
+                indices = parsePemdas(s, false);
+
             while (!indices->isEmpty()) {
                 parsed_prgm idx = indices->remove(0);
 
@@ -456,31 +467,47 @@ ParsedPrgms parseAccessor(string str, bool ends) {
                     if ((i = parseLit(st, ":")) >= 0) {
                         st = st.substr(i);
                         idx.len += i;
-                        
-                        ParsedPrgms jndices = parsePemdas(st, false);
-                        while (!jndices->isEmpty()) {
-                            parsed_prgm jdx = jndices->remove(0);
 
-                            string strn = st.substr(jdx.len);
+                        if ((i = parseLit(st, "]")) >= 0) {
+                            // Goes to the end of the list
+                            st = st.substr(i);
+                            idx.len += i;
 
-                            i = parseLit(strn, "]");
-                            if (i < 0) {
-                                // Garbage collection
-                                delete jdx.item;
-                                continue;
+                            parsed_prgm p;
+                            p.len = idx.len + lst.len;
+                            p.item = new ListSliceExp(lst.item->clone(), idx.item, NULL);
+
+                            if (idx.item) idx.item = idx.item->clone();
+
+                            std::cout << "built " << *p.item << "\n";
+
+                            lists->add(0, p);
+                        } else {
+                            ParsedPrgms jndices = parsePemdas(st, false);
+                            while (!jndices->isEmpty()) {
+                                parsed_prgm jdx = jndices->remove(0);
+
+                                string strn = st.substr(jdx.len);
+
+                                i = parseLit(strn, "]");
+                                if (i < 0) {
+                                    // Garbage collection
+                                    delete jdx.item;
+                                    continue;
+                                }
+
+                                jdx.len += idx.len + lst.len + i;
+                                jdx.item = new ListSliceExp(lst.item->clone(), idx.item, jdx.item);
+
+                                if (idx.item) idx.item = idx.item->clone(); // For distinctiveness, clone the idx value
+
+                                lists->add(0, jdx);
                             }
-
-                            jdx.len += idx.len + lst.len + i;
-                            jdx.item = new ListSliceExp(lst.item->clone(), idx.item, jdx.item);
-
-                            idx.item = idx.item->clone(); // For distinctiveness, clone the idx value
-
-                            lists->add(0, jdx);
+                            delete jndices;
                         }
-                        delete jndices;
                     }
 
-                    delete idx.item; // The frontal index is not necessary
+                    if (idx.item) delete idx.item; // The frontal index is not necessary
                 } else {
                     idx.len += i + lst.len;
                     idx.item = new ListAccessExp(lst.item->clone(), idx.item);

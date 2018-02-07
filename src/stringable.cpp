@@ -157,7 +157,10 @@ string ListRemExp::toString() {
          + " from " + list->toString();
 }
 string ListSliceExp::toString() {
-    return list->toString() + "[" + from->toString() + ":" + to->toString() + "]";
+    return list->toString() + "["
+            + (from ? from->toString() : "")
+            + ":"
+            + (to ? to->toString() : "") + "]";
 }
 string MagnitudeExp::toString() {
     return "|" + exp->toString() + "|";
@@ -297,7 +300,7 @@ string ListVal::toString() {
         if (i) s += ", ";
         Val v = list->get(i);
         if (v)
-            s += list->get(i)->toString();
+            s += v->toString();
         else
             s += "null";
     }

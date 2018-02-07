@@ -67,7 +67,10 @@ class ListSliceExp : public Expression {
 
         Val valueOf(Env);
 
-        Exp clone() { return new ListSliceExp(list->clone(), from->clone(), to->clone()); }
+        Exp clone() {
+            Exp f = from ? from->clone() : NULL;
+            Exp t = to ? to->clone() : NULL;
+            return new ListSliceExp(list->clone(), f, t); }
         std::string toString();
 };
 

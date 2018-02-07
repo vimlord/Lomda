@@ -715,38 +715,49 @@ Val ListSliceExp::valueOf(Env env) {
     }
     
     // Get the index
-    Val f = from->valueOf(env);
-    f = unpack_thunk(f);
+    int i;
+    if (from) {
+        Val f = from->valueOf(env);
+        f = unpack_thunk(f);
 
-    if (!f) return NULL;
-    else if (typeid(*f) != typeid(IntVal)) {
-        throw_type_err(from, "integer");
-        lst->rem_ref(); // Garbage collection
+        if (!f) return NULL;
+        else if (typeid(*f) != typeid(IntVal)) {
+            throw_type_err(from, "integer");
+            lst->rem_ref(); // Garbage collection
+            f->rem_ref();
+            return NULL;
+        }
+
+        i = ((IntVal*) f)->get();
         f->rem_ref();
-        return NULL;
-    }
+    } else
+        i = 0;
 
-    int i = ((IntVal*) f)->get();
-    f->rem_ref();
+    int j;
+    
+    if (to) {
+        // Get the index
+        Val t = to->valueOf(env);
+        t = unpack_thunk(t);
 
-    // Get the index
-    Val t = to->valueOf(env);
-    t = unpack_thunk(t);
+        if (!t) return NULL;
+        else if (typeid(*t) != typeid(IntVal)) {
+            throw_type_err(to, "integer");
+            lst->rem_ref(); // Garbage collection
+            t->rem_ref();
+            return NULL;
+        }
 
-    if (!t) return NULL;
-    else if (typeid(*t) != typeid(IntVal)) {
-        throw_type_err(to, "integer");
-        lst->rem_ref(); // Garbage collection
+        j = ((IntVal*) t)->get();
         t->rem_ref();
-        return NULL;
-    }
-
-    int j = ((IntVal*) t)->get();
-    t->rem_ref();
+    } else if (typeid(*lst) == typeid(ListVal))
+        j = ((ListVal*) lst)->get()->size();
+    else
+        j = lst->toString().length();
     
     if (typeid(*lst) == typeid(ListVal)) {
         // The list
-        List<Val> *vals = ((ListVal*) lst)->get();
+        ArrayList<Val> *vals = ((ListVal*) lst)->get();
 
         if (i < 0 || j < 0 || i >= vals->size() || j > vals->size()) {
             throw_err("runtime", "index " + to_string(i) + " is out of bounds (len: " + to_string(vals->size()) + ")");
@@ -758,12 +769,18 @@ Val ListSliceExp::valueOf(Env env) {
         auto vs = new ArrayList<Val>;
         
         auto it = vals->iterator();
+
+        std::cout << "list: " << *lst << " from " << i << " to " << j << "\n";
+
         int x;
-        for (x = 0; x < i; x++) it->next();
+        for (x = 0; x < i; x++) {
+            std::cout << "x = " << x << ": " << it->hasNext() << "\n";
+            it->next();
+        }
         for (;x < j && it->hasNext(); x++) {
             // Add the value and a reference to it
             Val v = it->next();
-            vs->add(x-i, v);
+            vs->add(vs->size(), v);
             v->add_ref();
         }
         
@@ -771,7 +788,11 @@ Val ListSliceExp::valueOf(Env env) {
         lst->rem_ref();
         delete it;
 
-        return new ListVal(vs);
+        Val res = new ListVal(vs);
+
+        std::cout << "built: " << *res << "\n";
+
+        return res;
     } else {
         // String
         string s = lst->toString();

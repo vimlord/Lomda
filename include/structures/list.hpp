@@ -66,7 +66,7 @@ class ArrayList : public List<T> {
                 ALiterator(ArrayList *lst) : list(lst) { idx = 0; }
                 ALiterator() { idx = 0; }
 
-                bool hasNext() { return idx >= list->N; }
+                bool hasNext() { return idx < list->N; }
                 T next() { return list->arr[idx++]; }
         };
     public:
@@ -80,7 +80,7 @@ class ArrayList : public List<T> {
 
         int size() { return N; }
 
-        bool isEmpty() { return N; }
+        bool isEmpty() { return !N; }
 
         Iterator<int, T>* iterator() { return new ALiterator(this); }
 };
