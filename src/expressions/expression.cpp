@@ -84,10 +84,11 @@ LambdaExp::LambdaExp(string *ids, Exp rator) {
     exp = rator;
 }
 
-LetExp::LetExp(string *vs, Exp *xs, Exp y) {
+LetExp::LetExp(string *vs, Exp *xs, Exp y, bool *r) {
     ids = vs;
     exps = xs;
     body = y;
+    rec = r;
 }
 
 ListExp::ListExp(Expression** exps) : ListExp::ListExp() {

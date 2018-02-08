@@ -497,8 +497,8 @@ Val LetExp::evaluate(Env env) {
         v->rem_ref();
         x->rem_ref();
 
-        // We permit all lambdas to have recursive behavior
-        if (typeid(*x) == typeid(LambdaVal))
+        // We permit lambdas that request recursion to have it.
+        if (rec && rec[i] && typeid(*x) == typeid(LambdaVal))
             lambdas.add(0, (LambdaVal*) x);
     }
     
@@ -607,8 +607,9 @@ Val ListAccessExp::evaluate(Env env) {
         Val v = ((DictVal*) f)->apply(i);
         
         // We will return a void-exp on failure.
-        if (!v)
-            v = new VoidVal;
+        if (!v) {
+            throw_err("runtime", "key " + i + " is not defined in dictionary " + f->toString());
+        }
         
         return v;
 
@@ -1177,6 +1178,7 @@ Val SetExp::evaluate(Env env) {
         
         // Set the new value
         if (u->set(v)) {
+            throw_err("runtime", "assignment to right-handish expression '" + tgt->toString() + "' failed");
             v->rem_ref();
             return NULL;
         }

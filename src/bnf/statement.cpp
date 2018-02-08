@@ -407,6 +407,7 @@ ParsedPrgms parseLetExp(string str, bool ends) {
                 struct arg arg;
                 arg.id = d_id.item;
                 arg.exp = prgm.item;
+                arg.rec = false;
                 newlst.list->add(i, arg);
 
                 // Next, we want to split into three categories:
@@ -536,6 +537,7 @@ ParsedPrgms parseLetExp(string str, bool ends) {
                 struct arg arg;
                 arg.id = d_id.item;
                 arg.exp = new LambdaExp(as, prgm.item);
+                arg.rec = true;
                 newlst.list->add(i, arg);
 
                 // Next, we want to split into three categories:
@@ -597,18 +599,20 @@ ParsedPrgms parseLetExp(string str, bool ends) {
             // Add to the list of possible expressions
             string *ids = new string[lst.list->size() + 1];
             Expression **vals = new Expression*[lst.list->size() + 1];
+            bool *rec = new bool[lst.list->size()];
             
             auto lit = lst.list->iterator();
             for (i = 0; lit->hasNext(); i++) {
                 struct arg a = lit->next();
                 ids[i] = a.id;
                 vals[i] = a.exp->clone();
+                rec[i] = a.rec;
             }
             ids[i] = ""; vals[i] = NULL;
             delete lit;
 
             prgm.len += lst.len;
-            prgm.item = new LetExp(ids, vals, prgm.item); // Collapse into target
+            prgm.item = new LetExp(ids, vals, prgm.item, rec); // Collapse into target
             //std::cout << "Found let-exp '" << *(prgm.item) << "'\n";
             
             // Add the result

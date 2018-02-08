@@ -23,6 +23,7 @@ typedef struct parsed<float> parsed_float;
 struct arg {
     std::string id;
     Exp exp;
+    bool rec;
 };
 struct arglist {
     int len;

@@ -179,13 +179,17 @@ class LetExp : public Expression {
         std::string *ids;
         Exp *exps;
         Exp body;
+
+        // For a given index, whether or not the value should handle recursion.
+        bool *rec;
     public:
-        LetExp(std::string*, Exp*, Exp);
+        LetExp(std::string*, Exp*, Exp, bool* = NULL);
         ~LetExp() {
             for (int i = 0; exps[i]; i++) delete exps[i];
             delete[] exps;
             delete body;
             delete[] ids;
+            delete[] rec;
         }
 
         Val evaluate(Env);
