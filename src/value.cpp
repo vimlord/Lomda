@@ -170,7 +170,7 @@ Val LambdaVal::apply(Val *argv, Env e) {
         E = new ExtendEnv(xs[i], argv[i], E);
 
     // Compute the result
-    Val res = exp->valueOf(E);
+    Val res = exp->evaluate(E);
     
     // Garbage collection
     E->rem_ref();
@@ -253,7 +253,7 @@ Val Thunk::get(Env e) {
         // Preemptive debug print
         throw_debug("thunk", "evaluating " + exp->toString() + " | " + e->toString());
 
-        val = exp->valueOf(e);
+        val = exp->evaluate(e);
 
         if (val && VERBOSITY()) std::cout << "\x1b[34m\x1b[1mthunk:\x1b[0m created new ref " << val << "\n";
     }

@@ -124,7 +124,7 @@ Val OrExp::derivativeOf(string x, Env env, Env denv) {
 Val ApplyExp::derivativeOf(string x, Env env, Env denv) {
     // d/dx f(u1(x), u2(x), ...) = df/du1 * du1/dx + df/du2 * du2/dx + ...
 
-    Val o = op->valueOf(env);
+    Val o = op->evaluate(env);
     if (!o) return NULL;
     else if (typeid(*o) != typeid(LambdaVal)) {
         throw_type_err(op, "lambda");
@@ -166,7 +166,7 @@ Val ApplyExp::derivativeOf(string x, Env env, Env denv) {
         }
     }
     
-    Val v = deriv->valueOf(env);
+    Val v = deriv->evaluate(env);
 
     o->rem_ref();
 
@@ -214,7 +214,7 @@ Val DivExp::derivativeOf(string x, Env env, Env denv) {
                             new MultExp(left->clone(), b)),
                         new MultExp(right->clone(), right->clone()));
 
-    Val c = exp->valueOf(env);
+    Val c = exp->evaluate(env);
 
     delete exp;
     return c;
@@ -222,7 +222,7 @@ Val DivExp::derivativeOf(string x, Env env, Env denv) {
 
 Val ForExp::derivativeOf(string x, Env env, Env denv) {
     // Evaluate the list
-    Val listExp = set->valueOf(env);
+    Val listExp = set->evaluate(env);
     if (!listExp) return NULL;
     else if (typeid(*listExp) != typeid(ListVal)) {
         throw_type_err(set, "list");
@@ -267,7 +267,7 @@ Val ForExp::derivativeOf(string x, Env env, Env denv) {
 }
 
 Val IfExp::derivativeOf(string x, Env env, Env denv) {
-    Val b = cond->valueOf(env);
+    Val b = cond->evaluate(env);
 
     if (typeid(*b) != typeid(BoolVal)) {
         return NULL;
@@ -302,7 +302,7 @@ Val LetExp::derivativeOf(string x, Env env, Env denv) {
     // Extend the environment
     for (int i = 0; i < argc; i++) {
         // Compute the expression
-        Val v = exps[i]->valueOf(env);
+        Val v = exps[i]->evaluate(env);
         Val dv = exps[i]->derivativeOf(x, env, denv);
 
         if (!v || !dv) {
@@ -374,7 +374,7 @@ Val ListAccessExp::derivativeOf(string x, Env env, Env denv) {
         return NULL;
     }
 
-    Val index = idx->valueOf(env);
+    Val index = idx->evaluate(env);
     if (!index) return NULL;
     else if (typeid(*index) != typeid(IntVal)) {
         throw_type_err(idx, "integer");
@@ -395,7 +395,7 @@ Val ListAccessExp::derivativeOf(string x, Env env, Env denv) {
 Val MagnitudeExp::derivativeOf(string x, Env env, Env denv) {
     Val res = NULL;
     
-    Val v = exp->valueOf(env);
+    Val v = exp->evaluate(env);
 
     if (!v) return NULL;
     else if (typeid(*v) == typeid(IntVal) || typeid(*v) == typeid(RealVal)) {
@@ -430,7 +430,7 @@ Val FoldExp::derivativeOf(string x, Env env, Env denv) {
     // f' = g'(g(...(c, L[0]), L[1]), ...), L[N-1])
     //      = g'(g(...(c, L[0]),...), L[N-2]) * g_a(...(c,L[0])...,L[N-1])
     //      + L'[N-1] * g_b(...(c,L[0])...,L[N-1])
-    Val lst = list->valueOf(env);
+    Val lst = list->evaluate(env);
     if (!lst) return NULL;
     else if (typeid(*lst) != typeid(ListVal)) {
         lst->rem_ref();
@@ -446,7 +446,7 @@ Val FoldExp::derivativeOf(string x, Env env, Env denv) {
     if (!dlst) return NULL;
     
     // Attempt to evaluate the fold function
-    Val f = func->valueOf(env);
+    Val f = func->evaluate(env);
     if (!f) return NULL;
     else if (typeid(*f) != typeid(LambdaVal)) {
         throw_type_err(func, "lambda");
@@ -495,7 +495,7 @@ Val FoldExp::derivativeOf(string x, Env env, Env denv) {
     Val xs[3];
     xs[2] = NULL;
     
-    Val c = base->valueOf(env);
+    Val c = base->evaluate(env);
     Val dc = base->derivativeOf(x, env, denv);
 
     while (c && dc && it->hasNext()) {
@@ -539,7 +539,7 @@ Val FoldExp::derivativeOf(string x, Env env, Env denv) {
 
         //std::cout << "must compute " << *cell << "\n";
 
-        v = cell->valueOf(env);
+        v = cell->evaluate(env);
 
         // Large amount of GC
         dc->rem_ref();
@@ -564,7 +564,7 @@ Val FoldExp::derivativeOf(string x, Env env, Env denv) {
 }
 
 Val MapExp::derivativeOf(string x, Env env, Env denv) { 
-    Val f = func->valueOf(env);
+    Val f = func->evaluate(env);
     if (!f)
         return NULL;
     
@@ -590,7 +590,7 @@ Val MapExp::derivativeOf(string x, Env env, Env denv) {
         return NULL;
     } else fn = (LambdaVal*) f;
     
-    Val vs = list->valueOf(env);
+    Val vs = list->evaluate(env);
     if (!vs) {
         fn->rem_ref();
         return NULL;
@@ -636,7 +636,7 @@ Val MapExp::derivativeOf(string x, Env env, Env denv) {
                 );
                 elem->rem_ref();
 
-                elem = cell->valueOf(env);
+                elem = cell->evaluate(env);
                 delete cell;
 
                 if (elem)
@@ -684,7 +684,7 @@ Val MapExp::derivativeOf(string x, Env env, Env denv) {
             );
             v->rem_ref();
 
-            v = cell->valueOf(env);
+            v = cell->evaluate(env);
             delete cell;
         }
 
@@ -706,9 +706,9 @@ Val MultExp::derivativeOf(string x, Env env, Env denv) {
     if (!dr) { dl->rem_ref(); return NULL; }
     
     // We will need the left and right sides
-    Val l = left->valueOf(env);
+    Val l = left->evaluate(env);
     if (!l) { dl->rem_ref(); dr->rem_ref(); return NULL; }
-    Val r = right->valueOf(env);
+    Val r = right->evaluate(env);
     if (!r) { dl->rem_ref(); dr->rem_ref(); l->rem_ref(); return NULL; }
     
     throw_debug("calculus", "l = " + l->toString());
@@ -762,7 +762,7 @@ Val SetExp::derivativeOf(string x, Env env, Env denv) {
     if (typeid(*exp) == typeid(ListAccessExp)) {
         ListAccessExp *acc = (ListAccessExp*) tgt;
         
-        Val u = acc->getList()->valueOf(env);
+        Val u = acc->getList()->evaluate(env);
         Val du;
 
         if (!u) {
@@ -778,7 +778,7 @@ Val SetExp::derivativeOf(string x, Env env, Env denv) {
         ListVal *lst = (ListVal*) u;
         ListVal *dlst = (ListVal*) du;
 
-        Val index = acc->getIdx()->valueOf(env);
+        Val index = acc->getIdx()->evaluate(env);
         if (!index) {
             u->rem_ref();
             du->rem_ref();
@@ -800,7 +800,7 @@ Val SetExp::derivativeOf(string x, Env env, Env denv) {
             return NULL;
         }
         
-        if (!(v = exp->valueOf(env))) {
+        if (!(v = exp->evaluate(env))) {
             u->rem_ref();
             du->rem_ref();
             return NULL;
@@ -819,7 +819,7 @@ Val SetExp::derivativeOf(string x, Env env, Env denv) {
     } else if (typeid(*exp) == typeid(VarExp)) {
         VarExp *var = (VarExp*) tgt;
         
-        v = exp->valueOf(env);
+        v = exp->evaluate(env);
         if (!v) return NULL;
         dv = exp->derivativeOf(x, env, denv);
         if (!dv) { v->rem_ref(); return NULL; }
@@ -829,7 +829,7 @@ Val SetExp::derivativeOf(string x, Env env, Env denv) {
 
     } else {
         // Get info for modifying the environment
-        Val u = tgt->valueOf(env);
+        Val u = tgt->evaluate(env);
         if (!u)
             // The variable doesn't exist
             return NULL;
@@ -840,7 +840,7 @@ Val SetExp::derivativeOf(string x, Env env, Env denv) {
         }
 
         // Evaluate the expression
-        v = exp->valueOf(env);
+        v = exp->evaluate(env);
 
         if (!v) {
             u->rem_ref();
@@ -881,7 +881,7 @@ Val SetExp::derivativeOf(string x, Env env, Env denv) {
 }
 
 Val StdlibOpExp::derivativeOf(string id, Env env, Env denv) {
-    Val v = x->valueOf(env);
+    Val v = x->evaluate(env);
     if (!v) return NULL;
     
     if (
@@ -953,7 +953,7 @@ Val WhileExp::derivativeOf(string x, Env env, Env denv) {
     Val v = new VoidVal;
 
     while (true) {
-        Val c = cond->valueOf(env);
+        Val c = cond->evaluate(env);
         if (!c) return NULL;
         else if (typeid(*c) != typeid(BoolVal)) {
             throw_type_err(cond, "boolean");

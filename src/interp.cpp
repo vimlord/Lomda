@@ -30,7 +30,7 @@ Val run(string program) {
 
         throw_debug("init", "initial env Γ := " + env->toString());
 
-        Val val = exp->valueOf(env);
+        Val val = exp->evaluate(env);
         delete exp;
         env->rem_ref();
         //if (!val) throw_err("runtime", "could not evaluate expression");
@@ -40,8 +40,8 @@ Val run(string program) {
     }
 }
 
-Val ApplyExp::valueOf(Env env) {
-    Val f = op->valueOf(env);
+Val ApplyExp::evaluate(Env env) {
+    Val f = op->evaluate(env);
 
     // Null check the function
     if (!f)
@@ -64,7 +64,7 @@ Val ApplyExp::valueOf(Env env) {
     int i;
     for (i = 0; i < argc; i++) {
         // Evanuate the argument
-        xs[i] = args[i]->valueOf(env);
+        xs[i] = args[i]->evaluate(env);
 
         // Success test (every argument must successfully parse
         if (xs[i] == NULL) {
@@ -94,8 +94,8 @@ Val ApplyExp::valueOf(Env env) {
     return y;
 }
 
-Val CastExp::valueOf(Env env) {
-    Val val = exp->valueOf(env);
+Val CastExp::evaluate(Env env) {
+    Val val = exp->evaluate(env);
     val = unpack_thunk(val);
 
     Val res = NULL;
@@ -163,7 +163,7 @@ Val CastExp::valueOf(Env env) {
     return res;
 }
 
-Val DerivativeExp::valueOf(Env env) {
+Val DerivativeExp::evaluate(Env env) {
 
     // Base case: we know of nothing
     Env denv = new EmptyEnv;
@@ -230,7 +230,7 @@ Val DerivativeExp::valueOf(Env env) {
     return res;
 }
 
-Val DictExp::valueOf(Env env) {
+Val DictExp::evaluate(Env env) {
     LinkedList<string> *ks = new LinkedList<string>;
     LinkedList<Val> *vs = new LinkedList<Val>;
 
@@ -240,7 +240,7 @@ Val DictExp::valueOf(Env env) {
     auto vt = vals->iterator();
 
     while (kt->hasNext()) {
-        Val v = vt->next()->valueOf(env);
+        Val v = vt->next()->evaluate(env);
         if (!v) {
             delete res;
             return NULL;
@@ -254,10 +254,10 @@ Val DictExp::valueOf(Env env) {
 
 }
 
-Val FalseExp::valueOf(Env env) { return new BoolVal(false); }
+Val FalseExp::evaluate(Env env) { return new BoolVal(false); }
 
-Val FoldExp::valueOf(Env env) {
-    Val lst = list->valueOf(env);
+Val FoldExp::evaluate(Env env) {
+    Val lst = list->evaluate(env);
     lst = unpack_thunk(lst);
 
     if (!lst) return NULL;
@@ -267,7 +267,7 @@ Val FoldExp::valueOf(Env env) {
         return NULL;
     }
     
-    Val f = func->valueOf(env);
+    Val f = func->evaluate(env);
     f = unpack_thunk(f);
 
     if (!f) return NULL;
@@ -289,7 +289,7 @@ Val FoldExp::valueOf(Env env) {
 
     auto it = ((ListVal*) lst)->get()->iterator();
     Val xs[3];
-    xs[0] = base->valueOf(env); // First slot is the accumulator
+    xs[0] = base->evaluate(env); // First slot is the accumulator
     xs[2] = NULL; // Last slot is a null terminator.
 
     while (it->hasNext() && xs[0]) {
@@ -310,9 +310,9 @@ Val FoldExp::valueOf(Env env) {
     return xs[0];
 }
 
-Val ForExp::valueOf(Env env) {
+Val ForExp::evaluate(Env env) {
     // Evaluate the list
-    Val listExp = set->valueOf(env);
+    Val listExp = set->evaluate(env);
     listExp = unpack_thunk(listExp);
 
     if (!listExp) return NULL;
@@ -333,7 +333,7 @@ Val ForExp::valueOf(Env env) {
         env->add_ref();
         Env e = new ExtendEnv(id, x, env);
 
-        Val v = body->valueOf(e);  
+        Val v = body->evaluate(e);  
         e->rem_ref();
 
         if (!v) {
@@ -350,8 +350,8 @@ Val ForExp::valueOf(Env env) {
 
 }
 
-Val IfExp::valueOf(Env env) {
-    Val b = cond->valueOf(env);
+Val IfExp::evaluate(Env env) {
+    Val b = cond->evaluate(env);
     b = unpack_thunk(b);
     
     if (!b) return NULL;
@@ -367,12 +367,12 @@ Val IfExp::valueOf(Env env) {
     b->rem_ref();
 
     if (bRes)
-        return tExp->valueOf(env);
+        return tExp->evaluate(env);
     else
-        return fExp->valueOf(env);
+        return fExp->evaluate(env);
 }
 
-Val ImportExp::valueOf(Env env) {
+Val ImportExp::evaluate(Env env) {
     // Attempt to open the file
     ifstream file;
     file.open("./" + module + ".lom");
@@ -406,7 +406,7 @@ Val ImportExp::valueOf(Env env) {
         env->add_ref();
         env = new ExtendEnv(name, mod, env);
 
-        Val v = exp->valueOf(env);
+        Val v = exp->evaluate(env);
 
         // Garbage collection
         env->rem_ref();
@@ -419,18 +419,18 @@ Val ImportExp::valueOf(Env env) {
 
 }
 
-Val InputExp::valueOf(Env env) {
+Val InputExp::evaluate(Env env) {
     string s;
     getline(cin, s);
     return new StringVal(s);
 }
 
-Val IntExp::valueOf(Env env) {
+Val IntExp::evaluate(Env env) {
     return new IntVal(val);
 }
 
-Val IsaExp::valueOf(Env env) {
-    Val val = exp->valueOf(env);
+Val IsaExp::evaluate(Env env) {
+    Val val = exp->evaluate(env);
     val = unpack_thunk(val);
     if (!val) return NULL;
     
@@ -452,7 +452,7 @@ Val IsaExp::valueOf(Env env) {
     return new BoolVal(res);
 }
 
-Val LambdaExp::valueOf(Env env) {
+Val LambdaExp::evaluate(Env env) {
     int argc;
     for (argc = 0; xs[argc] != ""; argc++);
 
@@ -464,7 +464,7 @@ Val LambdaExp::valueOf(Env env) {
     return new LambdaVal(ids, exp->clone(), env);
 }
 
-Val LetExp::valueOf(Env env) {
+Val LetExp::evaluate(Env env) {
     // We will operate on a clone
     env = env->clone();
 
@@ -482,7 +482,7 @@ Val LetExp::valueOf(Env env) {
     // Extend the environment
     for (int i = 0; i < argc; i++) {
         // Compute the expression
-        Val v = exps[i]->valueOf(env);
+        Val v = exps[i]->evaluate(env);
         if (!v) {
             // Garbage collection will happen here
             env->rem_ref();
@@ -512,7 +512,7 @@ Val LetExp::valueOf(Env env) {
     throw_debug("env", "original env Γ extended to env Γ' := " + env->toString());
 
     // Compute the result
-    Val y = body->valueOf(env);
+    Val y = body->evaluate(env);
 
     // Garbage collection
     env->rem_ref();
@@ -522,7 +522,7 @@ Val LetExp::valueOf(Env env) {
 
 }
 
-Val ListExp::valueOf(Env env) {
+Val ListExp::evaluate(Env env) {
     // Generate a blank list
     ListVal *val = new ListVal;
     
@@ -530,7 +530,7 @@ Val ListExp::valueOf(Env env) {
     auto it = list->iterator();
     for(int i = 0; it->hasNext(); i++) {
         // Compute the value of each item
-        Val v = it->next()->valueOf(env);
+        Val v = it->next()->evaluate(env);
         if (!v) {
             // Garbage collection on the iterator and the value
             delete it;
@@ -546,9 +546,9 @@ Val ListExp::valueOf(Env env) {
     return val;
 }
 
-Val ListAccessExp::valueOf(Env env) {
+Val ListAccessExp::evaluate(Env env) {
     // Get the list
-    Val f = list->valueOf(env);
+    Val f = list->evaluate(env);
     f = unpack_thunk(f);
 
     if (!f)
@@ -563,7 +563,7 @@ Val ListAccessExp::valueOf(Env env) {
     }
     
     // Get the index
-    Val index = idx->valueOf(env);
+    Val index = idx->evaluate(env);
     index = unpack_thunk(index);
 
     if (!index) return NULL;  
@@ -638,9 +638,9 @@ Val ListAccessExp::valueOf(Env env) {
     }
 }
 
-Val ListAddExp::valueOf(Env env) {
+Val ListAddExp::evaluate(Env env) {
     // Get the list
-    Val f = list->valueOf(env);
+    Val f = list->evaluate(env);
     f = unpack_thunk(f);
 
     if (!f)
@@ -652,7 +652,7 @@ Val ListAddExp::valueOf(Env env) {
     List<Val> *vals = ((ListVal*) f)->get();
 
     // Compute the index
-    Val index = idx->valueOf(env);
+    Val index = idx->evaluate(env);
     index = unpack_thunk(index);
 
     if (!index) return NULL;
@@ -663,7 +663,7 @@ Val ListAddExp::valueOf(Env env) {
     int i = ((IntVal*) index)->get();
 
     // Compute the value
-    Val val = elem->valueOf(env);
+    Val val = elem->evaluate(env);
     if (!index)
         return NULL;
     
@@ -673,9 +673,9 @@ Val ListAddExp::valueOf(Env env) {
     return new VoidVal;
 }
 
-Val ListRemExp::valueOf(Env env) {
+Val ListRemExp::evaluate(Env env) {
     // Get the list
-    Val f = list->valueOf(env);
+    Val f = list->evaluate(env);
     f = unpack_thunk(f);
 
     if (!f)
@@ -687,7 +687,7 @@ Val ListRemExp::valueOf(Env env) {
     List<Val> *vals = ((ListVal*) f)->get();
 
     // Compute the index
-    Val index = idx->valueOf(env);
+    Val index = idx->evaluate(env);
     index = unpack_thunk(index);
 
     if (!index) return NULL;
@@ -701,9 +701,9 @@ Val ListRemExp::valueOf(Env env) {
     return vals->remove(i);
 }
 
-Val ListSliceExp::valueOf(Env env) {
+Val ListSliceExp::evaluate(Env env) {
     // Get the list
-    Val lst = list->valueOf(env);
+    Val lst = list->evaluate(env);
     lst = unpack_thunk(lst);
 
     if (!lst)
@@ -717,7 +717,7 @@ Val ListSliceExp::valueOf(Env env) {
     // Get the index
     int i;
     if (from) {
-        Val f = from->valueOf(env);
+        Val f = from->evaluate(env);
         f = unpack_thunk(f);
 
         if (!f) return NULL;
@@ -737,7 +737,7 @@ Val ListSliceExp::valueOf(Env env) {
     
     if (to) {
         // Get the index
-        Val t = to->valueOf(env);
+        Val t = to->evaluate(env);
         t = unpack_thunk(t);
 
         if (!t) return NULL;
@@ -809,8 +809,8 @@ Val ListSliceExp::valueOf(Env env) {
     }
 }
 
-Val MagnitudeExp::valueOf(Env env) {
-    Val v = exp->valueOf(env);
+Val MagnitudeExp::evaluate(Env env) {
+    Val v = exp->evaluate(env);
     Val res = NULL;
 
     if (!v) return NULL;
@@ -834,8 +834,8 @@ Val MagnitudeExp::valueOf(Env env) {
     return res;
 }
 
-Val MapExp::valueOf(Env env) { 
-    Val f = func->valueOf(env);
+Val MapExp::evaluate(Env env) { 
+    Val f = func->evaluate(env);
     f = unpack_thunk(f);
     if (!f) return NULL;
     
@@ -853,7 +853,7 @@ Val MapExp::valueOf(Env env) {
         return NULL;
     }
     
-    Val vs = list->valueOf(env);
+    Val vs = list->evaluate(env);
     vs = unpack_thunk(vs);
     if (!vs) {
         fn->rem_ref();
@@ -951,8 +951,8 @@ Val sqnorm(Val v, Env env) {
 
     } else return NULL;
 }
-Val NormExp::valueOf(Env env) {
-    Val val = exp->valueOf(env);
+Val NormExp::evaluate(Env env) {
+    Val val = exp->evaluate(env);
     val = unpack_thunk(val);
     if (!val) return NULL;
 
@@ -970,8 +970,8 @@ Val NormExp::valueOf(Env env) {
 }
 
 
-Val NotExp::valueOf(Env env) {
-    Val v = exp->valueOf(env);
+Val NotExp::evaluate(Env env) {
+    Val v = exp->evaluate(env);
     v = unpack_thunk(v);
     
     if (!v)
@@ -991,13 +991,13 @@ Val NotExp::valueOf(Env env) {
     }
 }
 
-Val OperatorExp::valueOf(Env env) {
-    Val a = left->valueOf(env);
+Val OperatorExp::evaluate(Env env) {
+    Val a = left->evaluate(env);
     a = unpack_thunk(a);
 
     if (!a) return NULL;
 
-    Val b = right->valueOf(env);
+    Val b = right->evaluate(env);
     b = unpack_thunk(b);
 
     if (!b) {
@@ -1011,11 +1011,11 @@ Val OperatorExp::valueOf(Env env) {
     }
 }
 
-Val PrintExp::valueOf(Env env) {
+Val PrintExp::evaluate(Env env) {
     string s = "";
     
     for (int i = 0; args[i]; i++) {
-        Val v = args[i]->valueOf(env);
+        Val v = args[i]->evaluate(env);
         if (!v)
             return NULL;
 
@@ -1029,11 +1029,11 @@ Val PrintExp::valueOf(Env env) {
     return new VoidVal;
 }
 
-Val RealExp::valueOf(Env env) {
+Val RealExp::evaluate(Env env) {
     return new RealVal(val);
 }
 
-Val SequenceExp::valueOf(Env env) {
+Val SequenceExp::evaluate(Env env) {
     Val v = NULL;
     
     // For each expression in the sequence...
@@ -1041,7 +1041,7 @@ Val SequenceExp::valueOf(Env env) {
     do {
         // Compute it and store it.
         if (v) v->rem_ref();
-        v = it->next()->valueOf(env);
+        v = it->next()->evaluate(env);
     } while (it->hasNext() && v); // End the loop early if an error occurs.
     
     // Return the final outcome, or NULL if one of
@@ -1050,20 +1050,20 @@ Val SequenceExp::valueOf(Env env) {
     return v;
 }
 
-Val SetExp::valueOf(Env env) {
+Val SetExp::evaluate(Env env) {
     Val v = NULL;
 
     if (typeid(*tgt) == typeid(ListAccessExp)) {
         ListAccessExp *acc = (ListAccessExp*) tgt;
         
-        Val u = acc->getList()->valueOf(env);
+        Val u = acc->getList()->evaluate(env);
         if (!u) {
             return NULL;
         } else if (typeid(*u) == typeid(ListVal)) { 
 
             ListVal *lst = (ListVal*) u;
 
-            Val index = acc->getIdx()->valueOf(env);
+            Val index = acc->getIdx()->evaluate(env);
             if (!index) {
                 u->rem_ref();
                 return NULL;
@@ -1084,7 +1084,7 @@ Val SetExp::valueOf(Env env) {
                 return NULL;
             }
             
-            if (!(v = exp->valueOf(env))) {
+            if (!(v = exp->evaluate(env))) {
                 u->rem_ref();
                 return NULL;
             } else {
@@ -1097,7 +1097,7 @@ Val SetExp::valueOf(Env env) {
             
             auto lst = (DictVal*) u;
 
-            Val index = acc->getIdx()->valueOf(env);
+            Val index = acc->getIdx()->evaluate(env);
             if (!index) {
                 u->rem_ref();
                 return NULL;
@@ -1120,7 +1120,7 @@ Val SetExp::valueOf(Env env) {
             auto vt = vals->iterator();
 
             bool done = false;
-            if (!(v = exp->valueOf(env))) {
+            if (!(v = exp->evaluate(env))) {
                 u->rem_ref();
                 return NULL;
             }
@@ -1152,7 +1152,7 @@ Val SetExp::valueOf(Env env) {
     } else if (typeid(*tgt) == typeid(VarExp)) {
         VarExp *var = (VarExp*) tgt;
         
-        v = exp->valueOf(env);
+        v = exp->evaluate(env);
         if (!v) return NULL;
         
         env->set(var->toString(), v);
@@ -1163,13 +1163,13 @@ Val SetExp::valueOf(Env env) {
     } else {
         throw_warning("runtime", "assigning to right-handish expression '" + tgt->toString() + "' is unsafe");
         // Get info for modifying the environment
-        Val u = tgt->valueOf(env);
+        Val u = tgt->evaluate(env);
         if (!u)
             // The variable doesn't exist
             return NULL;
 
         // Evaluate the expression
-        v = exp->valueOf(env);
+        v = exp->evaluate(env);
 
         if (!v)
             // The value could not be evaluated.
@@ -1186,8 +1186,8 @@ Val SetExp::valueOf(Env env) {
     return v;
 }
 
-Val StdlibOpExp::valueOf(Env env) {
-    Val v = x->valueOf(env);
+Val StdlibOpExp::evaluate(Env env) {
+    Val v = x->evaluate(env);
     v = unpack_thunk(v);
 
     if (!v) return NULL;
@@ -1214,9 +1214,9 @@ Val StdlibOpExp::valueOf(Env env) {
     }
 }
 
-Val TrueExp::valueOf(Env env) { return new BoolVal(true); }
+Val TrueExp::evaluate(Env env) { return new BoolVal(true); }
 
-Val VarExp::valueOf(Env env) {
+Val VarExp::evaluate(Env env) {
     Val res = env->apply(id);
     if (!res) {
         throw_err("runtime", "variable '" + id + "' was not recognized");
@@ -1228,11 +1228,11 @@ Val VarExp::valueOf(Env env) {
     }
 }
 
-Val WhileExp::valueOf(Env env) {
+Val WhileExp::evaluate(Env env) {
     bool skip = alwaysEnter;
 
     while (true) {
-        Val c = cond->valueOf(env);
+        Val c = cond->evaluate(env);
         c = unpack_thunk(c);
 
         if (!c) return NULL;
@@ -1245,7 +1245,7 @@ Val WhileExp::valueOf(Env env) {
             // Compute the new outcome. If it is
             // NULL, computation failed, so NULL
             // should be returned.
-            Val v = body->valueOf(env);
+            Val v = body->evaluate(env);
             if (!v)
                 return NULL;
             else

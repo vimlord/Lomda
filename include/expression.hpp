@@ -19,7 +19,7 @@ class ApplyExp : public Expression {
         ApplyExp(Exp, Exp*);
         ~ApplyExp();
 
-        Val valueOf(Env);
+        Val evaluate(Env);
         Val derivativeOf(std::string, Env, Env);
         
         Exp clone();
@@ -36,7 +36,7 @@ class CastExp : public Expression {
         CastExp(std::string t, Exp e) : type(t), exp(e) {}
         ~CastExp() { delete exp; }
 
-        Val valueOf(Env);
+        Val evaluate(Env);
 
         Exp clone() { return new CastExp(type, exp->clone()); }
         std::string toString();
@@ -53,7 +53,7 @@ class DerivativeExp : public Expression {
         DerivativeExp(Exp f, std::string s) : func(f), var(s) {}
         ~DerivativeExp() { delete func; }
 
-        Val valueOf(Env);
+        Val evaluate(Env);
 
         Exp clone() { return new DerivativeExp(func->clone(), var); }
         std::string toString();
@@ -69,7 +69,7 @@ class FoldExp : public Expression {
                 : list(l), func(f), base(b) {}
         ~FoldExp() { delete list; delete func; delete base; }
         
-        Val valueOf(Env);
+        Val evaluate(Env);
         Val derivativeOf(std::string, Env, Env);
 
         Exp clone() { return new FoldExp(list->clone(), func->clone(), base->clone()); }
@@ -88,7 +88,7 @@ class ForExp : public Expression {
     public:
         ForExp(std::string x, Exp xs, Exp e) : id(x), set(xs), body(e) {}
         ~ForExp() { delete set; delete body; }
-        Val valueOf(Env);
+        Val evaluate(Env);
         Val derivativeOf(std::string, Env, Env);
 
         Exp clone() { return new ForExp(id, set->clone(), body->clone()); }
@@ -109,7 +109,7 @@ class IfExp : public Expression {
         IfExp(Exp, Exp, Exp);
         ~IfExp() { delete cond; delete tExp; delete fExp; }
 
-        Val valueOf(Env);
+        Val evaluate(Env);
         Val derivativeOf(std::string, Env, Env);
         
         Exp clone() { return new IfExp(cond->clone(), tExp->clone(), fExp->clone()); }
@@ -135,7 +135,7 @@ class ImportExp : public Expression {
                     if (!e) exp = new VarExp(m);
         }
 
-        Val valueOf(Env);
+        Val evaluate(Env);
 
         Exp clone() { return new ImportExp(module, name, exp->clone()); }
         std::string toString();
@@ -145,7 +145,7 @@ class InputExp : public Expression {
     public:
         InputExp() {}
         
-        Val valueOf(Env);
+        Val evaluate(Env);
 
         Exp clone() { return new InputExp; }
         std::string toString() { return "input"; }
@@ -163,7 +163,7 @@ class IsaExp : public Expression {
         IsaExp(Exp e, std::string t) : exp(e), type(t) {}
         ~IsaExp() { delete exp; }
 
-        Val valueOf(Env);
+        Val evaluate(Env);
 
         Exp clone() { return new IsaExp(exp->clone(), type); }
         std::string toString();
@@ -188,7 +188,7 @@ class LetExp : public Expression {
             delete[] ids;
         }
 
-        Val valueOf(Env);
+        Val evaluate(Env);
         Val derivativeOf(std::string, Env, Env);
         
         Exp clone();
@@ -207,7 +207,7 @@ class MagnitudeExp : public Expression {
         ~MagnitudeExp() { delete exp; }
         Exp clone() { return new MagnitudeExp(exp->clone()); }
 
-        Val valueOf(Env);
+        Val evaluate(Env);
         Val derivativeOf(std::string, Env, Env);
 
         std::string toString();
@@ -225,7 +225,7 @@ class MapExp : public Expression {
         ~MapExp() { delete func; delete list; }
         Exp clone() { return new MapExp(list->clone(), func->clone()); }
 
-        Val valueOf(Env);
+        Val evaluate(Env);
         Val derivativeOf(std::string, Env, Env);
         
         std::string toString();
@@ -243,7 +243,7 @@ class NormExp : public Expression {
         ~NormExp() { delete exp; }
         Exp clone() { return new NormExp(exp->clone()); }
 
-        Val valueOf(Env);
+        Val evaluate(Env);
         //Val derivativeOf(std::string, Env, Env);
 
         std::string toString();
@@ -260,7 +260,7 @@ class NotExp : public Expression {
         NotExp(Exp e) { exp = e; }
         ~NotExp() { delete exp; }
 
-        Val valueOf(Env);
+        Val evaluate(Env);
         
         Exp clone() { return new NotExp(exp->clone()); }
         std::string toString();
@@ -279,7 +279,7 @@ class SequenceExp : public Expression {
 
         LinkedList<Exp>* getSeq() { return seq; }
 
-        Val valueOf(Env);
+        Val evaluate(Env);
         
         Exp clone();
         std::string toString();
@@ -301,7 +301,7 @@ class SetExp : public Expression {
             delete exp;
         }
 
-        Val valueOf(Env);
+        Val evaluate(Env);
         Val derivativeOf(std::string, Env, Env);
         
         Exp clone();
@@ -319,7 +319,7 @@ class ThunkExp : public Expression {
         ThunkExp(Exp e) : exp(e) {}
         ~ThunkExp() { delete exp; }
 
-        Val valueOf(Env env) { env->add_ref(); return new Thunk(exp->clone(), env); }
+        Val evaluate(Env env) { env->add_ref(); return new Thunk(exp->clone(), env); }
         Val derivativeOf(std::string x, Env e, Env d) { return exp->derivativeOf(x, e, d); }
 
         Exp optimize() { exp = exp->optimize(); return this; }
@@ -337,7 +337,7 @@ class ValExp : public Expression {
         ValExp(Val v) : val(v) {}
         ~ValExp() { val->rem_ref(); }
 
-        Val valueOf(Env) { val->add_ref(); return val; }
+        Val evaluate(Env) { val->add_ref(); return val; }
 
         Exp clone() { val->add_ref(); return new ValExp(val); }
         std::string toString();
@@ -353,7 +353,7 @@ class WhileExp : public Expression {
                 : cond(c), body(b), alwaysEnter(enter) {}
         ~WhileExp() { delete cond; delete body; }
 
-        Val valueOf(Env);
+        Val evaluate(Env);
         Val derivativeOf(std::string, Env, Env);
 
         Exp clone() { return new WhileExp(cond->clone(), body->clone(), alwaysEnter); }

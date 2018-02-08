@@ -10,7 +10,7 @@ class PrintExp : public Expression {
         PrintExp(Exp *l) : args(l) {}
         ~PrintExp() { for (int i = 0; args[i]; i++) delete args[i]; delete[] args; }
 
-        Val valueOf(Env);
+        Val evaluate(Env);
 
         Exp clone();
         std::string toString();
@@ -31,7 +31,7 @@ class StdlibOpExp : public Expression {
         StdlibOpExp(StdlibOp so, Exp e) : op(so), x(e) {}
         ~StdlibOpExp() { delete x; }
 
-        Val valueOf(Env);
+        Val evaluate(Env);
         Val derivativeOf(std::string, Env, Env);
         
         Exp clone() { return new StdlibOpExp(op, x->clone()); }

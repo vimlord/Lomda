@@ -29,7 +29,7 @@ class Expression : public Stringable {
          * @return The outcome of the computation, or NULL if the expression
                     is non-computable under the given environment.
          */
-        virtual Val valueOf(Env env) { return NULL; }
+        virtual Val evaluate(Env env) { return NULL; }
         
         /**
          * Computes the derivative of an expression. The default is to

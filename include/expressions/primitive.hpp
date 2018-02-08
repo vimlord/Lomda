@@ -19,7 +19,7 @@ class DictExp : public Expression {
             delete vals;
         }
 
-        Val valueOf(Env);
+        Val evaluate(Env);
         
         Exp clone();
         std::string toString();
@@ -29,7 +29,7 @@ class DictExp : public Expression {
 class FalseExp : public Expression {
     public:
         FalseExp() {}
-        Val valueOf(Env);
+        Val evaluate(Env);
         
         Exp clone() { return new FalseExp(); }
         std::string toString() { return "false"; }
@@ -44,7 +44,7 @@ class IntExp : public Expression {
         int val;
     public:
         IntExp(int = 0);
-        Val valueOf(Env);
+        Val evaluate(Env);
         Val derivativeOf(std::string, Env, Env);
 
         int get() { return val; }
@@ -64,7 +64,7 @@ class LambdaExp : public Expression {
     public:
         LambdaExp(std::string*, Exp);
         ~LambdaExp() { delete[] xs; delete exp; }
-        Val valueOf(Env);
+        Val evaluate(Env);
         Val derivativeOf(std::string, Env, Env);
 
         std::string *getXs() { return xs; }
@@ -89,7 +89,7 @@ class ListExp : public Expression {
         ListExp(Exp*);
         ListExp(List<Exp>* l) : list(l) {}
 
-        Val valueOf(Env);
+        Val evaluate(Env);
         Val derivativeOf(std::string, Env, Env);
         
         Exp clone();
@@ -108,7 +108,7 @@ class RealExp : public Expression {
         float val;
     public:
         RealExp(float = 0);
-        Val valueOf(Env);
+        Val evaluate(Env);
         Val derivativeOf(std::string, Env, Env);
         
         Exp clone() { return new RealExp(val); }
@@ -124,7 +124,7 @@ class StringExp : public Expression {
     public:
         StringExp(std::string s) : val(s) {}
 
-        Val valueOf(Env) { return new StringVal(val); }
+        Val evaluate(Env) { return new StringVal(val); }
 
         Exp clone() { return new StringExp(val); }
         std::string toString();
@@ -137,7 +137,7 @@ class StringExp : public Expression {
 class TrueExp : public Expression {
     public:
         TrueExp() {}
-        Val valueOf(Env);
+        Val evaluate(Env);
         
         Exp clone() { return new TrueExp(); }
         std::string toString() { return "true"; }
@@ -153,7 +153,7 @@ class VarExp : public Expression {
     public:
         VarExp(std::string s) : id(s) {}
 
-        Val valueOf(Env env);
+        Val evaluate(Env env);
         
         Exp clone() { return new VarExp(id); }
         std::string toString();
@@ -172,7 +172,7 @@ class VoidExp : public Expression {
     public:
         VoidExp() {}
 
-        Val valueOf(Env) { return new VoidVal; }
+        Val evaluate(Env) { return new VoidVal; }
         std::string toString() { return "void"; }
 
         Exp clone() { return new VoidExp; }

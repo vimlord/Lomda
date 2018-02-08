@@ -12,7 +12,7 @@ class ListAccessExp : public Expression {
         ListAccessExp(Exp x, Exp i) : list(x), idx(i) {}
         ~ListAccessExp() { delete list; delete idx; }
 
-        Val valueOf(Env);
+        Val evaluate(Env);
         Val derivativeOf(std::string, Env, Env);
 
         Exp clone() { return new ListAccessExp(list->clone(), idx->clone()); }
@@ -34,7 +34,7 @@ class ListAddExp : public Expression {
         ListAddExp(Exp x, Exp i, Exp e) : list(x), idx(i), elem(e) {}
         ~ListAddExp() { delete list; delete idx; delete elem; }
 
-        Val valueOf(Env);
+        Val evaluate(Env);
 
         Exp clone() { return new ListAddExp(list->clone(), idx->clone(), elem->clone()); }
         std::string toString();
@@ -49,7 +49,7 @@ class ListRemExp : public Expression {
         ListRemExp(Exp x, Exp i) : list(x), idx(i) {}
         ~ListRemExp() { delete list; delete idx; }
 
-        Val valueOf(Env);
+        Val evaluate(Env);
 
         Exp clone() { return new ListRemExp(list->clone(), idx->clone()); }
         std::string toString();
@@ -65,7 +65,7 @@ class ListSliceExp : public Expression {
         ListSliceExp(Exp x, Exp i, Exp j) : list(x), from(i), to(j) {}
         ~ListSliceExp() { delete list; delete from; delete to; }
 
-        Val valueOf(Env);
+        Val evaluate(Env);
 
         Exp clone() {
             Exp f = from ? from->clone() : NULL;

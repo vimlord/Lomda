@@ -449,7 +449,7 @@ Exp OperatorExp::optimize() {
     if (is_const_exp(left) && is_const_exp(right)) {
         // If the left and right hand side are constants, then we
         // can perform constant folding on the operation.
-        Val v = valueOf(NULL);
+        Val v = evaluate(NULL);
         
         if (!v)
             return this;
@@ -605,7 +605,7 @@ int SequenceExp::opt_var_usage(std::string x) {
 Exp StdlibOpExp::optimize() {
     x = x->optimize();
     if (is_const_exp(x)) {
-        Val v = valueOf(NULL);
+        Val v = evaluate(NULL);
         Exp e = reexpress(v);
         delete v;
         delete this;

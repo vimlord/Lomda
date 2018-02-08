@@ -10,7 +10,7 @@ class OperatorExp : public Expression {
     public:
         OperatorExp(Exp, Exp);
         ~OperatorExp();
-        Val valueOf(Env);
+        Val evaluate(Env);
         
         virtual Val op(Val, Val) = 0;
 
