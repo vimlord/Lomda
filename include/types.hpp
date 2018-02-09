@@ -20,8 +20,11 @@ inline bool val_is_list(Val v) {
 inline bool val_is_dict(Val v) {
     return typeid(*v) == typeid(DictVal);
 }
+inline bool val_is_tuple(Val v) {
+    return typeid(*v) == typeid(TupleVal);
+}
 inline bool val_is_data_struct(Val v) {
-    return val_is_list(v) || val_is_dict(v);
+    return val_is_list(v) || val_is_dict(v) || val_is_tuple(v);
 }
 
 
