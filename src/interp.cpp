@@ -231,6 +231,26 @@ Val DerivativeExp::evaluate(Env env) {
 }
 
 Val DictExp::evaluate(Env env) {
+    // Verify that none of the keys repeat
+    auto it = keys->iterator();
+    for (int i = 0; it->hasNext(); i++) {
+        string x = it->next();
+
+        auto jt = keys->iterator();
+        for (int j = 0; j <= i; j++) jt->next();
+        while (jt->hasNext()) {
+            if (jt->next() == x) {
+                throw_err("runtime", "keys should not be repeated in dictionary definition; see: " + toString());
+                delete it;
+                delete jt;
+                return NULL;
+            }
+        }
+        delete jt;
+    }
+
+    delete it;
+
     LinkedList<string> *ks = new LinkedList<string>;
     LinkedList<Val> *vs = new LinkedList<Val>;
 
