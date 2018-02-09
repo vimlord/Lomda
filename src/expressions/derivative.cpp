@@ -27,7 +27,17 @@ void resolveIdentity(Val val, List<int> *idx = NULL) {
             resolveIdentity(it->next(), idx);
             idx->remove(0);
         }
+    } else if (typeid(*val) == typeid(DictVal)) {
+        if (!idx) idx = new LinkedList<int>;
+        
+        DictVal *dct = (DictVal*) val;
 
+        auto vit = dct->getVals()->iterator();
+        for (int i = 0; vit->hasNext(); i++) {
+            idx->add(0, i);
+            resolveIdentity(vit->next(), idx);
+            idx->remove(0);
+        }
     }
 
     auto it = idx->iterator();
@@ -38,10 +48,7 @@ void resolveIdentity(Val val, List<int> *idx = NULL) {
     for (; i < idx->size() && it->next() == jt->next(); i++);
 
     if (i == idx->size()) {
-        Val v = typeid(*val) == typeid(IntVal)
-                ? (Val) new IntVal(1) : (Val) new RealVal(1);
-
-        val->set(v);
+        val->set(typeid(*val) == typeid(IntVal) ? (Val) new IntVal(1) : (Val) new RealVal(1));
     }
 }
 
@@ -70,6 +77,28 @@ Val deriveConstVal(Val v, int c) {
         }
         delete it;
         return res; 
+    } else if (typeid(*v) == typeid(DictVal)) {
+        auto kit = ((DictVal*) v)->getKeys()->iterator();
+        auto vit = ((DictVal*) v)->getVals()->iterator();
+
+        auto keys = new LinkedList<string>;
+        auto vals = new LinkedList<Val>;
+        
+        Val res = new DictVal(keys, vals);
+
+        while (kit->hasNext()) {
+            auto k = kit->next();
+            auto x = vit->next();
+            
+            keys->add(keys->size(), k);
+            vals->add(vals->size(), deriveConstVal(x, c));
+        }
+
+        delete kit;
+        delete vit;
+
+        return res;
+
     } else
         return new IntVal(c);
 }
@@ -108,6 +137,28 @@ Val deriveConstVal(Val y, Val x, int c) {
         if (c == 1) resolveIdentity(res);
 
         return res;
+    } else if (typeid(*x) == typeid(DictVal)) {
+        auto kit = ((DictVal*) x)->getKeys()->iterator();
+        auto vit = ((DictVal*) x)->getVals()->iterator();
+
+        auto keys = new LinkedList<string>;
+        auto vals = new LinkedList<Val>;
+        
+        Val res = new DictVal(keys, vals);
+
+        while (kit->hasNext()) {
+            auto k = kit->next();
+            auto v = vit->next();
+            
+            keys->add(keys->size(), k);
+            vals->add(vals->size(), deriveConstVal(y, v, 0));
+        }
+
+        delete kit;
+        delete vit;
+
+        return res;
+
     } else
         return deriveConstVal(y, c);
 }
@@ -178,6 +229,34 @@ Val ApplyExp::derivativeOf(string x, Env env, Env denv) {
 Val CompareExp::derivativeOf(string, Env, Env) {
     throw_calc_err(this);
     return NULL;
+}
+
+Val DictExp::derivativeOf(string x, Env env, Env denv) {
+    // d/dx [u_0, u_1, ...] = [d/dx u_0, d/dx u_1, ...]
+    DictVal *val = new DictVal();
+    
+    // Add each item
+    auto kit = keys->iterator();
+    auto vit = vals->iterator();
+    for(int i = 0; vit->hasNext(); i++) {
+        // Compute the value of each item
+        Exp exp = vit->next();
+        Val v = exp->derivativeOf(x, env, denv);
+        if (!v) {
+            delete kit;
+            delete vit;
+
+            return NULL;
+        } else {
+            val->getKeys()->add(i, kit->next());
+            val->getVals()->add(i, v);
+        }
+    }
+
+    delete kit;
+    delete vit;
+
+    return val;
 }
 
 Val DiffExp::derivativeOf(string x, Env env, Env denv) {
