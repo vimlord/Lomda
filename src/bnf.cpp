@@ -568,6 +568,18 @@ ParsedPrgms parseAccessor(string str, bool ends) {
             }
 
             delete arglists;
+        } else if ((i = parseLit(s, ".")) >= 0) {
+            lst.len += i;
+            s = s.substr(i);
+
+            parsed_id id = parseId(s);
+            if (id.len > 0) {
+                parsed_prgm p;
+                p.item = new ListAccessExp(lst.item->clone(), new StringExp(id.item));
+                p.len = lst.len + id.len;
+
+                lists->add(0, p);
+            }
         }
         
         delete lst.item;

@@ -617,9 +617,9 @@ Val ListAccessExp::evaluate(Env env) {
         // We will return a void-exp on failure.
         if (!v) {
             throw_err("runtime", "key " + i + " is not defined in dictionary " + f->toString());
-        }
-        
-        v->add_ref();
+        } else
+            v->add_ref();
+
         return v;
 
     } else {
