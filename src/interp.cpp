@@ -584,7 +584,8 @@ Val ListAccessExp::evaluate(Env env) {
     else if (
     typeid(*f) != typeid(ListVal) &&
     typeid(*f) != typeid(DictVal) &&
-    typeid(*f) != typeid(StringVal)
+    typeid(*f) != typeid(StringVal) &&
+    typeid(*f) != typeid(TupleVal)
     ) {
         throw_type_err(list, "dict, list, or string");
         return NULL;
@@ -602,6 +603,7 @@ Val ListAccessExp::evaluate(Env env) {
 
         if (typeid(*index) != typeid(IntVal)) {
                 throw_type_err(idx, "integer");
+                f->rem_ref();
                 return NULL;
         }
         int i = ((IntVal*) index)->get();
@@ -625,8 +627,9 @@ Val ListAccessExp::evaluate(Env env) {
     } else if (typeid(*f) == typeid(DictVal)) {
 
         if (typeid(*index) != typeid(StringVal)) {
-            index->rem_ref();
             throw_type_err(idx, "string");
+            f->rem_ref();
+            index->rem_ref();
             return NULL;
         }
         string i = ((StringVal*) index)->get();
@@ -642,12 +645,38 @@ Val ListAccessExp::evaluate(Env env) {
 
         return v;
 
+    } else if (typeid(*f) == typeid(TupleVal)) {
+        if (typeid(*index) != typeid(IntVal)) {
+            throw_type_err(idx, "integer");
+            f->rem_ref();
+            return NULL;
+        }
+        
+        int i = ((IntVal*) index)->get();
+        index->rem_ref();
+        
+        Val v;
+
+        if (i < 0 || i >= 2) {
+            throw_err("runtime", "index " + to_string(i) + " is not within the bounds of tuples");
+            v = NULL;
+        } else if (i)
+            v = ((TupleVal*) f)->getRight();
+        else
+            v = ((TupleVal*) f)->getLeft();
+        
+        v->add_ref();
+        f->rem_ref();
+
+        return v;
+    
     } else {
         // The string
         string s = f->toString();
         
         if (typeid(*index) != typeid(IntVal)) {
                 throw_type_err(idx, "integer");
+                f->rem_ref();
                 return NULL;
         }
         int i = ((IntVal*) index)->get();
@@ -1097,9 +1126,7 @@ Val SetExp::evaluate(Env env) {
             if (!index) {
                 u->rem_ref();
                 return NULL;
-            }
-
-            if (typeid(*index) != typeid(IntVal)) {
+            } else if (typeid(*index) != typeid(IntVal)) {
                 throw_type_err(acc->getIdx(), "integer");
                 index->rem_ref();
                 u->rem_ref();
@@ -1131,9 +1158,7 @@ Val SetExp::evaluate(Env env) {
             if (!index) {
                 u->rem_ref();
                 return NULL;
-            }
-
-            if (typeid(*index) != typeid(StringVal)) {
+            } else if (typeid(*index) != typeid(StringVal)) {
                 throw_type_err(acc->getIdx(), "string");
                 index->rem_ref();
                 u->rem_ref();
@@ -1174,6 +1199,37 @@ Val SetExp::evaluate(Env env) {
                 vals->add(0, v);
             }
            
+        } else if (typeid(*u) == typeid(TupleVal)) {
+            auto tpl = (TupleVal*) u;
+
+            Val index = acc->getIdx()->evaluate(env);
+            if (!index) {
+                u->rem_ref();
+                return NULL;
+            } else if (typeid(*index) != typeid(IntVal)) {
+                throw_type_err(acc->getIdx(), "integer");
+                index->rem_ref();
+                u->rem_ref();
+                return NULL;
+            }
+
+            int idx = ((IntVal*) index)->get();
+            index->rem_ref();
+
+            if (idx == 0) {
+                v = exp->evaluate(env);
+                if (v) {
+                    tpl->getLeft()->rem_ref();
+                    tpl->getLeft() = v;
+                }
+            } else if (idx == 1) {
+                v = exp->evaluate(env);
+                if (v) {
+                    tpl->getRight()->rem_ref();
+                    tpl->getRight() = v;
+                }
+            }
+
         } else {
             u->rem_ref();
             return NULL;
@@ -1218,6 +1274,16 @@ Val SetExp::evaluate(Env env) {
 }
 
 Val TrueExp::evaluate(Env env) { return new BoolVal(true); }
+
+Val TupleExp::evaluate(Env env) {
+    Val l = left->evaluate(env);
+    if (!l) return NULL;
+
+    Val r = right->evaluate(env);
+    if (!r) { l->rem_ref(); return NULL; }
+
+    return new TupleVal(l, r);
+}
 
 Val VarExp::evaluate(Env env) {
     Val res = env->apply(id);

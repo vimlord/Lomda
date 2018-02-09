@@ -139,6 +139,22 @@ class Thunk : public Value {
         Thunk* clone() { if (val) val->add_ref(); return new Thunk(exp->clone(), env->clone(), val); }
 };
 
+class TupleVal : public Value {
+    private:
+        Val left;
+        Val right;
+    public:
+        TupleVal(Val l, Val r) : left(l), right(r) {}
+        ~TupleVal() { left->rem_ref(); right->rem_ref(); }
+
+        Val& getLeft() { return left; }
+        Val& getRight() { return right; }
+        int set(Val);
+        
+        std::string toString();
+        TupleVal* clone() { left->add_ref(); right->rem_ref(); return new TupleVal(left, right); }
+};
+
 class VoidVal : public Value {
     public:
         std::string toString() { return "void"; }

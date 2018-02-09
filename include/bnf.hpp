@@ -50,6 +50,7 @@ ParsedPrgms parseNotExp(std::string, bool = true);
 
 ParsedPrgms parsePrimitive(std::string str, bool = true);
 ParsedPrgms parseListExp(std::string, bool = true);
+ParsedPrgms parseTupleExp(std::string, bool = true);
 
 ParsedPrgms parseFoldExp(std::string str, bool = true);
 ParsedPrgms parseForExp(std::string str, bool = true);

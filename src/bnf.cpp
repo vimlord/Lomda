@@ -1353,7 +1353,9 @@ ParsedPrgms parseNotExp(string str, bool ends) {
 }
 
 ParsedPrgms parseParentheses(string str, bool ends) {
-    ParsedPrgms res = new LinkedList<parsed_prgm>;
+    ParsedPrgms res = parseTupleExp(str, ends);
+
+    if (!res->isEmpty()) return res;
 
     int len = parseLit(str, "(");
     if (len < 0) return res;
@@ -1547,7 +1549,68 @@ ParsedPrgms parseSetExp(string str, bool ends) {
     return res;
 }
 
+ParsedPrgms parseTupleExp(string str, bool ends) {
+    
+    int len, i;
+    ParsedPrgms res = new LinkedList<parsed_prgm>;
 
+    len = parseLit(str, "(");
+    if (len < 0) return res;
+    str = str.substr(len);
+
+    // The possible conditionals
+    ParsedPrgms lefts = parsePemdas(str, false);
+    
+    while (!lefts->isEmpty()) {
+        parsed_prgm left = lefts->remove(0);
+
+        string s = str.substr(left.len);
+        int length = len + left.len;;
+        
+        if ((i = parseLit(s, ",")) < 0) {
+            delete left.item;
+            continue;
+        }
+
+        s = s.substr(i);
+        length += i;
+
+        // Now, parse for the truth body
+        ParsedPrgms rights = parseCodeBlock(s, false);
+        
+        while (!rights->isEmpty()) {
+            parsed_prgm right = rights->remove(0);
+
+            string st = s.substr(right.len);
+            int l = length + right.len;
+
+            // Next, we will filter for the 'else' keyword
+            if ((i = parseLit(st, ")")) < 0) {
+                // Remove the candidate
+                delete right.item;
+                continue;
+            } else {
+                l += i;
+                st = st.substr(i);
+
+                if (ends && parseSpaces(st) == st.length()) {
+                    delete right.item;
+                } else {
+                    parsed_prgm p;
+                    p.len = l;
+                    p.item = new TupleExp(left.item->clone(), right.item);
+
+                    res->add(0, p);
+                }
+            }
+        }
+        delete rights;
+        delete left.item;
+    }
+    delete lefts;
+
+    return res;
+}
 
 
 

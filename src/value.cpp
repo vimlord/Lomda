@@ -98,6 +98,20 @@ int RealVal::set(Val v) {
     } else return 1;
 }
 
+int TupleVal::set(Val v) {
+    if (typeid(*v) == typeid(TupleVal)) {
+        left->rem_ref();
+        left = ((TupleVal*) v)->getLeft();
+        left->add_ref();
+
+        right->rem_ref();
+        right = ((TupleVal*) v)->getRight();
+        right->add_ref();
+
+        return 0;
+    } else return 1;
+}
+
 int StringVal::set(Val v) {
     if (typeid(*v) == typeid(StringVal)) {
         val = ((StringVal*) v)->get();

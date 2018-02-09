@@ -147,6 +147,20 @@ class TrueExp : public Expression {
         int opt_var_usage(std::string) { return 0; }
 };
 
+class TupleExp : public Expression {
+    private:
+        Exp left;
+        Exp right;
+    public:
+        TupleExp(Exp l, Exp r) : left(l), right(r) {}
+        ~TupleExp() { delete left; delete right; }
+
+        Val evaluate(Env);
+        std::string toString();
+
+        Exp clone() { return new TupleExp(left->clone(), right->clone()); }
+};
+
 // Get the value of a variable
 class VarExp : public Expression {
     private:
