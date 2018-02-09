@@ -373,31 +373,39 @@ Val IfExp::evaluate(Env env) {
 }
 
 Val ImportExp::evaluate(Env env) {
-    // Attempt to open the file
-    ifstream file;
-    file.open("./" + module + ".lom");
+
+    // First, we will attempt to load it from standard libraries
+    Val mod = load_stdlib(module);
     
-    // Ensure that the file exists
-    if (!file) {
-        throw_err("IO", "could not load module " + module);
-        return NULL;
+    if (mod) {
+        throw_debug("module IO", "loaded stdlib " + module);
+    } else {
+        // Attempt to open the file
+        ifstream file;
+        file.open("./" + module + ".lom");
+        
+        // Ensure that the file exists
+        if (!file) {
+            throw_err("IO", "could not load module " + module);
+            return NULL;
+        }
+        
+        // Read the program from the input file
+        int i = 0;
+        string program = "";
+        do {
+            string s;
+            getline(file, s);
+
+            if (i++) program += " ";
+            program += s;
+        } while (file);
+
+        throw_debug("module IO", "module " + module + " is defined by '" + program + "'\n");
+        file.close();
+        
+        mod = run(program);
     }
-    
-    // Read the program from the input file
-    int i = 0;
-    string program = "";
-    do {
-        string s;
-        getline(file, s);
-
-        if (i++) program += " ";
-        program += s;
-    } while (file);
-
-    throw_debug("module IO", "module " + module + " is defined by '" + program + "'\n");
-    file.close();
-    
-    Val mod = run(program);
 
     if (mod) {
         throw_debug("module", "module " + module + " := " + mod->toString());
@@ -611,6 +619,7 @@ Val ListAccessExp::evaluate(Env env) {
             throw_err("runtime", "key " + i + " is not defined in dictionary " + f->toString());
         }
         
+        v->add_ref();
         return v;
 
     } else {
@@ -1186,34 +1195,6 @@ Val SetExp::evaluate(Env env) {
     
     v->add_ref();
     return v;
-}
-
-Val StdlibOpExp::evaluate(Env env) {
-    Val v = x->evaluate(env);
-    v = unpack_thunk(v);
-
-    if (!v) return NULL;
-    
-    if (
-        typeid(*v) == typeid(LambdaVal)
-    ||  typeid(*v) == typeid(ListVal)
-    ||  typeid(*v) == typeid(StringVal)
-    ) {
-        throw_type_err(x, "numerical");
-        return NULL;
-    }
-
-    auto z = typeid(*v) == typeid(IntVal)
-            ? ((IntVal*) v)->get()
-            : ((RealVal*) v)->get();
-    v->rem_ref();
-    
-    switch (op) {
-        case SIN: return new RealVal(sin(z));
-        case COS: return new RealVal(cos(z));
-        case LOG: return new RealVal(log(z));
-        case SQRT: return new RealVal(sqrt(z));
-    }
 }
 
 Val TrueExp::evaluate(Env env) { return new BoolVal(true); }

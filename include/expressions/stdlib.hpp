@@ -20,26 +20,23 @@ class PrintExp : public Expression {
         int opt_var_usage(std::string x);
 };
 
-enum StdlibOp {
-    SIN, COS, LOG, SQRT
-};
-class StdlibOpExp : public Expression {
+// An expression that calls a function
+class ImplementExp : public Expression {
     private:
-        StdlibOp op;
-        Exp x;
+        Val (*f)(Env); // The function
+        Val (*df)(std::string, Env, Env); // The derivative of the function
     public:
-        StdlibOpExp(StdlibOp so, Exp e) : op(so), x(e) {}
-        ~StdlibOpExp() { delete x; }
+        ImplementExp(Val (*fn)(Env), Val (*dfn)(std::string, Env, Env) = NULL) : f(fn), df(dfn) {}
 
-        Val evaluate(Env);
-        Val derivativeOf(std::string, Env, Env);
-        
-        Exp clone() { return new StdlibOpExp(op, x->clone()); }
-        std::string toString();
+        Exp clone() { return new ImplementExp(f, df); }
 
-        Exp optimize();
-        Exp opt_const_prop(opt_varexp_map &vs, opt_varexp_map &end) { x = x->opt_const_prop(vs, end); return this; }
-        int opt_var_usage(std::string v) { return x->opt_var_usage(v); }
+        Val evaluate(Env env) { return f(env); }
+        Val derivativeOf(std::string x, Env env, Env denv) { return df(x, env, denv); }
+
+        std::string toString() { return "<c-program>"; }
 };
+
+// Loads a standard library with a given name, if possible
+Val load_stdlib(std::string);
 
 #endif

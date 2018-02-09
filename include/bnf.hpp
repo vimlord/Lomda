@@ -57,7 +57,6 @@ ParsedPrgms parseIfExp(std::string str, bool = true);
 ParsedPrgms parseWhileExp(std::string str, bool = true);
 
 ParsedPrgms parsePrintExp(std::string str, bool = true);
-ParsedPrgms parseStdlib(std::string str, bool = true);
 
 ParsedPrgms parseInsertExp(std::string str, bool = true);
 ParsedPrgms parseRemoveExp(std::string str, bool = true);

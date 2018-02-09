@@ -880,45 +880,6 @@ Val SetExp::derivativeOf(string x, Env env, Env denv) {
     return dv;
 }
 
-Val StdlibOpExp::derivativeOf(string id, Env env, Env denv) {
-    Val v = x->evaluate(env);
-    if (!v) return NULL;
-    
-    if (
-        typeid(*v) == typeid(LambdaVal)
-    ||  typeid(*v) == typeid(ListVal)
-    ||  typeid(*v) == typeid(StringVal)
-    ) {
-        throw_type_err(x, "numerical");
-    }
-
-    auto z = typeid(*v) == typeid(IntVal)
-            ? ((IntVal*) v)->get()
-            : ((RealVal*) v)->get();
-    v->rem_ref();
-
-    Val dx = x->derivativeOf(id, env, denv);
-    if (!dx) {
-        v->rem_ref();
-        return NULL;
-    }
-
-    switch (op) {
-        case SIN: v = new RealVal(cos(z)); break; // d/dx sin x = cos x
-        case COS: v = new RealVal(-sin(z)); break; // d/dx cos x = -sin x
-        case LOG: v = new RealVal(1.0 / z); break; // d/dx ln x = 1/x
-        case SQRT: v = new RealVal(1.0 / (2 * sqrt(z))); break; // d/dx sqrt x = 1 / (2 sqrt x)
-    }
-    
-    MultExp mult(NULL, NULL);
-
-    Val y = mult.op(v, dx);
-    v->rem_ref();
-    dx->rem_ref();
-
-    return y;
-}
-
 Val SumExp::derivativeOf(string x, Env env, Env denv) {
     Val a = left->derivativeOf(x, env, denv);
     if (!a) return NULL;

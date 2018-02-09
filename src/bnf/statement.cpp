@@ -743,11 +743,6 @@ ParsedPrgms parsePemdas(string str, bool ends) {
     res = parseFoldExp(str, ends);
     if (!res->isEmpty()) return res;
 
-    // stdlib-exp
-    delete res;
-    res = parseStdlib(str, ends);
-    if (!res->isEmpty()) return res;
-
     // Parse for derivative
     delete res;
     res = parseDerivative(str, ends);
@@ -763,42 +758,6 @@ ParsedPrgms parsePemdas(string str, bool ends) {
     res = parseSetExp(str, ends);
 
     return res;
-}
-
-ParsedPrgms parseStdlib(string str, bool ends) {
-
-    StdlibOp op;
-    int i;
-
-    if ((i = parseLit(str, "sin")) >= 0)
-        op = SIN;
-    else if ((i = parseLit(str, "cos")) >= 0)
-        op = COS;
-    else if ((i = parseLit(str, "log")) >= 0)
-        op = LOG;
-    else if ((i = parseLit(str, "sqrt")) >= 0)
-        op = SQRT;
-    else
-        return new LinkedList<parsed_prgm>;
-
-    str = str.substr(i);
-
-    ParsedPrgms ps = parsePemdas(str, ends);
-    ParsedPrgms res = new LinkedList<parsed_prgm>;
-
-    while (!ps->isEmpty()) {
-        parsed_prgm p = ps->remove(0);
-
-        p.item = new StdlibOpExp(op, p.item);
-        p.len += i;
-
-        res->add(0, p);
-    }
-
-    delete ps;
-
-    return res;
-
 }
 
 ParsedPrgms parsePrintExp(string str, bool ends) {

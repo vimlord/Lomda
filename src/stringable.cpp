@@ -204,22 +204,6 @@ string SequenceExp::toString() {
 string SetExp::toString() {
     return tgt->toString() + " = " + exp->toString();
 }
-string StdlibOpExp::toString() {
-    string s = "";
-    switch (op) {
-        case SIN:
-            s += "sin"; break;
-        case COS:
-            s += "sin"; break;
-        case LOG:
-            s += "log"; break;
-        case SQRT:
-            s += "sqrt"; break;
-    }
-
-    s += " " + x->toString();
-    return s;
-}
 string StringExp::toString() {
     return "\"" + val + "\"";
 }
@@ -289,7 +273,7 @@ string LambdaVal::toString() {
     }
     
     s += "." + exp->toString();
-    s += " | " + env->toString(); 
+    s += " | " + (env ? env->toString() : "{}");
 
     return s;
 }

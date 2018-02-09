@@ -602,18 +602,6 @@ int SequenceExp::opt_var_usage(std::string x) {
     return use;
 }
 
-Exp StdlibOpExp::optimize() {
-    x = x->optimize();
-    if (is_const_exp(x)) {
-        Val v = evaluate(NULL);
-        Exp e = reexpress(v);
-        delete v;
-        delete this;
-        return e;
-    } else
-        return this;
-}
-
 Exp VarExp::opt_const_prop(opt_varexp_map &vs, opt_varexp_map &end) {
     if (vs.count(id)) {
         // Because the value is known, we can simply return the

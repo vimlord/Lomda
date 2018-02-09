@@ -157,7 +157,10 @@ Val LambdaVal::apply(Val *argv, Env e) {
     Env E = e ? e : env;
 
     // We will use a clone in order to preserve previously allocated memory blocks
-    E->add_ref();
+    if (E)
+        E->add_ref();
+    else
+        E = new EmptyEnv;
 
     // Verify that the correct number of arguments have been provided
     for (int i = 0; argv[i] || xs[i] != ""; i++)
