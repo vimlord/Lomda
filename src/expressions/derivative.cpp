@@ -27,6 +27,8 @@ void resolveIdentity(Val val, List<int> *idx = NULL) {
             resolveIdentity(it->next(), idx);
             idx->remove(0);
         }
+
+        if (idx->size() == 0) delete idx;
     } else if (typeid(*val) == typeid(DictVal)) {
         if (!idx) idx = new LinkedList<int>;
         
@@ -38,17 +40,22 @@ void resolveIdentity(Val val, List<int> *idx = NULL) {
             resolveIdentity(vit->next(), idx);
             idx->remove(0);
         }
-    }
 
-    auto it = idx->iterator();
-    auto jt = idx->iterator();
-    
-    int i;
-    for (i = 0; i < idx->size() / 2; i++) jt->next();
-    for (; i < idx->size() && it->next() == jt->next(); i++);
+        if (idx->size() == 0) delete idx;
+    } else if (idx->size() % 2 == 0) {
 
-    if (i == idx->size()) {
-        val->set(typeid(*val) == typeid(IntVal) ? (Val) new IntVal(1) : (Val) new RealVal(1));
+        std::cout << "checking identity of " << *val << "\n";
+
+        auto it = idx->iterator();
+        auto jt = idx->iterator();
+        
+        int i;
+        for (i = 0; i < idx->size() / 2; i++) jt->next();
+        for (; i < idx->size() && it->next() == jt->next(); i++);
+
+        if (i == idx->size()) {
+            val->set(typeid(*val) == typeid(IntVal) ? (Val) new IntVal(1) : (Val) new RealVal(1));
+        }
     }
 }
 
@@ -116,10 +123,12 @@ Val deriveConstVal(Val y, Val x, int c) {
         return NULL;
     else if (typeid(*x) == typeid(ListVal)) {
         auto it = ((ListVal*) x)->get()->iterator();
-
+        
+        // Resulting derivative
         auto lst = new ArrayList<Val>;
         Val res = new ListVal(lst);
-
+        
+        // Build the subderivatives
         while (it->hasNext()) {
             Val u = it->next();
             Val dy = deriveConstVal(y, u, 0);
@@ -134,6 +143,8 @@ Val deriveConstVal(Val y, Val x, int c) {
         }
         delete it;
 
+        // This is to ensure an initial condition for data structures:
+        // to ensure that an identity is met.
         if (c == 1) resolveIdentity(res);
 
         return res;
@@ -153,9 +164,14 @@ Val deriveConstVal(Val y, Val x, int c) {
             keys->add(keys->size(), k);
             vals->add(vals->size(), deriveConstVal(y, v, 0));
         }
-
+        
+        // GC
         delete kit;
         delete vit;
+        
+        // This is to ensure an initial condition for data structures:
+        // to ensure that an identity is met.
+        if (c == 1) resolveIdentity(res);
 
         return res;
 
