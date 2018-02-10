@@ -470,6 +470,10 @@ Val IsaExp::evaluate(Env env) {
         res = type == "real" || type == "number";
     else if (typeid(*val) == typeid(ListVal))
         res = type == "list";
+    else if (typeid(*val) == typeid(DictVal))
+        res = type == "dict";
+    else if (typeid(*val) == typeid(TupleVal))
+        res = type == "tuple";
     else if (typeid(*val) == typeid(LambdaVal))
         res = type == "function" || type == "lambda";
     else if (typeid(*val) == typeid(StringVal))
