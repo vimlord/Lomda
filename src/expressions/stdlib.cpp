@@ -179,8 +179,7 @@ Val differentiate_sqrt(string x, Env env, Env denv) {
 
 // Adds a binding to a library
 void add_to_lib(DictVal *lib, string x, Val val) {
-    lib->getKeys()->add(0, x);
-    lib->getVals()->add(0, val);
+    lib->getVals()->add(x, val);
 }
 
 DictVal* build_lib_math() {

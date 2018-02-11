@@ -3,34 +3,11 @@
 
 #include "structures/list.hpp"
 
-template<class V>
-struct TrieNode;
-
-template<class V>
-class Trie : public Map<std::string, V> {
-    private:
-        struct TrieNode<V> *head = NULL;
-    
-    public:
-        Trie() {}
-        ~Trie() { delete head; }
-
-        V get(std::string);
-        V remove(std::string);
-
-        void add(std::string, V);
-        void set(std::string, V);
-
-        bool hasKey(std::string);
-        
-        int size();
-};
-
-
 #include <cstddef>
 #include <stdexcept>
+#include <iostream>
 
-template<class V>
+template<typename V>
 class TrieNode {
     public:
         TrieNode<V> *root = NULL;
@@ -38,18 +15,15 @@ class TrieNode {
         ArrayList<TrieNode<V>*> *paths;
 
         V val;
-        bool hasVal;
+        bool hasVal = false;
         
-        TrieNode(V v) {
+        TrieNode(V v) : TrieNode() {
             val = v;
-            paths = new ArrayList<TrieNode<V>>;
-            labels = new ArrayList<char>;
             hasVal = true;
         }
         TrieNode() {
-            paths = new ArrayList<TrieNode<V>>;
+            paths = new ArrayList<TrieNode<V>*>;
             labels = new ArrayList<char>;
-            hasVal = false;
         }
         ~TrieNode() {
             delete labels;
@@ -74,7 +48,97 @@ class TrieNode {
         }
 };
 
-template<class V>
+template<typename V>
+class Trie : public Map<std::string, V> {
+    private:
+        struct TrieNode<V> *head = NULL;
+
+        class Titerator : public Iterator<std::string> {
+            private:
+                TrieNode<V> *node;
+
+                Iterator<char> *kit = NULL;
+                Iterator<TrieNode<V>*> *pit = NULL;
+
+                Iterator<std::string> *subit = NULL;
+                
+                std::string c;
+
+            public:
+                Titerator(Trie<V> *t) {
+                    node = t->head;
+                }
+                Titerator(TrieNode<V> *n) : node(n) {}
+                ~Titerator() {
+                    delete kit;
+                    delete pit;
+                    delete subit;
+                }
+
+                std::string next() {
+
+                    std::string res;
+
+                    if (!kit) {
+                        bool found = false;
+
+                        kit = node->labels->iterator();
+                        pit = node->paths->iterator();
+                        
+                        // If the node has a value, then return it
+                        if (node->hasVal) {
+                            res = "";
+                            found = true;
+                        }
+                        
+                        if (pit->hasNext()) {
+                            subit = new Titerator(pit->next());
+                            char ch = kit->next();
+
+                            c = "";
+                            c.append(1, ch);
+
+                            if (!found) {
+                                auto sub = subit->next();
+                                res = c + sub;
+                            }
+                        }
+                    } else {
+                        if (!subit->hasNext()) {
+                            delete subit;
+                            subit = new Titerator(pit->next());
+                            c = kit->next();
+                        }
+
+                        
+                        res = c + subit->next();
+                    }
+
+                    return res;
+                }
+                bool hasNext() {
+                    return node && (!kit || kit->hasNext() || (subit && subit->hasNext()));
+                }
+        };
+
+    public:
+        Trie() {}
+        ~Trie() { delete head; }
+
+        V get(std::string);
+        V remove(std::string);
+
+        void add(std::string, V);
+        void set(std::string, V);
+
+        bool hasKey(std::string);
+        
+        int size();
+
+        Iterator<std::string> *iterator() { return new Titerator(this); }
+};
+
+template<typename V>
 V Trie<V>::get(std::string key) {
     auto node = head;
 
@@ -83,16 +147,17 @@ V Trie<V>::get(std::string key) {
         
         int j;
         for (j = 0; it->hasNext(); j++)
-            if (it->next() == key[i])
+            if (it->next() == key[i]) {
                 break;
+            }
         
         // Iterative garbage collection
         delete it;
 
-        if (j < node->labels->size())
+        if (j < node->labels->size()) {
             // Get the correct child
-            node = node->get(j);
-        else
+            node = node->paths->get(j);
+        } else
             throw std::out_of_range(key);
     }
 
@@ -102,7 +167,7 @@ V Trie<V>::get(std::string key) {
         throw std::out_of_range(key);
 }
 
-template<class V>
+template<typename V>
 void Trie<V>::set(std::string key, V val) {
     auto node = head;
 
@@ -119,7 +184,7 @@ void Trie<V>::set(std::string key, V val) {
 
         if (j < node->labels->size())
             // Get the correct child
-            node = node->get(j);
+            node = node->paths->get(j);
         else
             throw std::out_of_range(key);
     }
@@ -129,51 +194,55 @@ void Trie<V>::set(std::string key, V val) {
     else
         throw std::out_of_range(key);
 }
-
-template<class V>
+template<typename V>
 void Trie<V>::add(std::string key, V val) {
     auto node = head;
     
     int i;
-    for (int i = 0; key[i] && node; i++) {
+    for (i = 0; i < key.length() && node; i++) {
         auto it = node->labels->iterator();
         
         int j;
         for (j = 0; it->hasNext(); j++)
-            if (it->next() == key[i])
+            if (it->next() == key[i]) {
                 break;
+            }
         
         // Iterative garbage collection
         delete it;
 
-        if (j < node->labels->size())
+        if (j < node->labels->size()) {
             // Get the correct child
-            node = node->get(j);
-        else
+            node = node->paths->get(j);
+        } else
             // We can add a branch
             break;
     }
+
     
-    if (key[i]) {
+    if (key[i] == '\0') {
         // The key already exists.
         node->val = val;
         node->hasVal = true;
     } else {
-        // We will build a node chain.
-        auto tail = new TrieNode<V>(val);
+        // We will build a node chain. Set a new head if need be
+        TrieNode<V> *tail = head ? node : (head = new TrieNode<V>);
 
-        for (int j = key.length()-1; j >= i; j--) {
-            auto tmp = new Trie<V>;
+        for (int j = i; j < key.length(); j++) {
+            auto tmp = new TrieNode<V>;
 
-            tmp->labels->add(0, key[j]);
-            tmp->paths->add(0, tail);
-
-            tail = tail->root = tmp;
+            tail->labels->add(0, key[j]);
+            tail->paths->add(0, tmp);
+            
+            tail = tmp;
         }
+        
+        tail->hasVal = true;
+        tail->val = val;
     }
 }
 
-template<class V>
+template<typename V>
 V Trie<V>::remove(std::string key) {
     auto node = head;
 
@@ -181,18 +250,21 @@ V Trie<V>::remove(std::string key) {
         auto it = node->labels->iterator();
         
         int j;
-        for (j = 0; it->hasNext(); j++)
-            if (it->next() == key[i])
+        for (j = 0; it->hasNext(); j++) {
+            if (it->next() == key[i]) {
                 break;
+            }
+        }
         
         // Iterative garbage collection
         delete it;
 
-        if (j < node->labels->size())
+        if (j < node->labels->size()) {
             // Get the correct child
-            node = node->get(j);
-        else
+            node = node->paths->get(j);
+        } else {
             throw std::out_of_range(key);
+        }
     }
 
     if (node && node->hasVal) {
@@ -233,7 +305,7 @@ V Trie<V>::remove(std::string key) {
         throw std::out_of_range(key);
 }
 
-template<class V>
+template<typename V>
 bool Trie<V>::hasKey(std::string key) {
     auto node = head;
 
@@ -250,7 +322,7 @@ bool Trie<V>::hasKey(std::string key) {
 
         if (j < node->labels->size())
             // Get the correct child
-            node = node->get(j);
+            node = node->paths->get(j);
         else
             throw std::out_of_range(key);
     }
@@ -258,7 +330,7 @@ bool Trie<V>::hasKey(std::string key) {
     return node && node->hasVal;
 }
 
-template<class V>
+template<typename V>
 int Trie<V>::size() {
     if (head) return head->size();
     else return 0;

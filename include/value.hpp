@@ -5,6 +5,8 @@
 #include "baselang/expression.hpp"
 #include "baselang/environment.hpp"
 
+#include "structures/trie.hpp"
+
 bool is_zero_val(Val e);
 
 class BoolVal : public Value {
@@ -20,25 +22,27 @@ class BoolVal : public Value {
 
 class DictVal : public Value {
     private: 
-        LinkedList<std::string> *keys;
-        LinkedList<Val> *vals;
+        Trie<Val> *vals;
     public:
         DictVal() {
-            keys = new LinkedList<std::string>;
-            vals = new LinkedList<Val>;
+            vals = new Trie<Val>;
         }
+        DictVal(Trie<Val> *vs) : vals(vs) {}
         DictVal(LinkedList<std::string> *ks, LinkedList<Val> *vs) {
-            keys = ks;
-            vals = vs;
+            while (!ks->isEmpty()) {
+                vals->add(ks->remove(0), vs->remove(0));
+            }
+            delete ks;
+            delete vs;
         }
         ~DictVal() {
-            delete keys;
-            while (!vals->isEmpty()) vals->remove(0)->rem_ref();
+            auto it = vals->iterator();
+            while (it->hasNext()) vals->get(it->next())->rem_ref();
+            delete it;
             delete vals;
         }
 
-        LinkedList<std::string>* getKeys() { return keys; }
-        LinkedList<Val>* getVals() { return vals; }
+        Trie<Val>* getVals() { return vals; }
 
         Val apply(std::string);
 

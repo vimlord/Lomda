@@ -398,7 +398,7 @@ ParsedPrgms parseLetExp(string str, bool ends) {
                 newlst.list = new LinkedList<struct arg>;
                 
                 // Add each item from the old list
-                Iterator<int, struct arg> *lstit = lst.list->iterator();
+                auto lstit = lst.list->iterator();
                 i = 0;
                 while (lstit->hasNext()) newlst.list->add(i++, lstit->next());
                 delete lstit;
@@ -522,7 +522,7 @@ ParsedPrgms parseLetExp(string str, bool ends) {
                 newlst.list = new LinkedList<struct arg>;
                 
                 // Add each item from the old list
-                Iterator<int, struct arg> *lstit = lst.list->iterator();
+                auto lstit = lst.list->iterator();
                 i = 0;
                 while (lstit->hasNext()) newlst.list->add(i++, lstit->next());
                 delete lstit;

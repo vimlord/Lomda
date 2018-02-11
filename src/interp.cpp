@@ -250,11 +250,10 @@ Val DictExp::evaluate(Env env) {
     }
 
     delete it;
+    
+    Trie<Val> *vs = new Trie<Val>;
 
-    LinkedList<string> *ks = new LinkedList<string>;
-    LinkedList<Val> *vs = new LinkedList<Val>;
-
-    DictVal *res = new DictVal(ks, vs);
+    DictVal *res = new DictVal(vs);
     
     auto kt = keys->iterator();
     auto vt = vals->iterator();
@@ -266,8 +265,9 @@ Val DictExp::evaluate(Env env) {
             return NULL;
         }
 
-        ks->add(ks->size(), kt->next());
-        vs->add(vs->size(), v);
+        string k = kt->next();
+
+        vs->add(k, v);
     }
 
     return res;
@@ -343,7 +343,7 @@ Val ForExp::evaluate(Env env) {
     List<Val> *list = ((ListVal*) listExp)->get();
     
     // Gather an iterator
-    Iterator<int, Val> *it = list->iterator();
+    auto it = list->iterator();
 
     while (it->hasNext()) {
         // Get the next item from the list
@@ -1172,10 +1172,7 @@ Val SetExp::evaluate(Env env) {
             string idx = ((StringVal*) index)->get();
             index->rem_ref();
 
-            auto keys = lst->getKeys();
             auto vals = lst->getVals();
-
-            auto kt = keys->iterator();
             auto vt = vals->iterator();
 
             bool done = false;
@@ -1184,24 +1181,22 @@ Val SetExp::evaluate(Env env) {
                 return NULL;
             }
             
-            for (int i = 0; !done && kt->hasNext(); i++) {
-                if (kt->next() == idx) {
+            for (int i = 0; !done && vt->hasNext(); i++) {
+                string k = vt->next();
+                if (k == idx) {
                     // Reassign
-                    vals->remove(i)->rem_ref();
-                    vals->add(i, v);
+                    vals->remove(k)->rem_ref();
+                    vals->add(k, v);
                     done = true;
                 }
             }
 
-            delete kt;
             delete vt;
             u->rem_ref();
             
             // On failure, new element
-            if (!done) {
-                keys->add(0, idx);
+            if (!done)
                 vals->add(0, v);
-            }
            
         } else if (typeid(*u) == typeid(TupleVal)) {
             auto tpl = (TupleVal*) u;

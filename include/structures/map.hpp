@@ -3,7 +3,7 @@
 
 #include <string>
 
-template<class K, class V>
+template<typename K, typename V>
 class Map {
     public:
         virtual V get(K) = 0;
@@ -17,7 +17,7 @@ class Map {
         virtual int size() = 0;
 };
 
-template<class K, class V>
+template<typename K, typename V>
 class Tnode;
 
 #endif

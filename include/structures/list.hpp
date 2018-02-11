@@ -4,22 +4,22 @@
 #include "structures/map.hpp"
 #include "structures/iterator.hpp"
 
-template<class T>
-class List : public Map<int, T>, public Iterable<int, T> {
+template<typename T>
+class List : public Map<int, T>, public Iterable<T> {
     public:
         virtual bool isEmpty() = 0;
 
         bool hasKey(int i) { return i >= 0 && i < this->size(); }
 };
 
-template<class T>
+template<typename T>
 class LLnode;
 
-template<class T>
+template<typename T>
 class LinkedList : public List<T> {
     private:
         LLnode<T> *head;
-        class LLiterator : public Iterator<int, T> {
+        class LLiterator : public Iterator<T> {
             private:
                 LLnode<T> *node;
             public:
@@ -48,17 +48,17 @@ class LinkedList : public List<T> {
 
         bool isEmpty();
 
-        Iterator<int,T>* iterator() { return new LLiterator(this); }
+        Iterator<T>* iterator() { return new LLiterator(this); }
 };
 
-template<class T>
+template<typename T>
 class ArrayList : public List<T> {
     private:
         T *arr;
         int N = 0;
         int alen = 1;
 
-        class ALiterator : public Iterator<int, T> {
+        class ALiterator : public Iterator<T> {
             private:
                 int idx;
                 ArrayList *list;
@@ -82,7 +82,7 @@ class ArrayList : public List<T> {
 
         bool isEmpty() { return !N; }
 
-        Iterator<int, T>* iterator() { return new ALiterator(this); }
+        Iterator<T>* iterator() { return new ALiterator(this); }
 };
 
 
@@ -91,7 +91,7 @@ class ArrayList : public List<T> {
 #include <stdexcept>
 #include <string>
 
-template<class T>
+template<typename T>
 struct LLnode {
     public:
         LLnode(T v, LLnode* n = NULL) {
@@ -103,12 +103,12 @@ struct LLnode {
         struct LLnode *next;
 };
 
-template<class T>
+template<typename T>
 LinkedList<T>::LinkedList() {
     head = NULL;
 }
 
-template<class T>
+template<typename T>
 LinkedList<T>::LinkedList(T vs[], int n) {
     head = NULL;
 
@@ -121,12 +121,12 @@ LinkedList<T>::LinkedList(T vs[], int n) {
             node = node->next = new LLnode<T>(vs[i]);
 }
 
-template<class T>
+template<typename T>
 LinkedList<T>::~LinkedList() {
     while (head) remove(0);
 }
 
-template<class T>
+template<typename T>
 void LinkedList<T>::add(int idx, T val) {
     
     if (head == NULL) {
@@ -153,7 +153,7 @@ void LinkedList<T>::add(int idx, T val) {
     }
 }
 
-template<class T>
+template<typename T>
 T LinkedList<T>::get(int idx) {
     if (!head)
         throw std::out_of_range(std::to_string(idx));
@@ -169,7 +169,7 @@ T LinkedList<T>::get(int idx) {
     }
 }
 
-template<class T>
+template<typename T>
 void LinkedList<T>::set(int idx, T val) {
     if (!head)
         throw std::out_of_range(std::to_string(idx));
@@ -185,7 +185,7 @@ void LinkedList<T>::set(int idx, T val) {
     }
 }
 
-template<class T>
+template<typename T>
 int LinkedList<T>::size() {
     LLnode<T> *node = head;
     int len;
@@ -196,7 +196,7 @@ int LinkedList<T>::size() {
     return len;
 }
 
-template<class T>
+template<typename T>
 T LinkedList<T>::remove(int idx) {
     if (!head || idx < 0)
         throw std::out_of_range(std::to_string(idx));
@@ -235,10 +235,10 @@ T LinkedList<T>::remove(int idx) {
     }
 }
 
-template<class T>
+template<typename T>
 bool LinkedList<T>::isEmpty() { return head == NULL; }
 
-template<class T>
+template<typename T>
 void ArrayList<T>::add(int idx, T t) {
     if (idx < 0 || idx > N)
         throw std::out_of_range(std::to_string(idx));
@@ -265,7 +265,7 @@ void ArrayList<T>::add(int idx, T t) {
 }
 
 
-template<class T>
+template<typename T>
 T ArrayList<T>::get(int idx) {
     if (idx < 0 || idx >= N)
         throw std::out_of_range(std::to_string(idx));
@@ -273,7 +273,7 @@ T ArrayList<T>::get(int idx) {
         return arr[idx];
 }
 
-template<class T>
+template<typename T>
 T ArrayList<T>::remove(int idx) {
     if (idx < 0 || idx >= N)
         throw std::out_of_range(std::to_string(idx));
@@ -304,7 +304,7 @@ T ArrayList<T>::remove(int idx) {
     }
 }
 
-template<class T>
+template<typename T>
 void ArrayList<T>::set(int idx, T t) {
     if (idx < 0 || idx >= N)
         throw std::out_of_range(std::to_string(idx));

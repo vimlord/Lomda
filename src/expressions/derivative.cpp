@@ -36,8 +36,9 @@ void resolveIdentity(Val val, List<int> *idx = NULL) {
 
         auto vit = dct->getVals()->iterator();
         for (int i = 0; vit->hasNext(); i++) {
+            string k = vit->next();
             idx->add(0, i);
-            resolveIdentity(vit->next(), idx);
+            resolveIdentity(dct->getVals()->get(k), idx);
             idx->remove(0);
         }
 
@@ -85,23 +86,18 @@ Val deriveConstVal(Val v, int c) {
         delete it;
         return res; 
     } else if (typeid(*v) == typeid(DictVal)) {
-        auto kit = ((DictVal*) v)->getKeys()->iterator();
         auto vit = ((DictVal*) v)->getVals()->iterator();
 
-        auto keys = new LinkedList<string>;
-        auto vals = new LinkedList<Val>;
+        auto vals = new Trie<Val>;
         
-        Val res = new DictVal(keys, vals);
+        Val res = new DictVal(vals);
 
-        while (kit->hasNext()) {
-            auto k = kit->next();
-            auto x = vit->next();
+        while (vit->hasNext()) {
+            auto k = vit->next();
             
-            keys->add(keys->size(), k);
-            vals->add(vals->size(), deriveConstVal(x, c));
+            vals->add(k, deriveConstVal(((DictVal*) v)->getVals()->get(k), c));
         }
 
-        delete kit;
         delete vit;
 
         return res;
@@ -149,24 +145,19 @@ Val deriveConstVal(Val y, Val x, int c) {
 
         return res;
     } else if (typeid(*x) == typeid(DictVal)) {
-        auto kit = ((DictVal*) x)->getKeys()->iterator();
         auto vit = ((DictVal*) x)->getVals()->iterator();
 
-        auto keys = new LinkedList<string>;
-        auto vals = new LinkedList<Val>;
+        auto vals = new Trie<Val>;
         
-        Val res = new DictVal(keys, vals);
+        Val res = new DictVal(vals);
 
-        while (kit->hasNext()) {
-            auto k = kit->next();
-            auto v = vit->next();
+        while (vit->hasNext()) {
+            auto k = vit->next();
             
-            keys->add(keys->size(), k);
-            vals->add(vals->size(), deriveConstVal(y, v, 0));
+            vals->add(k, deriveConstVal(y, ((DictVal*) x)->getVals()->get(k), 0));
         }
         
         // GC
-        delete kit;
         delete vit;
         
         // This is to ensure an initial condition for data structures:
@@ -264,8 +255,8 @@ Val DictExp::derivativeOf(string x, Env env, Env denv) {
 
             return NULL;
         } else {
-            val->getKeys()->add(i, kit->next());
-            val->getVals()->add(i, v);
+            string k = kit->next();
+            val->getVals()->add(k, v);
         }
     }
 

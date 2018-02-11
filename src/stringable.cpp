@@ -44,12 +44,13 @@ string DerivativeExp::toString() {
 string DictVal::toString() {
     string s = "{";
 
-    auto kt = keys->iterator();
     auto vt = vals->iterator();
 
-    for (bool b = false; kt->hasNext(); b = true) {
+    for (bool b = false; vt->hasNext(); b = true) {
         if (b) s += ", ";
-        s += kt->next() + " : " + vt->next()->toString();
+        auto k = vt->next();
+        auto v = vals->get(k);
+        s += k + " : " + v->toString();
     }
 
     s += "}";
@@ -130,7 +131,7 @@ string LetExp::toString() {
 string ListExp::toString() {
     string s = "[";
 
-    Iterator<int, Expression*> *it = list->iterator();
+    auto it = list->iterator();
 
     for (int i = 0; it->hasNext(); i++) {
         if (i) s += ", ";
