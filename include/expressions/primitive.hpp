@@ -24,6 +24,10 @@ class DictExp : public Expression {
         
         Exp clone();
         std::string toString();
+
+        Exp optimize();
+        int opt_var_usage(std::string);
+        Exp opt_const_prop(opt_varexp_map&, opt_varexp_map&);
 };
 
 // Generates false
@@ -159,6 +163,9 @@ class TupleExp : public Expression {
         std::string toString();
 
         Exp clone() { return new TupleExp(left->clone(), right->clone()); }
+
+        Exp optimize() { left = left->optimize(); right = right->optimize(); return this; }
+        int opt_var_usage(std::string x) { return left->opt_var_usage(x) | right->opt_var_usage(x); }
 };
 
 // Get the value of a variable

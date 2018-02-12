@@ -111,8 +111,13 @@ class HasExp : public Expression {
 
         std::string toString();
 
-        Exp optimize() { item = item->optimize(); set = set->optimize(); }
+        Exp optimize() {
+            item = item->optimize();
+            set = set->optimize();
+            return this;
+        }
         int opt_var_usage(std::string x) { return item->opt_var_usage(x) | set->opt_var_usage(x); }
+        Exp opt_const_prop(opt_varexp_map&, opt_varexp_map&);
 
         Exp clone() { return new HasExp(item->clone(), set->clone()); }
 };

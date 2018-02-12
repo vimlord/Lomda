@@ -119,6 +119,14 @@ int ForExp::opt_var_usage(string x) {
     else return set->opt_var_usage(x) | body->opt_var_usage(x);
 }
 
+
+Exp HasExp::opt_const_prop(opt_varexp_map& A, opt_varexp_map& B) {
+    item = item->opt_const_prop(A, B);
+    set = set->opt_const_prop(A, B);
+    return this;
+}
+
+
 Exp IfExp::optimize() {
     cond = cond->optimize();
 
@@ -499,6 +507,46 @@ int PrintExp::opt_var_usage(string x) {
         res |= args[i]->opt_var_usage(x);
 
     return res;
+}
+
+Exp DictExp::optimize() {
+    auto vs = new LinkedList<Exp>;
+    
+    while (!vals->isEmpty()) {
+        Exp v = vals->remove(0)->optimize();
+
+        vs->add(vs->size(), v);
+    }
+    delete vals;
+
+    vals = vs;
+
+    return this;
+}
+int DictExp::opt_var_usage(string x) {
+    int use = 0;
+
+    auto vt = vals->iterator();
+    
+    while (!vt->hasNext() && use != 3)
+        use |= vt->next()->opt_var_usage(x);
+
+    delete vt;
+
+    return use;
+}
+Exp DictExp::opt_const_prop(opt_varexp_map &vs, opt_varexp_map &end) {
+    auto es = new LinkedList<Exp>;
+
+    while (!vals->isEmpty()) {
+        Exp v = vals->remove(0)->opt_const_prop(vs, end);
+        es->add(es->size(), v);
+    }
+
+    delete vals;
+    vals = es;
+
+    return this;
 }
 
 Exp SetExp::optimize() {
