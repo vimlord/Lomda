@@ -813,6 +813,56 @@ ParsedPrgms parseCastExp(string str, bool ends) {
 
 }
 
+ParsedPrgms parseHasExp(string str, bool ends) {
+    ParsedPrgms res = new LinkedList<parsed_prgm>;
+
+    // First, find every multiplicative expression that could come before this one.
+    // We won't require them to finish
+    ParsedPrgms mult = parseCastExp(str, false);
+
+    while (!mult->isEmpty()) {
+        // Get the program branch
+        parsed_prgm p = mult->remove(0);
+        Exp exp = p.item;
+        int len = p.len;
+        
+        // The string to parse
+        string s = str.substr(len);
+        int i;
+
+        if (parseSpaces(s) == s.length()) {
+            // The parsed expression is complete
+            res->add(0, p);
+        } else if (
+            (i = parseLit(s, "in")) >= 0
+        ) {
+            // The operation is addition
+            s = s.substr(i);
+            len += i;
+
+            // Get all of the possible subresults
+            ParsedPrgms subps = parseAndExp(s, ends);
+            
+            // Then, add all of the possible outcomes
+            auto pit = subps->iterator();
+            while (pit->hasNext()) {
+                parsed_prgm prog = pit->next();
+                prog.item = new HasExp(exp, prog.item);
+                prog.len += len;
+
+                exp = exp->clone(); // For distinctiveness
+                
+                res->add(0, prog);
+            }
+        } else if (!ends) {
+            res->add(0, p);
+        } else delete exp;
+    }
+    delete mult;
+
+    return res;
+}
+
 /**
  * <derivative-exp> ::= 'd/d'<id> <statement>
  */
@@ -1210,7 +1260,7 @@ ParsedPrgms parseMultiplicative(string str, bool ends) {
 
     // First, find every multiplicative expression that could come before this one.
     // We won't require them to finish
-    ParsedPrgms mult = parseCastExp(str, false);
+    ParsedPrgms mult = parseHasExp(str, false);
 
     while (!mult->isEmpty()) {
         // Get the program branch

@@ -89,6 +89,9 @@ string FoldExp::toString() {
 string ForExp::toString() {
     return "for " + id + " in " + set->toString() + " " + body->toString();
 }
+string HasExp::toString() {
+    return item->toString() + " in " + set->toString();
+}
 string IfExp::toString() {
     return "if " + cond->toString() + " then " + tExp->toString() + " else " + fExp->toString();
 }

@@ -153,12 +153,10 @@ Val CompareExp::op(Value *a, Value *b) {
                 return NULL;
         }
 
-    } else if (typeid(*a) == typeid(VoidVal) && typeid(*b) == typeid(VoidVal)) {
+    } else if (typeid(*a) == typeid(VoidVal) && typeid(*b) == typeid(VoidVal))
         return new BoolVal(operation == CompOp::EQ);
-    } else {
-        throw_err("runtime", "division is not defined between " + left->toString() + " and " + right->toString());
-        return NULL;
-    }
+    else
+        return new BoolVal(false);
 }
 
 // Expression for multiplying studd

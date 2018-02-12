@@ -44,6 +44,7 @@ ParsedPrgms parseCodeBlock(std::string, bool = true);
 ParsedPrgms parseMultiplicative(std::string, bool = true);
 ParsedPrgms parseAdditive(std::string, bool = true);
 
+ParsedPrgms parseHasExp(std::string, bool = true);
 ParsedPrgms parseAndExp(std::string, bool = true);
 ParsedPrgms parseEquality(std::string, bool = true);
 ParsedPrgms parseNotExp(std::string, bool = true);

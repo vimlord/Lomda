@@ -99,6 +99,24 @@ class ForExp : public Expression {
         int opt_var_usage(std::string x);
 };
 
+class HasExp : public Expression {
+    private:
+        Exp item;
+        Exp set;
+    public:
+        HasExp(Exp x, Exp l) : item(x), set(l) {}
+        ~HasExp() { delete item; delete set; }
+
+        Val evaluate(Env);
+
+        std::string toString();
+
+        Exp optimize() { item = item->optimize(); set = set->optimize(); }
+        int opt_var_usage(std::string x) { return item->opt_var_usage(x) | set->opt_var_usage(x); }
+
+        Exp clone() { return new HasExp(item->clone(), set->clone()); }
+};
+
 // Condition expression that chooses paths
 class IfExp : public Expression {
     private:

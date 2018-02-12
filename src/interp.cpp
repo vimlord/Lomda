@@ -7,6 +7,8 @@
 #include "bnf.hpp"
 #include "config.hpp"
 
+#include "types.hpp"
+
 #include "expressions/derivative.hpp"
 
 #include <cstring>
@@ -368,6 +370,61 @@ Val ForExp::evaluate(Env env) {
 
     return new VoidVal;
 
+}
+
+Val HasExp::evaluate(Env env) {
+    CompareExp equals(NULL, NULL, EQ);
+    Val res = NULL;
+
+    Val x = item->evaluate(env);
+    if (!x) return NULL;
+
+    Val xs = set->evaluate(env);
+    if (!xs) {
+        x->rem_ref();
+        return NULL;
+    } else if (val_is_list(xs)) {
+        List<Val> *lst = ((ListVal*) xs)->get();
+        
+        auto it = lst->iterator();
+        while (!res && it->hasNext()) {
+            Val v = it->next();
+            
+            Val b = equals.op(x, v);
+            if (!b) {
+                delete x;
+                delete xs;
+                delete it;
+                return NULL;
+            } else if (((BoolVal*) b)->get())
+                res = new BoolVal(true);
+        }
+        if (!res) res = new BoolVal(false);
+
+        delete it;
+    } else if (val_is_dict(xs)) {
+
+        if (val_is_string(x)) {
+            string key = x->toString();
+            
+            auto it = ((DictVal*) xs)->getVals()->iterator();
+
+            while (!res && it->hasNext())
+                if (it->next() == key)
+                    res = new BoolVal(true);
+
+            if (!res) res = new BoolVal(false);
+
+            delete it;
+        } else
+            throw_type_err(item, "string");
+    } else
+        throw_type_err(set, "list or dictionary");
+
+    delete x;
+    delete xs;
+
+    return res;
 }
 
 Val IfExp::evaluate(Env env) {
