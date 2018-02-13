@@ -25,6 +25,15 @@ class DictExp : public Expression {
         Exp clone();
         std::string toString();
 
+        bool postprocessor(Trie<bool> *vars) {
+            auto it = vals->iterator();
+            auto res = true;
+            while (res && it->hasNext())
+                res = it->next()->postprocessor(vars);
+            delete it;
+            return res;
+        }
+
         Exp optimize();
         int opt_var_usage(std::string);
         Exp opt_const_prop(opt_varexp_map&, opt_varexp_map&);
@@ -77,6 +86,8 @@ class LambdaExp : public Expression {
         Exp clone();
         std::string toString();
 
+        bool postprocessor(Trie<bool> *vars);
+
         Exp optimize() { exp = exp->optimize(); return this; }
         int opt_var_usage(std::string);
 };
@@ -101,6 +112,15 @@ class ListExp : public Expression {
         std::string toString();
 
         List<Exp>* getList() { return list; }
+
+        bool postprocessor(Trie<bool> *vars) {
+            auto it = list->iterator();
+            auto res = true;
+            while (res && it->hasNext())
+                res = it->next()->postprocessor(vars);
+            delete it;
+            return res;
+        }
         
         Exp optimize();
         Exp opt_const_prop(opt_varexp_map&, opt_varexp_map&);
@@ -164,6 +184,10 @@ class TupleExp : public Expression {
 
         Exp clone() { return new TupleExp(left->clone(), right->clone()); }
 
+        bool postprocessor(Trie<bool> *vars) {
+            return left->postprocessor(vars) && right->postprocessor(vars);
+        }
+
         Exp optimize() { left = left->optimize(); right = right->optimize(); return this; }
         int opt_var_usage(std::string x) { return left->opt_var_usage(x) | right->opt_var_usage(x); }
 };
@@ -181,6 +205,12 @@ class VarExp : public Expression {
         std::string toString();
 
         Val derivativeOf(std::string, Env, Env);
+
+        bool postprocessor(Trie<bool> *vars) {
+            if (vars->hasKey(id)) return true;
+            throw_err("", "undefined reference to variable " + id);
+            return false;
+        }
 
         /**
          * Constant propagation will trivially replace the variable if

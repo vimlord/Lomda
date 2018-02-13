@@ -280,26 +280,20 @@ V Trie<V>::remove(std::string key) {
                 node = node->root;
                 i--;
             }
-
+            
             // Now, the node is either null (empty list), has a value, or branches
             if (!node) {
                 delete head;
-                return res;
-            }
-            
-            auto it = node->labels->iterator();
-            for (int j = 0; it->hasNext(); j++)
-                if (it->next() == key[i]) {
-                    delete it;
-                    
-                    // Kill the subpath
+                head = NULL;
+            } else for (int j = 0; j < node->labels->size(); j++) {
+                if (node->labels->get(j) == key[i]) {
                     delete node->paths->remove(j);
                     node->labels->remove(j);
-                    
-                    return res;
+                    break;
                 }
+            }
 
-            throw std::out_of_range(key);
+            return res;
         }
     } else
         throw std::out_of_range(key);
@@ -324,7 +318,7 @@ bool Trie<V>::hasKey(std::string key) {
             // Get the correct child
             node = node->paths->get(j);
         else
-            throw std::out_of_range(key);
+            return false;
     }
 
     return node && node->hasVal;

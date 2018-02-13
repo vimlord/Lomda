@@ -5,6 +5,8 @@
 #include "baselang/environment.hpp"
 #include "stringable.hpp"
 
+#include "structures/trie.hpp"
+
 // Error functions
 void throw_warning(std::string form, std::string mssg);
 void throw_err(std::string form, std::string mssg);
@@ -43,6 +45,8 @@ class Expression : public Stringable {
             throw_err("calculus", "expression '" + toString() + "' is non-differentiable");
             return NULL;
         }
+
+        virtual bool postprocessor(Trie<bool> *vars = new Trie<bool>) { return true; };
         
         /**
          * Creates a deep copy of the expression.

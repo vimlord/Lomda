@@ -21,6 +21,8 @@ class ApplyExp : public Expression {
 
         Val evaluate(Env);
         Val derivativeOf(std::string, Env, Env);
+
+        bool postprocessor(Trie<bool> *vars);
         
         Exp clone();
         std::string toString();
@@ -55,6 +57,13 @@ class DerivativeExp : public Expression {
 
         Val evaluate(Env);
 
+        bool postprocessor(Trie<bool> *vars) {
+            vars->add(var, true);
+            auto res = func->postprocessor(vars);
+            vars->remove(var);
+            return res;
+        }
+
         Exp clone() { return new DerivativeExp(func->clone(), var); }
         std::string toString();
 };
@@ -74,6 +83,8 @@ class FoldExp : public Expression {
 
         Exp clone() { return new FoldExp(list->clone(), func->clone(), base->clone()); }
         std::string toString();
+        
+        bool postprocessor(Trie<bool> *vars);
 
         Exp optimize();
         Exp opt_const_prop(opt_varexp_map&, opt_varexp_map&);
@@ -94,6 +105,8 @@ class ForExp : public Expression {
         Exp clone() { return new ForExp(id, set->clone(), body->clone()); }
         std::string toString();
 
+        bool postprocessor(Trie<bool> *vars);
+
         Exp optimize();
         Exp opt_const_prop(opt_varexp_map&, opt_varexp_map&);
         int opt_var_usage(std::string x);
@@ -110,6 +123,8 @@ class HasExp : public Expression {
         Val evaluate(Env);
 
         std::string toString();
+
+        bool postprocessor(Trie<bool> *vars);
 
         Exp optimize() {
             item = item->optimize();
@@ -158,6 +173,18 @@ class ImportExp : public Expression {
                     if (!e) exp = new VarExp(m);
         }
 
+        bool postprocessor(Trie<bool> *vars) {
+            if (vars->hasKey(name)) {
+                throw_err("error", "redefinition of variable " + name + " is not permitted");
+                return NULL;
+            } else {
+                vars->add(name, true);
+                auto res = exp->postprocessor(vars);
+                vars->remove(name);
+                return res;
+            }
+        }
+
         Val evaluate(Env);
 
         Exp clone() { return new ImportExp(module, name, exp->clone()); }
@@ -191,6 +218,8 @@ class IsaExp : public Expression {
         Exp clone() { return new IsaExp(exp->clone(), type); }
         std::string toString();
 
+        bool postprocessor(Trie<bool> *vars);
+
         Exp optimize() { exp = exp->optimize(); return this; }
         Exp opt_const_prop(opt_varexp_map& a, opt_varexp_map& b) { exp = exp->opt_const_prop(a, b); return this; }
         int opt_var_usage(std::string x) { return exp->opt_var_usage(x); }
@@ -216,10 +245,12 @@ class LetExp : public Expression {
         }
 
         Val evaluate(Env);
-        Val derivativeOf(std::string, Env, Env);
+        Val derivativeOf(std::string, Env, Env); 
         
         Exp clone();
         std::string toString();
+
+        bool postprocessor(Trie<bool> *vars);
 
         Exp optimize();
         Exp opt_const_prop(opt_varexp_map&, opt_varexp_map&);
@@ -238,6 +269,8 @@ class MagnitudeExp : public Expression {
         Val derivativeOf(std::string, Env, Env);
 
         std::string toString();
+
+        bool postprocessor(Trie<bool> *vars);
         
         Exp optimize() { exp = exp->optimize(); return this; }
         int opt_var_usage(std::string x) { return exp->opt_var_usage(x); }
@@ -257,6 +290,8 @@ class MapExp : public Expression {
         
         std::string toString();
 
+        bool postprocessor(Trie<bool> *vars) { return func->postprocessor(vars) && list->postprocessor(vars); }
+
         Exp optimize() { func = func->optimize(); list = list->optimize(); return this; }
         Exp opt_const_prop(opt_varexp_map&, opt_varexp_map&);
         int opt_var_usage(std::string x) { return func->opt_var_usage(x) | list->opt_var_usage(x); }
@@ -275,6 +310,8 @@ class NormExp : public Expression {
 
         std::string toString();
 
+        bool postprocessor(Trie<bool> *vars);
+
         Exp optimize() { exp = exp->optimize(); return this; }
         int opt_var_usage(std::string x) { return exp->opt_var_usage(x); }
 };
@@ -291,6 +328,8 @@ class NotExp : public Expression {
         
         Exp clone() { return new NotExp(exp->clone()); }
         std::string toString();
+
+        bool postprocessor(Trie<bool> *vars);
 
         Exp optimize();
         int opt_var_usage(std::string x) { return exp->opt_var_usage(x); }
@@ -310,6 +349,8 @@ class SequenceExp : public Expression {
         
         Exp clone();
         std::string toString();
+
+        bool postprocessor(Trie<bool> *vars);
 
         Exp optimize();
         Exp opt_const_prop(opt_varexp_map&, opt_varexp_map&);
@@ -333,6 +374,8 @@ class SetExp : public Expression {
         Exp clone();
         std::string toString();
 
+        bool postprocessor(Trie<bool> *vars);
+
         Exp optimize();
         Exp opt_const_prop(opt_varexp_map&, opt_varexp_map&);
         int opt_var_usage(std::string x) { return exp->opt_var_usage(x) | (tgt->opt_var_usage(x) >> 1); }
@@ -347,6 +390,8 @@ class ThunkExp : public Expression {
 
         Val evaluate(Env env) { env->add_ref(); return new Thunk(exp->clone(), env); }
         Val derivativeOf(std::string x, Env e, Env d) { return exp->derivativeOf(x, e, d); }
+
+        bool postprocessor(Trie<bool> *vars);
 
         Exp optimize() { exp = exp->optimize(); return this; }
         Exp clone() { return new ThunkExp(exp->clone()); }
@@ -384,6 +429,8 @@ class WhileExp : public Expression {
 
         Exp clone() { return new WhileExp(cond->clone(), body->clone(), alwaysEnter); }
         std::string toString();
+
+        bool postprocessor(Trie<bool> *vars);
 
         Exp optimize();
         Exp opt_const_prop(opt_varexp_map&, opt_varexp_map&);

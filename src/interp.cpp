@@ -21,7 +21,16 @@ using namespace std;
 
 Val run(string program) {
     Exp exp = compile(program);
+    
     if (exp) {
+
+        Trie<bool> *vardta = new Trie<bool>;
+        bool valid = exp->postprocessor(vardta);
+        delete vardta;
+
+        if (!valid)
+            return NULL;
+
         // If optimization is requested, grant it.
         if (OPTIMIZE()) {
             exp = exp->optimize();
