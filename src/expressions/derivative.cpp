@@ -45,8 +45,6 @@ void resolveIdentity(Val val, List<int> *idx = NULL) {
         if (idx->size() == 0) delete idx;
     } else if (idx->size() % 2 == 0) {
 
-        std::cout << "checking identity of " << *val << "\n";
-
         auto it = idx->iterator();
         auto jt = idx->iterator();
         

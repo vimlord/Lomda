@@ -890,13 +890,8 @@ Val ListSliceExp::evaluate(Env env) {
         
         auto it = vals->iterator();
 
-        std::cout << "list: " << *lst << " from " << i << " to " << j << "\n";
-
         int x;
-        for (x = 0; x < i; x++) {
-            std::cout << "x = " << x << ": " << it->hasNext() << "\n";
-            it->next();
-        }
+        for (x = 0; x < i; x++) it->next();
         for (;x < j && it->hasNext(); x++) {
             // Add the value and a reference to it
             Val v = it->next();
@@ -909,8 +904,6 @@ Val ListSliceExp::evaluate(Env env) {
         delete it;
 
         Val res = new ListVal(vs);
-
-        std::cout << "built: " << *res << "\n";
 
         return res;
     } else {
@@ -1145,7 +1138,6 @@ Val PrintExp::evaluate(Env env) {
         v->rem_ref();
     }
 
-    std::cout << s << "\n";
     return new VoidVal;
 }
 
