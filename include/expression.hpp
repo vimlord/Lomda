@@ -329,7 +329,6 @@ class SetExp : public Expression {
         }
 
         Val evaluate(Env);
-        Val derivativeOf(std::string, Env, Env);
         
         Exp clone();
         std::string toString();
