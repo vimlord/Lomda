@@ -58,10 +58,13 @@ class DerivativeExp : public Expression {
         Val evaluate(Env);
 
         bool postprocessor(Trie<bool> *vars) {
-            vars->add(var, true);
-            auto res = func->postprocessor(vars);
-            vars->remove(var);
-            return res;
+            if (!vars->hasKey(var)) {
+                throw_err("", "cannot differentiate " + func->toString() + " over unbound variable " + var);
+                return NULL;
+            } else {
+                auto res = func->postprocessor(vars);
+                return res;
+            }
         }
 
         Exp clone() { return new DerivativeExp(func->clone(), var); }
