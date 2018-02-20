@@ -41,6 +41,7 @@ LinkedList<struct arglist>* parseArgList(std::string, bool = true);
 
 ParsedPrgms parseCodeBlock(std::string, bool = true);
 
+ParsedPrgms parseExponentiation(std::string, bool = true);
 ParsedPrgms parseMultiplicative(std::string, bool = true);
 ParsedPrgms parseAdditive(std::string, bool = true);
 

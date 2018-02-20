@@ -44,8 +44,6 @@ class OrExp : public OperatorExp {
         std::string toString();
 };
 
-
-
 class DiffExp : public OperatorExp {
     public:
         using OperatorExp::OperatorExp;
@@ -83,6 +81,17 @@ class CompareExp : public OperatorExp {
         Val derivativeOf(std::string, Env, Env);
         
         Exp clone() { return new CompareExp(left->clone(), right->clone(), operation); }
+        std::string toString();
+};
+
+class ExponentExp : public OperatorExp {
+    public:
+        using OperatorExp::OperatorExp;
+
+        Val op(Val, Val);
+        Val derivativeOf(std::string, Env, Env);
+
+        Exp clone() { return new ExponentExp(left->clone(), right->clone()); }
         std::string toString();
 };
 

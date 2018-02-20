@@ -3,6 +3,7 @@
 #include "expressions/derivative.hpp"
 
 #include "config.hpp"
+#include "types.hpp"
 
 #include <cstdlib>
 #include <cmath>
@@ -302,6 +303,51 @@ Val DivExp::derivativeOf(string x, Env env, Env denv) {
 
     delete exp;
     return c;
+}
+
+Val ExponentExp::derivativeOf(string x, Env env, Env denv) { 
+
+    Val l = left->evaluate(env);
+    if (!l) return NULL;
+
+    Val r = right->evaluate(env);
+    if (!r) {
+        l->rem_ref();
+        return NULL;
+    }
+
+    Val dl = left->derivativeOf(x, env, denv);
+    if (!dl) {
+        l->rem_ref();
+        r->rem_ref();
+        return NULL;
+    }
+
+    Val dr = right->derivativeOf(x, env, denv);
+    if (!dr) {
+        l->rem_ref();
+        r->rem_ref();
+        dl->rem_ref();
+        return NULL;
+    }
+
+    if (val_is_number(l) && val_is_number(r) && val_is_number(dl) && val_is_number(dr)) {
+        auto f = val_is_integer(l) ? ((IntVal*) l)->get() : ((RealVal*) l)->get();
+        auto g = val_is_integer(r) ? ((IntVal*) r)->get() : ((RealVal*) r)->get();
+
+        auto df = val_is_integer(dl) ? ((IntVal*) dl)->get() : ((RealVal*) dl)->get();
+        auto dg = val_is_integer(dr) ? ((IntVal*) dr)->get() : ((RealVal*) dr)->get();
+
+        auto z = pow(f, g-1) * (g * df + f * log(f) * dg);
+
+        return new RealVal(z);
+    } else {
+        throw_err("calculus", "differentiation is not defined in exponentiation between "
+                + left->toString() + " and " + right->toString());
+
+        return NULL;
+    }
+
 }
 
 Val ForExp::derivativeOf(string x, Env env, Env denv) {

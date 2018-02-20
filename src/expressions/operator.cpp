@@ -5,6 +5,7 @@
 #include "types.hpp"
 
 #include <string>
+#include <cmath>
 
 using namespace std;
 
@@ -99,6 +100,19 @@ Val DiffExp::op(Value *a, Value *b) {
         return NULL;
     }
 
+}
+
+Val ExponentExp::op(Val a, Val b) {
+    if (val_is_number(a) && val_is_number(b)) {
+        auto x = val_is_integer(a) ? ((IntVal*) a)->get() : ((RealVal*) a)->get();
+        auto y = val_is_integer(b) ? ((IntVal*) b)->get() : ((RealVal*) b)->get();
+
+        // Compute the result
+        auto z = pow(x, y);
+        return new RealVal(z);
+    } else {
+        throw_err("runtime", "division is not defined between " + left->toString() + " and " + right->toString());
+    }
 }
 
 // Expression for multiplying studd

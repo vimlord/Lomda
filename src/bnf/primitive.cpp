@@ -1260,7 +1260,7 @@ ParsedPrgms parseMultiplicative(string str, bool ends) {
 
     // First, find every multiplicative expression that could come before this one.
     // We won't require them to finish
-    ParsedPrgms mult = parseHasExp(str, false);
+    ParsedPrgms mult = parseExponentiation(str, false);
 
     while (!mult->isEmpty()) {
         // Get the program branch
@@ -1306,6 +1306,57 @@ ParsedPrgms parseMultiplicative(string str, bool ends) {
             while (!subps->isEmpty()) {
                 parsed_prgm prog = subps->remove(0);
                 prog.item = new DivExp(exp, prog.item);
+                prog.len += len;
+
+                exp = exp->clone(); // For distinctiveness
+                
+                res->add(0, prog);
+            }
+            delete subps;
+        } else if (!ends) {
+            res->add(0, p);
+        } else {
+            delete exp;
+        }
+    }
+
+    delete mult;
+
+    return res;
+}
+
+ParsedPrgms parseExponentiation(string str, bool ends) {
+    ParsedPrgms res = new LinkedList<parsed_prgm>;
+
+    // First, find every multiplicative expression that could come before this one.
+    // We won't require them to finish
+    ParsedPrgms mult = parseHasExp(str, false);
+
+    while (!mult->isEmpty()) {
+        // Get the program branch
+        parsed_prgm p = mult->remove(0);
+        Exp exp = p.item;
+        int len = p.len;
+        
+        // The string to parse
+        string s = str.substr(len);
+        int i;
+
+        if (parseSpaces(s) == s.length()) {
+            // The parsed expression is complete
+            res->add(0, p);
+        } else if ((i = parseLit(s, "^")) >= 0) {
+            // The operation is addition
+            s = s.substr(i);
+            len += i;
+
+            // Get all of the possible subresults
+            ParsedPrgms subps = parseExponentiation(s, ends);
+            
+            // Then, add all of the possible outcomes
+            while (!subps->isEmpty()) {
+                parsed_prgm prog = subps->remove(0);
+                prog.item = new ExponentExp(exp, prog.item);
                 prog.len += len;
 
                 exp = exp->clone(); // For distinctiveness

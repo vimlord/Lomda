@@ -83,6 +83,9 @@ string CompareExp::toString() {
 
     return s + right->toString();
 }
+string ExponentExp::toString() {
+    return left->toString() + " ^ " + right->toString();
+}
 string FoldExp::toString() {
     return "fold " + list->toString() + " into " + func->toString() + " at " + base->toString();
 }
