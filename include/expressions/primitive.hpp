@@ -155,6 +155,7 @@ class StringExp : public Expression {
         StringExp(std::string s) : val(s) {}
 
         Val evaluate(Env) { return new StringVal(val); }
+        Type* typeOf(Tenv) { return new StringType; }
 
         Exp clone() { return new StringExp(val); }
         std::string toString();
@@ -232,6 +233,8 @@ class VoidExp : public Expression {
         VoidExp() {}
 
         Val evaluate(Env) { return new VoidVal; }
+        Type* typeOf(Tenv) { return new VoidType; }
+
         std::string toString() { return "void"; }
 
         Exp clone() { return new VoidExp; }
