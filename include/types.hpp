@@ -1,6 +1,7 @@
 #ifndef _TYPES_HPP_
 #define _TYPES_HPP_
 
+#include "baselang/types.hpp"
 #include "value.hpp"
 
 inline bool val_is_integer(Val v) {
@@ -37,5 +38,76 @@ inline bool val_is_lambda(Val v) {
 inline bool val_is_string(Val v) {
     return typeid(*v) == typeid(StringVal);
 }
+
+// Composite types
+class LambdaType : public Type {
+    private:
+        Type *left;
+        Type *right;
+    public:
+        LambdaType(Type *a, Type *b) : left(a), right(b) {}
+        ~LambdaType() { delete left; delete right; }
+        Type* clone() { return new LambdaType(left->clone(), right->clone()); }
+
+        std::string toString() { return "(" + left->toString() + " -> " + right->toString() + ")"; }
+};
+class ListType : public Type {
+    private:
+        Type *type;
+    public:
+        ListType(Type *t) : type(t) {}
+        ~ListType() { delete type; }
+        Type* clone() { return new ListType(type->clone()); }
+
+        std::string toString() { return "[" + type->toString() + "]"; }
+};
+class TupleType : public Type {
+    private:
+        Type *left;
+        Type *right;
+    public:
+        TupleType(Type *a, Type *b) : left(a), right(b) {}
+        ~TupleType() { delete left; delete right; }
+        Type* clone() { return new TupleType(left->clone(), right->clone()); }
+
+        std::string toString() { return "(" + left->toString() + " * " + right->toString() + ")"; }
+};
+
+// Standard types
+class BoolType : public Type {
+    public:
+        BoolType() {}
+        Type* clone() { return new BoolType; }
+        std::string toString() { return "B"; }
+};
+class IntType : public Type {
+    public:
+        IntType() {}
+        Type* clone() { return new IntType; }
+        std::string toString() { return "Z"; }
+};
+class RealType : public Type {
+    public:
+        RealType() {}
+        Type* clone() { return new RealType; }
+        std::string toString() { return "R"; }
+};
+class VoidType : public Type {
+    public:
+        VoidType() {}
+        Type* clone() { return new VoidType; }
+        std::string toString() { return "void"; }
+};
+
+// Special types for polymorphism
+class VarType : public Type {
+    private:
+        std::string name;
+        Type* type;
+    public:
+        VarType(std::string v, Type *t = NULL) : name(v), type(t) {}
+        Type* clone() { return new VarType(name, type); }
+        std::string toString() { return type ? type->toString() : name; }
+};
 
 #endif
