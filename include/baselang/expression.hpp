@@ -3,6 +3,7 @@
 
 #include "baselang/value.hpp"
 #include "baselang/environment.hpp"
+#include "baselang/types.hpp"
 #include "stringable.hpp"
 
 #include "structures/trie.hpp"
@@ -31,7 +32,15 @@ class Expression : public Stringable {
          * @return The outcome of the computation, or NULL if the expression
                     is non-computable under the given environment.
          */
-        virtual Val evaluate(Env env) { return NULL; }
+        virtual Val evaluate(Env env) {
+            throw_err("implementation", "expression '" + toString() + "' cannot be computed because it is not implemented");
+            return NULL;
+        }
+
+        virtual Type* typeOf(Tenv tenv) {
+            throw_err("type", "type of expression '" + toString() + "' cannot be computed because it is not implemented");
+            return NULL;
+        }
         
         /**
          * Computes the derivative of an expression. The default is to

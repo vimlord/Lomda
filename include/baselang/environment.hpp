@@ -5,8 +5,8 @@
 #include "reffable.hpp"
 
 #include "baselang/value.hpp"
+#include "baselang/types.hpp"
 #include "structures/list.hpp"
-
 
 #include <iostream>
 #include <cstddef>
@@ -61,5 +61,6 @@ class Environment : public Stringable, public Reffable {
 
 // We will define Env as an environment of values
 typedef Environment<Value>* Env;
+typedef Environment<Type>* Tenv;
 
 #endif

@@ -73,24 +73,23 @@ class TupleType : public Type {
         std::string toString() { return "(" + left->toString() + " * " + right->toString() + ")"; }
 };
 
-// Standard types
 class BoolType : public Type {
     public:
         BoolType() {}
         Type* clone() { return new BoolType; }
         std::string toString() { return "B"; }
 };
-class IntType : public Type {
+class RealType : public Type {
+    public:
+        RealType() {}
+        virtual Type* clone() { return new RealType; }
+        virtual std::string toString() { return "R"; }
+};
+class IntType : public RealType {
     public:
         IntType() {}
         Type* clone() { return new IntType; }
         std::string toString() { return "Z"; }
-};
-class RealType : public Type {
-    public:
-        RealType() {}
-        Type* clone() { return new RealType; }
-        std::string toString() { return "R"; }
 };
 class VoidType : public Type {
     public:

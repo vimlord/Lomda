@@ -4,6 +4,8 @@
 #include "baselang/expression.hpp"
 #include "value.hpp"
 
+#include "types.hpp"
+
 // Dictionary generator
 class DictExp : public Expression {
     private:
@@ -44,6 +46,7 @@ class FalseExp : public Expression {
     public:
         FalseExp() {}
         Val evaluate(Env);
+        Type* typeOf(Tenv tenv) { return new BoolType; }
         
         Exp clone() { return new FalseExp(); }
         std::string toString() { return "false"; }
@@ -59,6 +62,7 @@ class IntExp : public Expression {
     public:
         IntExp(int = 0);
         Val evaluate(Env);
+        Type* typeOf(Tenv tenv) { return new IntType; }
         Val derivativeOf(std::string, Env, Env);
 
         int get() { return val; }
@@ -134,6 +138,7 @@ class RealExp : public Expression {
     public:
         RealExp(float = 0);
         Val evaluate(Env);
+        Type* typeOf(Tenv tenv) { return new RealType; }
         Val derivativeOf(std::string, Env, Env);
         
         Exp clone() { return new RealExp(val); }
@@ -163,6 +168,7 @@ class TrueExp : public Expression {
     public:
         TrueExp() {}
         Val evaluate(Env);
+        Type* typeOf(Tenv tenv) { return new BoolType; }
         
         Exp clone() { return new TrueExp(); }
         std::string toString() { return "true"; }
@@ -180,6 +186,7 @@ class TupleExp : public Expression {
         ~TupleExp() { delete left; delete right; }
 
         Val evaluate(Env);
+        Type* typeOf(Tenv tenv) { return new TupleType(left->typeOf(tenv), right->typeOf(tenv)); }
         std::string toString();
 
         Exp clone() { return new TupleExp(left->clone(), right->clone()); }
