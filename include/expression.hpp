@@ -249,6 +249,7 @@ class LetExp : public Expression {
 
         Val evaluate(Env);
         Val derivativeOf(std::string, Env, Env); 
+        Type* typeOf(Tenv);
         
         Exp clone();
         std::string toString();

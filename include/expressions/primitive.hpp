@@ -208,6 +208,7 @@ class VarExp : public Expression {
         VarExp(std::string s) : id(s) {}
 
         Val evaluate(Env env);
+        Type* typeOf(Tenv tenv);
         
         Exp clone() { return new VarExp(id); }
         std::string toString();

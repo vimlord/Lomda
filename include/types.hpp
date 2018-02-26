@@ -142,6 +142,9 @@ class VarType : public Type {
         }
         VarType(std::string v, Type *t = NULL) : name(v), type(t) {}
         Type* clone() { return new VarType(name, type); }
+        
+        // Gets the type if it has been found, otherwise NULL
+        Type* getType() { return type; }
 
         std::string toString() { return type ? type->toString() : name; }
         

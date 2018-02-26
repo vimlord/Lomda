@@ -30,6 +30,17 @@ Val run(string program) {
 
         if (!valid)
             return NULL;
+        
+        if (VERBOSITY()) {
+            Tenv tenv = new TypeEnv;
+            Type* type = exp->typeOf(tenv);
+            tenv->rem_ref();
+            if (type) {
+                std::cout << "Γ ⊢ " << *exp << " : " << *type << "\n";
+                type->rem_ref();
+            }
+        }
+        
 
         // If optimization is requested, grant it.
         if (OPTIMIZE()) {
