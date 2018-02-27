@@ -45,7 +45,7 @@ class PairType : public Type {
         Type *right;
     public:
         PairType(Type *a, Type *b) : left(a), right(b) {}
-        ~PairType() { delete left; delete right; }
+        ~PairType() { left->rem_ref(); right->rem_ref(); }
 
         Type* getLeft() { return left; }
         Type* getRight() { return right; }
@@ -57,26 +57,31 @@ class LambdaType : public PairType {
         using PairType::PairType;
 
         Type* clone() { return new LambdaType(left->clone(), right->clone()); }
+        Type* unify(Type*);
 
-        std::string toString() { return "(" + left->toString() + " -> " + right->toString() + ")"; }
+        std::string toString();
 };
 class ListType : public Type {
     private:
         Type *type;
     public:
         ListType(Type *t) : type(t) {}
-        ~ListType() { delete type; }
+        ~ListType() { type->rem_ref(); }
         Type* clone() { return new ListType(type->clone()); }
+        Type* unify(Type*);
 
-        std::string toString() { return "[" + type->toString() + "]"; }
+        Type* subtype() { return type; }
+
+        std::string toString();
 };
 class TupleType : public PairType {
     public:
         using PairType::PairType;
 
         Type* clone() { return new TupleType(left->clone(), right->clone()); }
+        Type* unify(Type*);
 
-        std::string toString() { return "(" + left->toString() + " * " + right->toString() + ")"; }
+        std::string toString();
 };
 
 /** Operator types
@@ -86,42 +91,50 @@ class SumType : public PairType {
     public:
         using PairType::PairType;
         Type* clone() { return new SumType(left->clone(), right->clone()); }
+        Type* unify(Type*);
 
-        std::string toString() { return "(" + left->toString() + " + " + right->toString() + ")"; }
+        std::string toString();
 };
 class MultType : public PairType {
     public:
         using PairType::PairType;
-        Type* clone() { return new SumType(left->clone(), right->clone()); }
+        Type* clone();
+        Type* unify(Type*);
 
-        std::string toString() { return "(" + left->toString() + " x " + right->toString() + ")"; }
+        std::string toString();
 };
 
 // Primitive types
-class BoolType : public Type {
+class PrimitiveType : public Type {};
+class BoolType : public PrimitiveType {
     public:
         Type* clone() { return new BoolType; }
+        Type* unify(Type*);
         std::string toString() { return "B"; }
 };
-class RealType : public Type {
+class RealType : public PrimitiveType {
     public:
         virtual Type* clone() { return new RealType; }
+        virtual Type* unify(Type*);
         virtual std::string toString() { return "R"; }
 };
 class IntType : public RealType {
     public:
         Type* clone() { return new IntType; }
+        Type* unify(Type*);
         std::string toString() { return "Z"; }
 };
-class StringType : public Type {
+class StringType : public PrimitiveType {
     public:
         Type* clone() { return new StringType; }
+        Type* unify(Type*);
         std::string toString() { return "S"; }
 };
-class VoidType : public Type {
+class VoidType : public PrimitiveType {
     public:
         VoidType() {}
         Type* clone() { return new VoidType; }
+        Type* unify(Type*);
         std::string toString() { return "void"; }
 };
 
@@ -140,8 +153,10 @@ class VarType : public Type {
             if (i == -1)
                 NEXT_ID = "a" + NEXT_ID;
         }
-        VarType(std::string v, Type *t = NULL) : name(v), type(t) {}
+        VarType(std::string v, Type *t = NULL)
+        : name(v), type(t) {}
         Type* clone() { return new VarType(name, type); }
+        Type* unify(Type*);
         
         // Gets the type if it has been found, otherwise NULL
         Type* getType() { return type; }

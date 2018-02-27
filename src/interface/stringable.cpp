@@ -305,3 +305,11 @@ string StringVal::toString() { return val; }
 string Thunk::toString() { return val ? val->toString() : ("" + exp->toString() + " | " + env->toString()); }
 string TupleVal::toString() { return "(" + left->toString() + ", " + right->toString() + ")"; }
 
+
+std::string LambdaType::toString() { return "(" + left->toString() + " -> " + right->toString() + ")"; }
+std::string ListType::toString() { return "[" + type->toString() + "]"; }
+std::string TupleType::toString() { return "(" + left->toString() + " * " + right->toString() + ")"; }
+std::string SumType::toString() { return "(" + left->toString() + " + " + right->toString() + ")"; }
+std::string MultType::toString() { return "(" + left->toString() + " x " + right->toString() + ")"; }
+
+

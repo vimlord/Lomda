@@ -9,6 +9,7 @@
 class Type : public Stringable, public Reffable {
     public:
         virtual Type* clone() = 0;
+        virtual Type* unify(Type*) = 0;
 };
 
 class TypeEnv : public Stringable, public Reffable {

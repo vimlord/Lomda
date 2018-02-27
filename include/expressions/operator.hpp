@@ -50,6 +50,7 @@ class DiffExp : public OperatorExp {
 
         Val op(Val, Val);
         Val derivativeOf(std::string, Env, Env);
+        Type* typeOf(Tenv);
         
         Exp clone() { return new DiffExp(left->clone(), right->clone()); }
         std::string toString();
@@ -114,6 +115,7 @@ class SumExp : public OperatorExp {
 
         Val op(Val, Val);
         Val derivativeOf(std::string, Env, Env);
+        Type* typeOf(Tenv);
         
         Exp clone() { return new SumExp(left->clone(), right->clone()); }
         std::string toString();
