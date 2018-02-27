@@ -152,6 +152,7 @@ class IfExp : public Expression {
 
         Val evaluate(Env);
         Val derivativeOf(std::string, Env, Env);
+        Type* typeOf(Tenv);
         
         Exp clone() { return new IfExp(cond->clone(), tExp->clone(), fExp->clone()); }
         std::string toString();
@@ -199,6 +200,7 @@ class InputExp : public Expression {
         InputExp() {}
         
         Val evaluate(Env);
+        Type* typeOf(Tenv) { return new StringType; }
 
         Exp clone() { return new InputExp; }
         std::string toString() { return "input"; }
@@ -217,6 +219,7 @@ class IsaExp : public Expression {
         ~IsaExp() { delete exp; }
 
         Val evaluate(Env);
+        Type* typeOf(Tenv);
 
         Exp clone() { return new IsaExp(exp->clone(), type); }
         std::string toString();
@@ -351,6 +354,7 @@ class SequenceExp : public Expression {
         LinkedList<Exp>* getSeq() { return seq; }
 
         Val evaluate(Env);
+        Type* typeOf(Tenv);
         
         Exp clone();
         std::string toString();
@@ -375,6 +379,7 @@ class SetExp : public Expression {
         }
 
         Val evaluate(Env);
+        Type* typeOf(Tenv);
         
         Exp clone();
         std::string toString();
@@ -395,6 +400,7 @@ class ThunkExp : public Expression {
 
         Val evaluate(Env env) { env->add_ref(); return new Thunk(exp->clone(), env); }
         Val derivativeOf(std::string x, Env e, Env d) { return exp->derivativeOf(x, e, d); }
+        Type* typeOf(Tenv tenv) { return exp->typeOf(tenv); }
 
         bool postprocessor(Trie<bool> *vars);
 
@@ -431,6 +437,7 @@ class WhileExp : public Expression {
 
         Val evaluate(Env);
         Val derivativeOf(std::string, Env, Env);
+        Type* typeOf(Tenv);
 
         Exp clone() { return new WhileExp(cond->clone(), body->clone(), alwaysEnter); }
         std::string toString();

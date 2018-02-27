@@ -309,7 +309,33 @@ Type* LambdaExp::typeOf(Tenv tenv) {
     }
 }
 
-// Extension typing rules
+Type* IfExp::typeOf(Tenv tenv) {
+    auto C = cond->typeOf(tenv);
+    if (!C) return NULL;
+
+    auto B = new BoolType;
+    auto D = C->unify(B);
+    B->rem_ref();
+    C->rem_ref();
+
+    if (!D) return NULL;
+
+    auto T = tExp->typeOf(tenv);
+    auto F = fExp->typeOf(tenv);
+
+    auto Y = T->unify(F);
+    T->rem_ref();
+    F->rem_ref();
+
+    return Y;
+}
+Type* IsaExp::typeOf(Tenv tenv) {
+    auto T = exp->typeOf(tenv);
+    if (!T) return NULL;
+    else T->rem_ref();
+
+    return new BoolType;
+}
 Type* LetExp::typeOf(Tenv tenv) {
     unordered_map<string, Type*> tmp;
     
@@ -339,7 +365,55 @@ Type* LetExp::typeOf(Tenv tenv) {
     }
 
     return T;
+}
+Type* SequenceExp::typeOf(Tenv tenv) {
+    Type *T = NULL;
 
+    auto it = seq->iterator();
+    do {
+        if (T) T->rem_ref();
+        T = it->next()->typeOf(tenv);
+    } while (it->hasNext() && T);
+
+    delete it;
+    return T;
+}
+Type* SetExp::typeOf(Tenv tenv) {
+    // The target and expression should each have a type
+    auto T = tgt->typeOf(tenv);
+    if (!T) return NULL;
+    auto E = exp->typeOf(tenv);
+
+    Type *S = NULL;
+    
+    if (E) {
+        // The type of the expression is the unification of
+        // the two expressions
+        S = T->unify(E);
+        E->rem_ref();
+    }
+
+    T->rem_ref();
+    
+    return S;
+}
+Type* WhileExp::typeOf(Tenv tenv) {
+    auto C = cond->typeOf(tenv);
+    auto B = new BoolType;
+    
+    // Type the conditional
+    auto D = C->unify(B);
+    C->rem_ref();
+    B->rem_ref();
+    if (!D) return NULL;
+    else D->rem_ref();
+    
+    // Type the body
+    D = body->typeOf(tenv);
+    if (!D) return NULL;
+    else D->rem_ref();
+
+    return new VoidType;
 }
 
 Type* AndExp::typeOf(Tenv tenv) {
