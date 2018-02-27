@@ -665,6 +665,57 @@ ParsedPrgms parseAdditive(string str, bool ends) {
     return res;
 }
 
+ParsedPrgms parseOrExp(string str, bool ends) {
+    ParsedPrgms res = new LinkedList<parsed_prgm>;
+
+    // First, find every multiplicative expression that could come before this one.
+    // We won't require them to finish
+    ParsedPrgms mult = parseAndExp(str, false);
+
+    while (!mult->isEmpty()) {
+        // Get the program branch
+        parsed_prgm p = mult->remove(0);
+        Exp exp = p.item;
+        int len = p.len;
+        
+        // The string to parse
+        string s = str.substr(len);
+        int i;
+
+        if (parseSpaces(s) == s.length()) {
+            // The parsed expression is complete
+            res->add(0, p);
+        } else if (
+            (i = parseLit(s, "or")) >= 0 ||
+            (i = parseLit(s, "∨")) >= 0 // Logic symbol
+        ) {
+            // The operation is addition
+            s = s.substr(i);
+            len += i;
+
+            // Get all of the possible subresults
+            ParsedPrgms subps = parseAndExp(s, ends);
+            
+            // Then, add all of the possible outcomes
+            auto pit = subps->iterator();
+            while (pit->hasNext()) {
+                parsed_prgm prog = pit->next();
+                prog.item = new OrExp(exp, prog.item);
+                prog.len += len;
+
+                exp = exp->clone(); // For distinctiveness
+                
+                res->add(0, prog);
+            }
+        } else if (!ends) {
+            res->add(0, p);
+        } else delete exp;
+    }
+    delete mult;
+
+    return res;
+}
+
 ParsedPrgms parseAndExp(string str, bool ends) {
     ParsedPrgms res = new LinkedList<parsed_prgm>;
 
@@ -841,7 +892,7 @@ ParsedPrgms parseHasExp(string str, bool ends) {
             len += i;
 
             // Get all of the possible subresults
-            ParsedPrgms subps = parseAndExp(s, ends);
+            ParsedPrgms subps = parseOrExp(s, ends);
             
             // Then, add all of the possible outcomes
             auto pit = subps->iterator();
@@ -1609,8 +1660,8 @@ ParsedPrgms parsePrimitive(string str, bool ends) {
  */
 ParsedPrgms parseSetExp(string str, bool ends) {
     ParsedPrgms res = new LinkedList<parsed_prgm>;
-
-    ParsedPrgms lefts = parseAndExp(str, false);
+    
+    ParsedPrgms lefts = parseOrExp(str, false);
 
     while (!lefts->isEmpty()) {
         parsed_prgm left = lefts->remove(0);
