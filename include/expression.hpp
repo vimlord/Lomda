@@ -329,6 +329,7 @@ class NotExp : public Expression {
         ~NotExp() { delete exp; }
 
         Val evaluate(Env);
+        Type* typeOf(Tenv);
         
         Exp clone() { return new NotExp(exp->clone()); }
         std::string toString();

@@ -266,7 +266,50 @@ Type* MultType::unify(Type* t) {
     return NULL;
 }
 
-// Typing rules
+// Lambda typing rules
+Type* LambdaExp::typeOf(Tenv tenv) {
+    if (xs[0] == "") {
+        Type *T = exp->typeOf(tenv);
+        if (T)
+            return new LambdaType(new VoidType, T, tenv->clone());
+        else
+            return NULL;
+    } else {
+        int i;
+        for (i = 0; xs[i] != ""; i++);
+        int len = i;
+        
+        auto Ts = new Type*[i+1];
+        auto Es = new Tenv[i+1];
+        Ts[i] = NULL;
+        Es[i] = NULL;
+        while (i--)
+            Ts[i] = new VarType;
+        while (Ts[++i]) {
+            tenv = Es[i] = tenv->clone();
+            tenv->set(xs[i], Ts[i]);
+        }
+
+        auto T = exp->typeOf(tenv);
+        if (!T) {
+            while (i--) {
+                Ts[i]->rem_ref();
+                Es[i]->rem_ref();
+            }
+            delete Ts;
+            delete Es;
+            return NULL;
+        }
+        while (i--)
+            T = new LambdaType(Ts[i], T, Es[i]);
+
+        delete Ts, Es;
+
+        return T;
+    }
+}
+
+// Extension typing rules
 Type* LetExp::typeOf(Tenv tenv) {
     unordered_map<string, Type*> tmp;
     
@@ -296,6 +339,89 @@ Type* LetExp::typeOf(Tenv tenv) {
     }
 
     return T;
+
+}
+
+Type* AndExp::typeOf(Tenv tenv) {
+    auto X = left->typeOf(tenv);
+    if (!X) return NULL;
+
+    auto Y = right->typeOf(tenv);
+    if (!Y) {
+        X->rem_ref();
+        return NULL;
+    }
+
+    auto B = new BoolType;
+    
+    auto x = X->unify(B);
+    X->rem_ref();
+    if (!x) {
+        Y->rem_ref();
+        return NULL;
+    }
+
+    auto y = Y->unify(B);
+    Y->rem_ref();
+    if (!y) {
+        x->rem_ref();
+        return NULL;
+    }
+    
+    x->rem_ref();
+    y->rem_ref();
+
+    return B;
+}
+Type* OrExp::typeOf(Tenv tenv) {
+    auto X = left->typeOf(tenv);
+    if (!X) return NULL;
+
+    auto Y = right->typeOf(tenv);
+    if (!Y) {
+        X->rem_ref();
+        return NULL;
+    }
+
+    auto B = new BoolType;
+    
+    auto x = X->unify(B);
+    X->rem_ref();
+    if (!x) {
+        Y->rem_ref();
+        B->rem_ref();
+        return NULL;
+    }
+
+    auto y = Y->unify(B);
+    Y->rem_ref();
+    if (!y) {
+        x->rem_ref();
+        B->rem_ref();
+        return NULL;
+    }
+    
+    x->rem_ref();
+    y->rem_ref();
+
+    return B;
+}
+Type* NotExp::typeOf(Tenv tenv) {
+    auto T = exp->typeOf(tenv);
+    if (!T) return NULL;
+
+    auto B = new BoolType;
+
+    auto x = T->unify(B);
+    T->rem_ref();
+    if (!x) {
+        B->rem_ref();
+        B = NULL;
+    }
+
+    x->rem_ref();
+
+    return B;
 
 }
 

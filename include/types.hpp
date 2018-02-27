@@ -52,9 +52,19 @@ class PairType : public Type {
 };
 
 // Composite primitive types
-class LambdaType : public PairType {
+class LambdaType : public Type {
+    private:
+        Type *left;
+        Type *right;
+        Tenv env;
     public:
-        using PairType::PairType;
+        LambdaType(Type *a, Type *b, Tenv t = NULL)
+            : left(a), right(b), env(t) {}
+        ~LambdaType() { left->rem_ref(); right->rem_ref(); env->rem_ref(); }
+
+        Type* getLeft() { return left; }
+        Type* getRight() { return right; }
+        Tenv getEnv() { return env; }
 
         Type* clone() { return new LambdaType(left->clone(), right->clone()); }
         Type* unify(Type*);

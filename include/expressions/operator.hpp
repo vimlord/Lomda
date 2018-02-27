@@ -28,6 +28,7 @@ class AndExp : public OperatorExp {
         Val op(Val, Val);
         
         Val derivativeOf(std::string, Env, Env);
+        Type* typeOf(Tenv);
 
         Exp clone() { return new AndExp(left->clone(), right->clone()); }
         std::string toString();
@@ -39,6 +40,7 @@ class OrExp : public OperatorExp {
         Val op(Val, Val);
         
         Val derivativeOf(std::string, Env, Env);
+        Type* typeOf(Tenv);
 
         Exp clone() { return new OrExp(left->clone(), right->clone()); }
         std::string toString();

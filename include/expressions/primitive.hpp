@@ -84,6 +84,7 @@ class LambdaExp : public Expression {
         ~LambdaExp() { delete[] xs; delete exp; }
         Val evaluate(Env);
         Val derivativeOf(std::string, Env, Env);
+        Type* typeOf(Tenv);
 
         std::string *getXs() { return xs; }
         
