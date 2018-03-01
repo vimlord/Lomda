@@ -9,11 +9,29 @@ inline bool isType(const Type* t) {
 }
 
 string VarType::NEXT_ID = "a";
+
+
+TypeEnv::~TypeEnv() {
+    for (auto it : types)
+        delete it.second;
+    for (auto it : mgu)
+        delete it.second;
+}
+
+Type* TypeEnv::apply(string x) {
+    if (types.find(x) == types.end()) {
+        // We need to instantiate this type to be a new variable type
+        auto V = new VarType;
+        types[x] = mgu[V->toString()] = V;
+        return V;
+    }
+    return types[x]->clone();
+}
+
 int TypeEnv::set(string x, Type* v) {
-    v->add_ref();
     int res = 0;
     if (types.find(x) != types.end()) {
-        types[x]->rem_ref();
+        delete types[x];
         res = 1;
     }
     types[x] = v;
@@ -23,10 +41,23 @@ int TypeEnv::set(string x, Type* v) {
 Tenv TypeEnv::clone() {
     Tenv env = new TypeEnv;
     for (auto it : types) {
-        env->set(it.first, it.second);
-        it.second->add_ref();
+        env->set(it.first, it.second->clone());
     }
     return env;
+}
+
+Type* TypeEnv::get_tvar(string v) {
+    if (mgu.find(v) != mgu.end())
+        return mgu[v];
+    else
+        return NULL;
+}
+
+void TypeEnv::rem_tvar(string v) {
+    if (mgu.find(v) != mgu.end()) {
+        delete mgu[v];
+        mgu.erase(v);
+    }
 }
 
 string TypeEnv::toString() {
@@ -40,221 +71,225 @@ string TypeEnv::toString() {
 }
 
 // Unification rules for fundamental type
-Type* BoolType::unify(Type* t) {
-    if (typeid(*t) == typeid(BoolType))
+Type* BoolType::unify(Type* t, Tenv tenv) {
+    if (isType<BoolType>(t))
         return new BoolType;
     else if (isType<PrimitiveType>(t))
         return NULL;
     else
-        return t->unify(this);
+        return t->unify(this, tenv);
 }
-Type* IntType::unify(Type* t) {
+Type* IntType::unify(Type* t, Tenv tenv) {
     if (isType<RealType>(t)) {
-        t->add_ref();
-        return t;
+        return t->clone();
     } else if (isType<PrimitiveType>(t))
         return NULL;
     else
-        return t->unify(this);
+        return t->unify(this, tenv);
 }
-Type* LambdaType::unify(Type* t) {
-    if (typeid(*t) == typeid(LambdaType)) {
+Type* LambdaType::unify(Type* t, Tenv tenv) {
+    if (isType<LambdaType>(t)) {
         LambdaType *other = (LambdaType*) t;
 
-        auto x = left->unify(other->left);
+        auto x = left->unify(other->left, tenv);
         if (!x) return NULL;
-        auto y = right->unify(other->right);
+        auto y = right->unify(other->right, tenv);
         if (!y) {
-            x->rem_ref();
+            delete x;
             return NULL;
         }
 
         // We now know that the types are both x -> y. Hence, we will change
         // the types.
-        x->add_ref(); x->add_ref();
-        y->add_ref(); y->add_ref();
 
-        other->left->rem_ref(); other->left = x;
-        other->right->rem_ref(); other->right = y;
+        other->left = x;
+        other->right = y;
 
-        left->rem_ref(); left = x;
-        right->rem_ref(); right = y;
+        left = x->clone();
+        right = y->clone();
 
         return new LambdaType(x, y);
     } else
         return NULL;
 }
-Type* ListType::unify(Type* t) {
-    if (typeid(*t) != typeid(ListType))
-        return NULL;
+Type* ListType::unify(Type* t, Tenv tenv) {
+    if (isType<ListType>(t))
+        return type->unify(((ListType*) t)->type, tenv);
     else
-        return type->unify(((ListType*) t)->type);
+        return t->unify(this, tenv);
 }
-Type* RealType::unify(Type* t) {
+Type* RealType::unify(Type* t, Tenv tenv) {
     if (isType<RealType>(t))
         return new RealType;
     else if (isType<PrimitiveType>(t))
         return NULL;
     else
-        return t->unify(this);
+        return t->unify(this, tenv);
 }
-Type* TupleType::unify(Type* t) {
-    if (typeid(*t) == typeid(TupleType)) {
+Type* TupleType::unify(Type* t, Tenv tenv) {
+    if (isType<TupleType>(t)) {
         TupleType *other = (TupleType*) t;
 
-        auto x = left->unify(other->left);
+        auto x = left->unify(other->left, tenv);
         if (!x) return NULL;
-        auto y = right->unify(other->right);
+        auto y = right->unify(other->right, tenv);
         if (!y) {
-            x->rem_ref();
+            delete x;
             return NULL;
         }
         
         // We now know that the types are both x * y. Hence, we will change
         // the types.
-        x->add_ref(); x->add_ref();
-        y->add_ref(); y->add_ref();
+        other->left = x;
+        other->right = y;
 
-        other->left->rem_ref(); other->left = x;
-        other->right->rem_ref(); other->right = y;
-
-        left->rem_ref(); left = x;
-        right->rem_ref(); right = y;
+        left = x->clone();
+        right = y->clone();
 
         return new TupleType(x, y);
     } else
         return NULL;
 }
-Type* VarType::unify(Type* t) {
-    if (typeid(*t) == typeid(VarType)) {
+Type* VarType::unify(Type* t, Tenv tenv) {
+    Type *A = tenv->get_tvar(name);
+
+    if (isType<VarType>(t)) {
         VarType *v = (VarType*) t;
-        v->name = name;
+        Type *B = tenv->get_tvar(v->toString());
 
-        if (type) {
-            if (v->type) {
-                // Unify the two types
-                auto x = type->unify(v->type);
-                if (!x) return NULL;
+        // Unify the two types
+        auto x = A->unify(B, tenv);
+        if (!x) return NULL;
+        
+        // Now, we need to update the variable values.
+        tenv->set_tvar(v->name, x);
+        tenv->set_tvar(name, x);
 
-                type->rem_ref();
-                v->type->rem_ref();
-                x->add_ref();
+        return x;
+    } else {
+        // We must verify that this variable checks out
+        auto T = A->unify(t, tenv);
+        if (!T) return NULL;
 
-                type = v->type = x;
-            } else {
-                // Assimilate the other type
-                type->add_ref();
-                v->type = type;
-            }
-        } else if (v->type) {
-            // Assimilate the other type.
-            v->type->add_ref();
-            type = v->type;
-        }
-
-        add_ref();
-        return this;
+        // Update the variable state
+        tenv->set_tvar(name, T->clone());
+         
+        return T;
     }
 }
-Type* StringType::unify(Type* t) {
-    if (typeid(*t) == typeid(StringType))
+Type* StringType::unify(Type* t, Tenv tenv) {
+    if (isType<StringType>(t))
         return new VoidType;
     else if (isType<PrimitiveType>(t))
         return NULL;
     else
-        return t->unify(this);
+        return t->unify(this, tenv);
 }
-Type* VoidType::unify(Type* t) {
-    if (typeid(*t) == typeid(VoidType))
+Type* VoidType::unify(Type* t, Tenv tenv) {
+    if (isType<VoidType>(t))
         return new VoidType;
     else if (isType<PrimitiveType>(t))
         return NULL;
     else
-        return t->unify(this);
+        return t->unify(this, tenv);
 }
 
 // Unification rules for operational types
-Type* SumType::unify(Type* t) {
-    if (typeid(*t) == typeid(SumType)) {
+Type* SumType::unify(Type* t, Tenv tenv) {
+    if (isType<SumType>(t)) {
         SumType* other = (SumType*) t;
 
-        auto x = left->unify(other->left);
+        auto x = left->unify(other->left, tenv);
         if (!x) return NULL;
-        left->rem_ref();
-        left = x;
-        other->left->rem_ref(); other->left = x; other->left->add_ref();
 
-        auto y = right->unify(other->right);
+        delete left;
+        left = x;
+
+        delete other->left;
+        other->left = x->clone();
+
+        auto y = right->unify(other->right, tenv);
         if (!y)
             return NULL;
-        right->rem_ref();
+
+        delete right;
         right = y;
-        other->right->rem_ref(); other->right = y; other->right->add_ref();
+
+        delete other->right;
+        other->right = y->clone();;
         
         // Next, we can try unifying x and y
-        auto z = x->unify(y);
+        auto z = x->unify(y, tenv);
 
         if (!z)
             // x and y have no unification. Hence, it is untypable.
             return NULL;
         else {
-            for (int i = 0; i < 4; i++) z->add_ref();
-            x->rem_ref(); x->rem_ref();
-            y->rem_ref(); y->rem_ref();
-            left = right = other->left = other->right = z;
+            delete x;
+            delete y;
+            left = z->clone();
+            right = z->clone();
+            other->left = z->clone();
+            other->right = z->clone();
         }
         
         // We will now check to see if the result has been finalized; whether
         // or not this type is reducible to one of the two sides.
         x = z;
-        while (typeid(*x) == typeid(ListType))
+        while (isType<ListType>(x))
             x = ((ListType*) x)->subtype();
 
         if (isType<RealType>(x)) {
             // It has resolved to an nd array. Hence, the solution has been found.
             return z;
         } else if (isType<VarType>(x)) {
-            
-            // The type is x + y. We can update our type.
-            for (int i = 0; i < 4; i++)
-                z->add_ref();
+            delete other->right;
+            other->right = z->clone();
 
-            other->right->rem_ref(); other->right = z;
+            delete other->left;
+            other->left = z->clone();
 
-            left->rem_ref(); left = z;
-            right->rem_ref(); right = z;
+            delete right;
+            other->right = z->clone();
+
+            delete left;
+            other->left = z->clone();
             
-            return new SumType(x, y);
+            return new SumType(z, z->clone());
         } else
             // There does not exist a unification
             return NULL;
     } else if (isType<RealType>(t)) {
-        auto x = left->unify(t);
+        auto x = left->unify(t, tenv);
         if (!x) return NULL;
-        left->rem_ref();
+
+        delete left;
         left = x;
         
-        x = right->unify(t);
+        x = right->unify(t, tenv);
         if (!x) return NULL;
-        right->rem_ref();
+
+        delete right;
         right = x;
 
-        x = left->unify(right);
+        x = left->unify(right, tenv);
         if (!x) return NULL;
-        x->add_ref();
-        left->rem_ref(); left = x;
-        right->rem_ref(); right = x;
+
+        delete left;
+        delete right;
+
+        left = x->clone();
+        right = x->clone();
 
         auto z = x;
-        while (typeid(*x) == typeid(ListType))
+        while (isType<ListType>(x))
             x = ((ListType*) x)->subtype();
 
         if (isType<RealType>(x)) {
             // It has resolved to an nd array. Hence, the solution has been found.
             return z;
         } else if (isType<VarType>(x)) {
-            add_ref();
-            return this;
+            return z;
         } else
             // There does not exist a unification
             return NULL;
@@ -262,7 +297,7 @@ Type* SumType::unify(Type* t) {
     }
 }
 
-Type* MultType::unify(Type* t) {
+Type* MultType::unify(Type* t, Tenv tenv) {
     return NULL;
 }
 
@@ -293,8 +328,8 @@ Type* LambdaExp::typeOf(Tenv tenv) {
         auto T = exp->typeOf(tenv);
         if (!T) {
             while (i--) {
-                Ts[i]->rem_ref();
-                Es[i]->rem_ref();
+                delete Ts[i];
+                delete Es[i];
             }
             delete Ts;
             delete Es;
@@ -314,25 +349,25 @@ Type* IfExp::typeOf(Tenv tenv) {
     if (!C) return NULL;
 
     auto B = new BoolType;
-    auto D = C->unify(B);
-    B->rem_ref();
-    C->rem_ref();
+    auto D = C->unify(B, tenv);
+    delete B;
+    delete C;
 
     if (!D) return NULL;
 
     auto T = tExp->typeOf(tenv);
     auto F = fExp->typeOf(tenv);
 
-    auto Y = T->unify(F);
-    T->rem_ref();
-    F->rem_ref();
+    auto Y = T->unify(F, tenv);
+    delete T;
+    delete F;
 
     return Y;
 }
 Type* IsaExp::typeOf(Tenv tenv) {
     auto T = exp->typeOf(tenv);
     if (!T) return NULL;
-    else T->rem_ref();
+    delete T;
 
     return new BoolType;
 }
@@ -348,8 +383,7 @@ Type* LetExp::typeOf(Tenv tenv) {
             auto s = tenv->apply(ids[i]);
             if (s) {
                 // We may have to suppress variables.
-                s->add_ref();
-                tmp[ids[i]] = s;
+                tmp[ids[i]] = s->clone();
             }
             tenv->set(ids[i], t);
         }
@@ -371,7 +405,7 @@ Type* SequenceExp::typeOf(Tenv tenv) {
 
     auto it = seq->iterator();
     do {
-        if (T) T->rem_ref();
+        if (T) delete T;
         T = it->next()->typeOf(tenv);
     } while (it->hasNext() && T);
 
@@ -389,11 +423,11 @@ Type* SetExp::typeOf(Tenv tenv) {
     if (E) {
         // The type of the expression is the unification of
         // the two expressions
-        S = T->unify(E);
-        E->rem_ref();
+        S = T->unify(E, tenv);
+        delete E;
     }
-
-    T->rem_ref();
+    
+    delete T;
     
     return S;
 }
@@ -402,16 +436,17 @@ Type* WhileExp::typeOf(Tenv tenv) {
     auto B = new BoolType;
     
     // Type the conditional
-    auto D = C->unify(B);
-    C->rem_ref();
-    B->rem_ref();
+    auto D = C->unify(B, tenv);
+    delete B;
+    delete C;
+
     if (!D) return NULL;
-    else D->rem_ref();
+    else delete D;
     
     // Type the body
     D = body->typeOf(tenv);
     if (!D) return NULL;
-    else D->rem_ref();
+    else delete D;
 
     return new VoidType;
 }
@@ -422,28 +457,28 @@ Type* AndExp::typeOf(Tenv tenv) {
 
     auto Y = right->typeOf(tenv);
     if (!Y) {
-        X->rem_ref();
+        delete X;
         return NULL;
     }
 
     auto B = new BoolType;
     
-    auto x = X->unify(B);
-    X->rem_ref();
+    auto x = X->unify(B, tenv);
+    delete X;
     if (!x) {
-        Y->rem_ref();
+        delete Y;
         return NULL;
     }
 
-    auto y = Y->unify(B);
-    Y->rem_ref();
+    auto y = Y->unify(B, tenv);
+    delete Y;
     if (!y) {
-        x->rem_ref();
+        delete x;
         return NULL;
     }
     
-    x->rem_ref();
-    y->rem_ref();
+    delete x;
+    delete y;
 
     return B;
 }
@@ -453,30 +488,30 @@ Type* OrExp::typeOf(Tenv tenv) {
 
     auto Y = right->typeOf(tenv);
     if (!Y) {
-        X->rem_ref();
+        delete X;
         return NULL;
     }
 
     auto B = new BoolType;
     
-    auto x = X->unify(B);
-    X->rem_ref();
+    auto x = X->unify(B, tenv);
+    delete X;
     if (!x) {
-        Y->rem_ref();
-        B->rem_ref();
+        delete B;
+        delete Y;
         return NULL;
     }
 
-    auto y = Y->unify(B);
-    Y->rem_ref();
+    auto y = Y->unify(B, tenv);
+    delete Y;
     if (!y) {
-        x->rem_ref();
-        B->rem_ref();
+        delete x;
+        delete B;
         return NULL;
     }
     
-    x->rem_ref();
-    y->rem_ref();
+    delete x;
+    delete y;
 
     return B;
 }
@@ -486,14 +521,14 @@ Type* NotExp::typeOf(Tenv tenv) {
 
     auto B = new BoolType;
 
-    auto x = T->unify(B);
-    T->rem_ref();
+    auto x = T->unify(B, tenv);
+    delete T;
     if (!x) {
-        B->rem_ref();
+        delete B;
         B = NULL;
     }
-
-    x->rem_ref();
+    
+    delete x;
 
     return B;
 
@@ -506,19 +541,18 @@ Type* SumExp::typeOf(Tenv tenv) {
 
     auto B = right->typeOf(tenv);
     if (!B) {
-        A->rem_ref();
+        delete A;
         return NULL;
     }
     
     // We must unify the two types
-    auto C = A->unify(B);
+    auto C = A->unify(B, tenv);
 
     if (!C) return NULL;
     else if (isType<PrimitiveType>(C))
         return C;
     else {
-        C->add_ref();
-        return new SumType(C, C);
+        return new SumType(C, C->clone());
     }
 }
 Type* DiffExp::typeOf(Tenv tenv) {
@@ -527,30 +561,23 @@ Type* DiffExp::typeOf(Tenv tenv) {
 
     auto B = right->typeOf(tenv);
     if (!B) {
-        A->rem_ref();
+        delete A;
         return NULL;
     }
     
     // We must unify the two types
-    auto C = A->unify(B);
+    auto C = A->unify(B, tenv);
 
     if (!C) return NULL;
     else if (isType<PrimitiveType>(C))
         return C;
     else {
-        C->add_ref();
-        return new SumType(C, C);
+        return new SumType(C, C->clone());
     }
 }
 
 Type* VarExp::typeOf(Tenv tenv) {
-    auto T = tenv->apply(id);
-    if (!T) {
-        // We will create a variable to represent the variable
-        tenv->set(id, T = new VarType);
-    } else
-        T->add_ref();
-    return T;
+    return tenv->apply(id);
 }
 
 

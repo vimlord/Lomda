@@ -45,7 +45,7 @@ class PairType : public Type {
         Type *right;
     public:
         PairType(Type *a, Type *b) : left(a), right(b) {}
-        ~PairType() { left->rem_ref(); right->rem_ref(); }
+        ~PairType() { delete left; delete right; }
 
         Type* getLeft() { return left; }
         Type* getRight() { return right; }
@@ -60,14 +60,14 @@ class LambdaType : public Type {
     public:
         LambdaType(Type *a, Type *b, Tenv t = NULL)
             : left(a), right(b), env(t) {}
-        ~LambdaType() { left->rem_ref(); right->rem_ref(); env->rem_ref(); }
+        ~LambdaType() { delete left; delete right; delete env; }
 
         Type* getLeft() { return left; }
         Type* getRight() { return right; }
         Tenv getEnv() { return env; }
 
         Type* clone() { return new LambdaType(left->clone(), right->clone()); }
-        Type* unify(Type*);
+        Type* unify(Type*, Tenv);
 
         std::string toString();
 };
@@ -76,9 +76,9 @@ class ListType : public Type {
         Type *type;
     public:
         ListType(Type *t) : type(t) {}
-        ~ListType() { type->rem_ref(); }
+        ~ListType() { delete type; }
         Type* clone() { return new ListType(type->clone()); }
-        Type* unify(Type*);
+        Type* unify(Type*, Tenv);
 
         Type* subtype() { return type; }
 
@@ -89,7 +89,7 @@ class TupleType : public PairType {
         using PairType::PairType;
 
         Type* clone() { return new TupleType(left->clone(), right->clone()); }
-        Type* unify(Type*);
+        Type* unify(Type*, Tenv);
 
         std::string toString();
 };
@@ -101,7 +101,7 @@ class SumType : public PairType {
     public:
         using PairType::PairType;
         Type* clone() { return new SumType(left->clone(), right->clone()); }
-        Type* unify(Type*);
+        Type* unify(Type*, Tenv);
 
         std::string toString();
 };
@@ -109,7 +109,7 @@ class MultType : public PairType {
     public:
         using PairType::PairType;
         Type* clone();
-        Type* unify(Type*);
+        Type* unify(Type*, Tenv);
 
         std::string toString();
 };
@@ -119,32 +119,32 @@ class PrimitiveType : public Type {};
 class BoolType : public PrimitiveType {
     public:
         Type* clone() { return new BoolType; }
-        Type* unify(Type*);
+        Type* unify(Type*, Tenv);
         std::string toString() { return "B"; }
 };
 class RealType : public PrimitiveType {
     public:
         virtual Type* clone() { return new RealType; }
-        virtual Type* unify(Type*);
+        virtual Type* unify(Type*, Tenv);
         virtual std::string toString() { return "R"; }
 };
 class IntType : public RealType {
     public:
         Type* clone() { return new IntType; }
-        Type* unify(Type*);
+        Type* unify(Type*, Tenv);
         std::string toString() { return "Z"; }
 };
 class StringType : public PrimitiveType {
     public:
         Type* clone() { return new StringType; }
-        Type* unify(Type*);
+        Type* unify(Type*, Tenv);
         std::string toString() { return "S"; }
 };
 class VoidType : public PrimitiveType {
     public:
         VoidType() {}
         Type* clone() { return new VoidType; }
-        Type* unify(Type*);
+        Type* unify(Type*, Tenv);
         std::string toString() { return "void"; }
 };
 
@@ -152,10 +152,9 @@ class VoidType : public PrimitiveType {
 class VarType : public Type {
     private:
         std::string name;
-        Type* type;
         static std::string NEXT_ID;
     public:
-        VarType(Type *t = NULL) : VarType(NEXT_ID, t) {
+        VarType() {
             // Progress to the next id
             int i;
             for (i = NEXT_ID.length() - 1; i >= 0 && NEXT_ID[i] == 'z'; i--)
@@ -163,15 +162,11 @@ class VarType : public Type {
             if (i == -1)
                 NEXT_ID = "a" + NEXT_ID;
         }
-        VarType(std::string v, Type *t = NULL)
-        : name(v), type(t) {}
-        Type* clone() { return new VarType(name, type); }
-        Type* unify(Type*);
-        
-        // Gets the type if it has been found, otherwise NULL
-        Type* getType() { return type; }
+        VarType(std::string v) : name(v) {}
+        Type* clone() { return new VarType(name); }
+        Type* unify(Type*, Tenv);
 
-        std::string toString() { return type ? type->toString() : name; }
+        std::string toString() { return name; }
         
         // If we need to set NEXT_ID, then we can do so.
         static void setNextId(std::string s) { NEXT_ID = s; }

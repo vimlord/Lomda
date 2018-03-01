@@ -34,13 +34,12 @@ Val run(string program) {
         if (VERBOSITY()) {
             Tenv tenv = new TypeEnv;
             Type* type = exp->typeOf(tenv);
-            tenv->rem_ref();
+            delete tenv;
             if (type) {
                 std::cout << "Γ ⊢ " << *exp << " : " << *type << "\n";
-                type->rem_ref();
+                delete type;
             }
         }
-        
 
         // If optimization is requested, grant it.
         if (OPTIMIZE()) {
@@ -574,9 +573,6 @@ Val LambdaExp::evaluate(Env env) {
 }
 
 Val LetExp::evaluate(Env env) {
-    // We will operate on a clone
-    env = env->clone();
-
     int argc = 0;
     for (; exps[argc]; argc++);
     throw_debug("env", "adding " + to_string(argc) + " vars to env Γ := " + env->toString());
@@ -585,9 +581,8 @@ Val LetExp::evaluate(Env env) {
     // So, I will track my lambdas for now
     LinkedList<LambdaVal*> lambdas;
 
-    // There is now one more reference to the original environment
     env->add_ref();
-    
+
     // Extend the environment
     for (int i = 0; i < argc; i++) {
         // Compute the expression
@@ -597,7 +592,7 @@ Val LetExp::evaluate(Env env) {
             env->rem_ref();
             return NULL;
         }
-        
+
         // Add it to the environment
         Val x = v->clone();
         env = new ExtendEnv(ids[i], x, env);

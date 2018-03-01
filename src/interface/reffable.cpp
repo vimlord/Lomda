@@ -1,5 +1,7 @@
 #include "reffable.hpp"
 
+#include "stringable.hpp"
+
 #include <iostream>
 using namespace std;
 
