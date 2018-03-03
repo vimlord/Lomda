@@ -8,9 +8,6 @@ inline bool isType(const Type* t) {
     return t && dynamic_cast<const T*>(t) != nullptr;
 }
 
-string VarType::NEXT_ID = "a";
-
-
 TypeEnv::~TypeEnv() {
     for (auto it : types)
         delete it.second;
@@ -21,7 +18,15 @@ TypeEnv::~TypeEnv() {
 Type* TypeEnv::apply(string x) {
     if (types.find(x) == types.end()) {
         // We need to instantiate this type to be a new variable type
-        auto V = new VarType;
+        auto V = new VarType(next_id);
+
+        // Increment the next_id var
+        int i;
+        for (i = next_id.length()-1; i >= 0 && next_id[i] == 'z'; i--)
+            next_id[i] = 'a';
+        if (i < 0)
+            next_id = "a" + next_id;
+
         types[x] = mgu[V->toString()] = V;
         return V;
     }
@@ -299,49 +304,6 @@ Type* SumType::unify(Type* t, Tenv tenv) {
 
 Type* MultType::unify(Type* t, Tenv tenv) {
     return NULL;
-}
-
-// Lambda typing rules
-Type* LambdaExp::typeOf(Tenv tenv) {
-    if (xs[0] == "") {
-        Type *T = exp->typeOf(tenv);
-        if (T)
-            return new LambdaType(new VoidType, T, tenv->clone());
-        else
-            return NULL;
-    } else {
-        int i;
-        for (i = 0; xs[i] != ""; i++);
-        int len = i;
-        
-        auto Ts = new Type*[i+1];
-        auto Es = new Tenv[i+1];
-        Ts[i] = NULL;
-        Es[i] = NULL;
-        while (i--)
-            Ts[i] = new VarType;
-        while (Ts[++i]) {
-            tenv = Es[i] = tenv->clone();
-            tenv->set(xs[i], Ts[i]);
-        }
-
-        auto T = exp->typeOf(tenv);
-        if (!T) {
-            while (i--) {
-                delete Ts[i];
-                delete Es[i];
-            }
-            delete Ts;
-            delete Es;
-            return NULL;
-        }
-        while (i--)
-            T = new LambdaType(Ts[i], T, Es[i]);
-
-        delete Ts, Es;
-
-        return T;
-    }
 }
 
 Type* IfExp::typeOf(Tenv tenv) {

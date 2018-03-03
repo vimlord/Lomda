@@ -22,6 +22,10 @@ class TypeEnv : public Stringable {
         
         // The most general unification result
         std::unordered_map<std::string, Type*> mgu;
+
+        // The next type variable name to assign
+        std::string next_id = "a";
+
     public:
         TypeEnv() {}
         ~TypeEnv();

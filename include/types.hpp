@@ -152,24 +152,12 @@ class VoidType : public PrimitiveType {
 class VarType : public Type {
     private:
         std::string name;
-        static std::string NEXT_ID;
     public:
-        VarType() {
-            // Progress to the next id
-            int i;
-            for (i = NEXT_ID.length() - 1; i >= 0 && NEXT_ID[i] == 'z'; i--)
-                NEXT_ID[i] = 'a';
-            if (i == -1)
-                NEXT_ID = "a" + NEXT_ID;
-        }
         VarType(std::string v) : name(v) {}
         Type* clone() { return new VarType(name); }
         Type* unify(Type*, Tenv);
 
         std::string toString() { return name; }
-        
-        // If we need to set NEXT_ID, then we can do so.
-        static void setNextId(std::string s) { NEXT_ID = s; }
 };
 
 #endif
