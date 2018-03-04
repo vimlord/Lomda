@@ -10,14 +10,16 @@
 template<typename V>
 class TrieNode {
     public:
+        ArrayList<TrieNode<V>*> *paths = NULL;
+        ArrayList<char> *labels = NULL;
         TrieNode<V> *root = NULL;
-        ArrayList<char> *labels;
-        ArrayList<TrieNode<V>*> *paths;
 
         V val;
         bool hasVal = false;
         
-        TrieNode(V v) : TrieNode() {
+        TrieNode(V v) {
+            paths = new ArrayList<TrieNode<V>*>;
+            labels = new ArrayList<char>;
             val = v;
             hasVal = true;
         }
@@ -51,7 +53,7 @@ class TrieNode {
 template<typename V>
 class Trie : public Map<std::string, V> {
     private:
-        struct TrieNode<V> *head = NULL;
+        struct TrieNode<V> *head;
 
         class Titerator : public Iterator<std::string> {
             private:
@@ -122,7 +124,7 @@ class Trie : public Map<std::string, V> {
         };
 
     public:
-        Trie() {}
+        Trie() : head(NULL) {}
         ~Trie() { delete head; }
 
         V get(std::string);
@@ -226,7 +228,11 @@ void Trie<V>::add(std::string key, V val) {
         node->hasVal = true;
     } else {
         // We will build a node chain. Set a new head if need be
-        TrieNode<V> *tail = head ? node : (head = new TrieNode<V>);
+        TrieNode<V> *tail = NULL;
+        if (head)
+            tail = node;
+        else
+            tail = head = new TrieNode<V>;
 
         for (int j = i; j < key.length(); j++) {
             auto tmp = new TrieNode<V>;

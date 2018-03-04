@@ -4,6 +4,8 @@
 #include "structures/map.hpp"
 #include "structures/iterator.hpp"
 
+#include <iostream>
+
 template<typename T>
 class List : public Map<int, T>, public Iterable<T> {
     public:
@@ -70,8 +72,12 @@ class ArrayList : public List<T> {
                 T next() { return list->arr[idx++]; }
         };
     public:
-        ArrayList() { arr = new T[1]; }
-        ~ArrayList() { delete[] arr; }
+        ArrayList() {
+            arr = new T[1];
+        }
+        ~ArrayList() {
+            delete[] arr;
+        }
 
         void add(int, T);
         T get(int i);
@@ -242,7 +248,11 @@ template<typename T>
 void ArrayList<T>::add(int idx, T t) {
     if (idx < 0 || idx > N)
         throw std::out_of_range(std::to_string(idx));
-    else {
+    else if (!arr) {
+        arr = new T[1];
+        alen = 1;
+        arr[0] = t;
+    } else {
         if (N == alen) {
             // We must extend the memory
             T *dta = new T[(alen *= 2)];

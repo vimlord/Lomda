@@ -11,6 +11,7 @@ inline bool isType(const Type* t) {
 TypeEnv::~TypeEnv() {
     for (auto it : types)
         delete it.second;
+
     for (auto it : mgu)
         delete it.second;
 }
@@ -27,8 +28,8 @@ Type* TypeEnv::apply(string x) {
         if (i < 0)
             next_id = "a" + next_id;
 
-        types[x] = mgu[V->toString()] = V;
-        return V;
+        types[x] = V;
+        mgu[V->toString()] = V->clone();
     }
     return types[x]->clone();
 }
@@ -45,9 +46,10 @@ int TypeEnv::set(string x, Type* v) {
 
 Tenv TypeEnv::clone() {
     Tenv env = new TypeEnv;
-    for (auto it : types) {
+    for (auto it : types)
         env->set(it.first, it.second->clone());
-    }
+    for (auto it : mgu)
+        env->set_tvar(it.first, it.second->clone());
     return env;
 }
 
@@ -338,6 +340,7 @@ Type* LetExp::typeOf(Tenv tenv) {
     
     int i;
     for (i = 0; exps[i]; i++) {
+        // We seek to define the type of the ith variable to be defined.
         auto t = exps[i]->typeOf(tenv);
         if (!t) {
             break;
@@ -357,7 +360,7 @@ Type* LetExp::typeOf(Tenv tenv) {
     // Restore the tenv
     for (auto it : tmp) {
         tenv->set(it.first, it.second);
-        tmp.erase(it.first);
+        tmp[it.first] = NULL;
     }
 
     return T;
