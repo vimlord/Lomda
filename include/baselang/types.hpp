@@ -43,8 +43,10 @@ class TypeEnv : public Stringable {
 
         void register_tvar(Type *v) { mgu[v->toString()] = v; }
         Type* get_tvar(std::string v);
-        void set_tvar(std::string v, Type *t) { rem_tvar(v); mgu[v] = t; }
+        void set_tvar(std::string v, Type *t);
         void rem_tvar(std::string v);
+
+        Type* make_tvar();
 
         TypeEnv* clone();
         std::string toString();

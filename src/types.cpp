@@ -19,15 +19,7 @@ TypeEnv::~TypeEnv() {
 Type* TypeEnv::apply(string x) {
     if (types.find(x) == types.end()) {
         // We need to instantiate this type to be a new variable type
-        auto V = new VarType(next_id);
-
-        // Increment the next_id var
-        int i;
-        for (i = next_id.length()-1; i >= 0 && next_id[i] == 'z'; i--)
-            next_id[i] = 'a';
-        if (i < 0)
-            next_id = "a" + next_id;
-
+        auto V = make_tvar();
         types[x] = V;
         mgu[V->toString()] = V->clone();
     }
@@ -60,11 +52,30 @@ Type* TypeEnv::get_tvar(string v) {
         return NULL;
 }
 
+void TypeEnv::set_tvar(string v, Type *t) {
+    rem_tvar(v); mgu[v] = t;
+}
+
 void TypeEnv::rem_tvar(string v) {
     if (mgu.find(v) != mgu.end()) {
         delete mgu[v];
         mgu.erase(v);
     }
+}
+
+Type* TypeEnv::make_tvar() {
+    auto V = new VarType(next_id);
+
+    // Increment the next_id var
+    int i;
+    for (i = next_id.length()-1; i >= 0 && next_id[i] == 'z'; i--)
+        next_id[i] = 'a';
+    if (i < 0)
+        next_id = "a" + next_id;
+    else
+        next_id[i]++;
+
+    return V;
 }
 
 string TypeEnv::toString() {
@@ -165,17 +176,29 @@ Type* VarType::unify(Type* t, Tenv tenv) {
         Type *B = tenv->get_tvar(v->toString());
 
         // Unify the two types
-        auto x = A->unify(B, tenv);
+        Type* x;
+        if (A->toString() != name || B->toString() != t->toString())
+            x = A->unify(B, tenv);
+        else
+            x = clone();
+
         if (!x) return NULL;
         
         // Now, we need to update the variable values.
-        tenv->set_tvar(v->name, x);
-        tenv->set_tvar(name, x);
+        tenv->set_tvar(v->name, x->clone());
+        tenv->set_tvar(name, x->clone());
 
         return x;
     } else {
         // We must verify that this variable checks out
-        auto T = A->unify(t, tenv);
+        Type *T;
+        if (A->toString() != name)
+            T = A->unify(t, tenv);
+        else
+            // Since the variable identifies as itself, we can
+            // define it to be whatever we want it to be.
+            T = t->clone();
+
         if (!T) return NULL;
 
         // Update the variable state
@@ -307,6 +330,73 @@ Type* SumType::unify(Type* t, Tenv tenv) {
 Type* MultType::unify(Type* t, Tenv tenv) {
     return NULL;
 }
+
+
+Type* LambdaExp::typeOf(Tenv tenv) {
+    int i;
+    for (i = 0; xs[i] != ""; i++);
+    
+    int argc = i;
+    auto Ts = new Type*[argc];
+    
+    for (i = 0; i < argc; i++) {
+        // Add it to the parameter arg list
+        Ts[i] = tenv->make_tvar();
+        // And add it to the type environment
+        tenv->set_tvar(Ts[i]->toString(), Ts[i]->clone());
+    }
+    
+    // We need to evaluate the type of the
+    // body. This will also allow us to define
+    // restrictions on the domain of the function.
+    unordered_map<string,Type*> tmp;
+    
+    // Temporarily modify the environment
+    for (i = 0; i < argc; i++) {
+        auto t = tenv->apply(xs[i]);
+        if (t)
+            tmp[xs[i]] = t;
+        tenv->set(xs[i], Ts[i]->clone());
+    }
+
+    auto T = exp->typeOf(tenv);
+
+    if (!T) {
+        // The body could not be typed.
+        while (argc--)
+            delete Ts[argc];
+        delete[] Ts;
+        return NULL;
+    } else if (isType<VarType>(T)) {
+        // Simplify the body to be the value of the
+        // variable, if it is known.
+        auto V = tenv->get_tvar(T->toString());
+        delete T;
+        T = V;
+    }
+
+    if (argc == 0)
+        return new LambdaType(new VoidType, T);
+    
+    // Reset the environment
+    for (int i = 0; i < argc; i++)
+        // Remove the stuff
+        tenv->remove(xs[i]);
+    for (auto it : tmp)
+        // Put the old stuff in
+        tenv->set(it.first, it.second);
+    
+    for (i = argc - 1; i >= 0; i--) {
+        T = new LambdaType(tenv->get_tvar(Ts[i]->toString())->clone(), T);
+        delete Ts[i];
+    }
+
+    delete[] Ts;
+
+    return T;
+}
+
+
 
 Type* IfExp::typeOf(Tenv tenv) {
     auto C = cond->typeOf(tenv);
