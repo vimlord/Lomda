@@ -14,6 +14,7 @@ class ListAccessExp : public Expression {
 
         Val evaluate(Env);
         Val derivativeOf(std::string, Env, Env);
+        Type* typeOf(Tenv);
 
         Exp clone() { return new ListAccessExp(list->clone(), idx->clone()); }
         std::string toString();
@@ -66,6 +67,7 @@ class ListSliceExp : public Expression {
         ~ListSliceExp() { delete list; delete from; delete to; }
 
         Val evaluate(Env);
+        Type* typeOf(Tenv);
 
         Exp clone() {
             Exp f = from ? from->clone() : NULL;

@@ -75,7 +75,9 @@ Type* TypeEnv::make_tvar() {
     else
         next_id[i]++;
 
-    return V;
+    mgu[V->toString()] = V;
+
+    return V->clone();
 }
 
 string TypeEnv::toString() {
@@ -131,9 +133,12 @@ Type* LambdaType::unify(Type* t, Tenv tenv) {
         return NULL;
 }
 Type* ListType::unify(Type* t, Tenv tenv) {
-    if (isType<ListType>(t))
-        return type->unify(((ListType*) t)->type, tenv);
-    else
+    if (isType<ListType>(t)) {
+        auto A = type;
+        auto B = ((ListType*) t)->type;
+        auto C = type->unify(((ListType*) t)->type, tenv);
+        return C ? new ListType(C) : NULL;
+    } else
         return t->unify(this, tenv);
 }
 Type* RealType::unify(Type* t, Tenv tenv) {
@@ -342,8 +347,6 @@ Type* LambdaExp::typeOf(Tenv tenv) {
     for (i = 0; i < argc; i++) {
         // Add it to the parameter arg list
         Ts[i] = tenv->make_tvar();
-        // And add it to the type environment
-        tenv->set_tvar(Ts[i]->toString(), Ts[i]->clone());
     }
     
     // We need to evaluate the type of the
@@ -354,7 +357,6 @@ Type* LambdaExp::typeOf(Tenv tenv) {
     // Temporarily modify the environment
     for (i = 0; i < argc; i++) {
         auto t = tenv->apply(xs[i]);
-        if (t)
             tmp[xs[i]] = t;
         tenv->set(xs[i], Ts[i]->clone());
     }
@@ -587,6 +589,134 @@ Type* NotExp::typeOf(Tenv tenv) {
 
     return B;
 
+}
+
+Type* ListExp::typeOf(Tenv tenv) {
+    // If the list is empty, it could contain any type
+    if (list->size() == 0)
+        return new ListType(tenv->make_tvar());
+    
+    auto it = list->iterator();
+
+    // Get the type of the first element
+    auto T = it->next()->typeOf(tenv);
+    
+    // Next, we must verify that the type of each element is unifiable.
+    while (T && it->hasNext()) {
+        auto A = it->next()->typeOf(tenv);
+        if (!A) {
+            delete T;
+            T = NULL;
+            break;
+        }
+
+        auto B = T->unify(A, tenv);
+        delete T;
+        delete A;
+
+        T = B;
+    }
+
+    delete it;
+    
+    return T ? new ListType(T) : NULL;
+
+}
+Type* ListAccessExp::typeOf(Tenv tenv) {
+    auto L = list->typeOf(tenv);
+    if (!L) return NULL;
+
+    auto Ts = new ListType(tenv->make_tvar());
+
+    auto A = L->unify(Ts, tenv);
+    delete L;
+    delete Ts;
+
+    if (!A)
+        return NULL;
+
+    auto I = idx->typeOf(tenv);
+    if (!I) {
+        delete A;
+        return NULL;
+    }
+
+    auto Z = new IntType;
+
+    // The type of the index must be unifiable w/ Z
+    auto B = I->unify(Z, tenv);
+    delete I;
+    delete Z;
+    if (!B) {
+        delete A;
+        return NULL;
+    }
+    
+    auto T = ((ListType*) A)->subtype()->clone();
+
+    delete A;
+    delete B;
+
+    return T;
+}
+Type* ListSliceExp::typeOf(Tenv tenv) {
+    auto L = list->typeOf(tenv);
+    if (!L) return NULL;
+
+    auto Ts = new ListType(tenv->make_tvar());
+    
+    auto A = L->unify(Ts, tenv);
+    delete L;
+    delete Ts;
+
+    if (!A)
+        return NULL;
+    
+    // Typing of the first index
+    Type *I = NULL;
+    Type *Z = NULL;
+    
+    if (from) {
+        I = from->typeOf(tenv);
+        if (!I) {
+            delete A;
+            return NULL;
+        }
+
+        Z = new IntType;
+
+        // The type of the from index must be unifiable w/ Z
+        auto B = I->unify(Z, tenv);
+        delete I;
+        delete Z;
+
+        if (!B) {
+            delete A;
+            return NULL;
+        } else delete B;
+    }
+    
+    // Now, we type the second index if it is given.
+    if (to) {
+        I = to->typeOf(tenv);
+        if (!I) {
+            delete A;
+            delete Z;
+            return NULL;
+        }
+        Z = new IntType;
+        auto B = I->unify(Z, tenv);
+        delete I;
+        delete Z;
+
+        if (!B) {
+            delete A;
+            return NULL;
+        }
+    } else
+        delete Z;
+
+    return A;
 }
 
 // Typing rules that evaluate to type U + V

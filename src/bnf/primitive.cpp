@@ -478,9 +478,6 @@ ParsedPrgms parseAccessor(string str, bool ends) {
                             p.item = new ListSliceExp(lst.item->clone(), idx.item, NULL);
 
                             if (idx.item) idx.item = idx.item->clone();
-
-                            std::cout << "built " << *p.item << "\n";
-
                             lists->add(0, p);
                         } else {
                             ParsedPrgms jndices = parsePemdas(st, false);
