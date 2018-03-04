@@ -31,6 +31,7 @@ class TypeEnv : public Stringable {
         ~TypeEnv();
 
         Type* apply(std::string x);
+        bool hasVar(std::string x);
         int set(std::string x, Type* v);
 
         int remove(std::string x) {

@@ -21,9 +21,12 @@ Type* TypeEnv::apply(string x) {
         // We need to instantiate this type to be a new variable type
         auto V = make_tvar();
         types[x] = V;
-        mgu[V->toString()] = V->clone();
     }
     return types[x]->clone();
+}
+
+bool TypeEnv::hasVar(string x) {
+    return types.find(x) != types.end();
 }
 
 int TypeEnv::set(string x, Type* v) {
@@ -356,8 +359,10 @@ Type* LambdaExp::typeOf(Tenv tenv) {
     
     // Temporarily modify the environment
     for (i = 0; i < argc; i++) {
-        auto t = tenv->apply(xs[i]);
+        if (tenv->hasVar(xs[i])) {
+            auto t = tenv->apply(xs[i]);
             tmp[xs[i]] = t;
+        }
         tenv->set(xs[i], Ts[i]->clone());
     }
 
@@ -372,7 +377,7 @@ Type* LambdaExp::typeOf(Tenv tenv) {
     } else if (isType<VarType>(T)) {
         // Simplify the body to be the value of the
         // variable, if it is known.
-        auto V = tenv->get_tvar(T->toString());
+        auto V = tenv->get_tvar(T->toString())->clone();
         delete T;
         T = V;
     }
