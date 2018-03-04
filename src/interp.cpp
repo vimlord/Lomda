@@ -23,7 +23,8 @@ Val run(string program) {
     Exp exp = compile(program);
     
     if (exp) {
-
+        
+        throw_debug("postprocessor", "performing verification of '" + exp->toString() + "'");
         Trie<bool> *vardta = new Trie<bool>;
         bool valid = exp->postprocessor(vardta);
         delete vardta;
@@ -31,7 +32,8 @@ Val run(string program) {
         if (!valid)
             return NULL;
         
-        if (VERBOSITY()) {
+        if (USE_TYPES()) {
+            // Use the type system.
             Tenv tenv = new TypeEnv;
             Type* type = exp->typeOf(tenv);
             delete tenv;

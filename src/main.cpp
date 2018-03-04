@@ -26,9 +26,10 @@ void print_version() { cout << "Lambda 0.1.0\n"; }
 
 void display_config() {
     std::cout << "The following configuration is in use:\n";
+    std::cout << "optimize:  " << OPTIMIZE() << " (default: 0)\n";
+    std::cout << "use_types: " << USE_TYPES() << " (default: 0)\n";
     std::cout << "verbosity: " << VERBOSITY() << " (default: 0)\n";
     std::cout << "werror:    " << WERROR() << " (default: 0)\n";
-    std::cout << "optimize:  " << OPTIMIZE() << " (default: 0)\n";
 }
 
 /**
@@ -66,7 +67,9 @@ int main(int argc, char *argv[]) {
 
     int i;
     for (i = 1; argv[i]; i++) {
-        if (!strcmp(argv[i], "--version")) {
+        if (!strcmp(argv[i], "--use-types"))
+            set_use_types(true);
+        else if (!strcmp(argv[i], "--version")) {
             print_version(); return 0;
         } else if (!strcmp(argv[i], "-v") || !strcmp(argv[i], "--verbose")) {
             set_verbosity(true);
