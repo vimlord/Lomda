@@ -125,9 +125,13 @@ Type* LambdaType::unify(Type* t, Tenv tenv) {
         // We now know that the types are both x -> y. Hence, we will change
         // the types.
 
-        other->left = x;
-        other->right = y;
+        delete other->left;
+        delete other->right;
+        other->left = x->clone();
+        other->right = y->clone();
 
+        delete left;
+        delete right;
         left = x->clone();
         right = y->clone();
 
@@ -166,9 +170,13 @@ Type* TupleType::unify(Type* t, Tenv tenv) {
         
         // We now know that the types are both x * y. Hence, we will change
         // the types.
-        other->left = x;
-        other->right = y;
+        delete other->left;
+        delete other->right;
+        other->left = x->clone();
+        other->right = y->clone();
 
+        delete left;
+        delete right;
         left = x->clone();
         right = y->clone();
 
@@ -241,19 +249,17 @@ Type* SumType::unify(Type* t, Tenv tenv) {
         if (!x) return NULL;
 
         delete left;
-        left = x;
-
         delete other->left;
+        left = x;
         other->left = x->clone();
 
         auto y = right->unify(other->right, tenv);
         if (!y)
             return NULL;
 
+        delete other->right;
         delete right;
         right = y;
-
-        delete other->right;
         other->right = y->clone();;
         
         // Next, we can try unifying x and y
@@ -392,14 +398,74 @@ Type* LambdaExp::typeOf(Tenv tenv) {
     for (auto it : tmp)
         // Put the old stuff in
         tenv->set(it.first, it.second);
-    
+
     for (i = argc - 1; i >= 0; i--) {
         T = new LambdaType(tenv->get_tvar(Ts[i]->toString())->clone(), T);
-        delete Ts[i];
     }
+
+    ((LambdaType*) T)->setEnv(tenv->clone());;
 
     delete[] Ts;
 
+    return T;
+}
+Type* ApplyExp::typeOf(Tenv tenv) {
+    auto T = op->typeOf(tenv);
+    if (!isType<LambdaType>(T))
+        return NULL;
+
+    if (!args[0]) {
+        // Function take zero arguments
+        if (!isType<VoidType>(((LambdaType*) T)->getLeft())) {
+            delete T;
+            return NULL;
+        }
+        
+        // Otherwise, it's the type of the right hand side.
+        return ((LambdaType*) T)->getRight()->clone();
+    }
+
+    auto env = ((LambdaType*) T)->getEnv();
+    if (env) env = env->clone();
+    
+    for (int i = 0; args[i]; i++) {
+        if (!isType<LambdaType>(T)) {
+            delete T;
+            delete env;
+            return NULL;
+        }
+        auto F = (LambdaType*) T;
+        
+        // Type the argument
+        auto X = args[i]->typeOf(tenv);
+
+        if (!X) {
+            // The argument is untypable
+            delete T;
+            delete env;
+            return NULL;
+        }
+        X = new LambdaType(X, env->make_tvar());
+
+        // In the function tenv, we will unify the
+        // argument types
+        auto Z = X->unify(F, env);
+        delete X;
+        delete F;
+        if (!Z) {
+            // Non-unifiable
+            delete env;
+            return NULL;
+        }
+            
+        // Continue
+        T = ((LambdaType*) Z)->getRight()->clone();
+        delete Z;
+    }
+
+    delete env;
+
+    // End case: return T
     return T;
 }
 

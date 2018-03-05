@@ -21,6 +21,7 @@ class ApplyExp : public Expression {
 
         Val evaluate(Env);
         Val derivativeOf(std::string, Env, Env);
+        Type* typeOf(Tenv);
 
         bool postprocessor(Trie<bool> *vars);
         

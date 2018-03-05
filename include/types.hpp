@@ -58,11 +58,12 @@ class LambdaType : public PairType {
     public:
         LambdaType(Type *a, Type *b, Tenv t = NULL)
             : PairType(a,b), env(t) {}
-        ~LambdaType() { delete left; delete right; delete env; }
+        ~LambdaType() { delete env; }
 
         Tenv getEnv() { return env; }
+        void setEnv(Tenv e) { env = e; }
 
-        Type* clone() { return new LambdaType(left->clone(), right->clone()); }
+        Type* clone() { return new LambdaType(left->clone(), right->clone(), env->clone()); }
         Type* unify(Type*, Tenv);
         Type* subst(std::string x, Type *t) { return new LambdaType(left->subst(x,t), right->subst(x,t)); }
 
