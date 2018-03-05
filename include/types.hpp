@@ -52,22 +52,19 @@ class PairType : public Type {
 };
 
 // Composite primitive types
-class LambdaType : public Type {
+class LambdaType : public PairType {
     private:
-        Type *left;
-        Type *right;
         Tenv env;
     public:
         LambdaType(Type *a, Type *b, Tenv t = NULL)
-            : left(a), right(b), env(t) {}
+            : PairType(a,b), env(t) {}
         ~LambdaType() { delete left; delete right; delete env; }
 
-        Type* getLeft() { return left; }
-        Type* getRight() { return right; }
         Tenv getEnv() { return env; }
 
         Type* clone() { return new LambdaType(left->clone(), right->clone()); }
         Type* unify(Type*, Tenv);
+        Type* subst(std::string x, Type *t) { return new LambdaType(left->subst(x,t), right->subst(x,t)); }
 
         std::string toString();
 };
@@ -78,7 +75,9 @@ class ListType : public Type {
         ListType(Type *t) : type(t) {}
         ~ListType() { delete type; }
         Type* clone() { return new ListType(type->clone()); }
+
         Type* unify(Type*, Tenv);
+        Type* subst(std::string x, Type *t) { return new ListType(type->subst(x,t)); }
 
         Type* subtype() { return type; }
 
@@ -90,6 +89,7 @@ class TupleType : public PairType {
 
         Type* clone() { return new TupleType(left->clone(), right->clone()); }
         Type* unify(Type*, Tenv);
+        Type* subst(std::string x, Type *t) { return new TupleType(left->subst(x,t), right->subst(x,t)); }
 
         std::string toString();
 };
@@ -102,6 +102,7 @@ class SumType : public PairType {
         using PairType::PairType;
         Type* clone() { return new SumType(left->clone(), right->clone()); }
         Type* unify(Type*, Tenv);
+        Type* subst(std::string x, Type *t) { return new SumType(left->subst(x,t), right->subst(x,t)); }
 
         std::string toString();
 };
@@ -110,6 +111,7 @@ class MultType : public PairType {
         using PairType::PairType;
         Type* clone();
         Type* unify(Type*, Tenv);
+        Type* subst(std::string x, Type *t) { return new MultType(left->subst(x,t), right->subst(x,t)); }
 
         std::string toString();
 };
@@ -156,6 +158,7 @@ class VarType : public Type {
         VarType(std::string v) : name(v) {}
         Type* clone() { return new VarType(name); }
         Type* unify(Type*, Tenv);
+        Type* subst(std::string x, Type *t) { return t->clone(); }
 
         std::string toString() { return name; }
 };

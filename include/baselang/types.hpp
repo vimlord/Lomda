@@ -13,6 +13,7 @@ class Type : public Stringable {
     public:
         virtual Type* clone() = 0;
         virtual Type* unify(Type*, Tenv) = 0;
+        virtual Type* subst(std::string, Type*) { return clone(); }
 };
 
 class TypeEnv : public Stringable {

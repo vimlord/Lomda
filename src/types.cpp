@@ -442,11 +442,10 @@ Type* LetExp::typeOf(Tenv tenv) {
         if (!t) {
             break;
         } else {
-            auto s = tenv->apply(ids[i]);
-            if (s) {
+            if (tenv->hasVar(ids[i]))
                 // We may have to suppress variables.
-                tmp[ids[i]] = s->clone();
-            }
+                tmp[ids[i]] = tenv->apply(ids[i]);
+
             tenv->set(ids[i], t);
         }
     }
