@@ -148,14 +148,14 @@ Type* LambdaType::unify(Type* t, Tenv tenv) {
         if (!x) {
             show_proof_therefore("under " + tenv->toString() + ", "
                 + toString() + " = " + other->toString()
-                + " is not unifiable.");
+                + " is not unifiable");
             return NULL;
         }
         auto y = right->unify(other->right, tenv);
         if (!y) {
             show_proof_therefore("under " + tenv->toString() + ", "
                 + toString() + " = " + other->toString()
-                + " is not unifiable.");
+                + " is not unifiable");
             delete x;
             return NULL;
         }
@@ -165,7 +165,7 @@ Type* LambdaType::unify(Type* t, Tenv tenv) {
 
         show_proof_therefore("under " + tenv->toString() + ", "
                 + toString() + " = " + other->toString()
-                + " unifies to (" + x->toString() + " -> " + y->toString() + ").");
+                + " unifies to (" + x->toString() + " -> " + y->toString() + ")");
 
         delete other->left;
         delete other->right;
