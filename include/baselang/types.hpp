@@ -14,6 +14,9 @@ class Type : public Stringable {
         virtual Type* clone() = 0;
         virtual Type* unify(Type*, Tenv) = 0;
         virtual Type* subst(std::string, Type*) { return clone(); }
+        
+        // Whether or not some part of the type is still undefined.
+        virtual bool isConstant(Tenv) { return true; }
 };
 
 class TypeEnv : public Stringable {

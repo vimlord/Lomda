@@ -8,6 +8,27 @@ inline bool isType(const Type* t) {
     return t && dynamic_cast<const T*>(t) != nullptr;
 }
 
+string type_res_str(Tenv tenv, Exp exp, Type *type) {
+    string env = tenv ? tenv->toString() : "{}";
+    if (type)
+        return env + " ⊢ " + exp->toString() + " : " + type->toString();
+    else
+        return env + " ⊢ " + exp->toString() + " is untypable";
+}
+
+void show_proof_step(string x) {
+    std::cout << x << "\n";
+}
+void show_proof_therefore(string x) {
+    show_proof_step("Therefore, " + x + ".");
+}
+void show_mgu_step(Tenv t, Type *a, Type *b, Type *c) {
+    if (c)
+        show_proof_step("Under " + t->toString() + ", " + a->toString() + " = " + b->toString() + " unifies to " + c->toString() + ".");
+    else
+        show_proof_step("Under " + t->toString() + ", " + a->toString() + " = " + b->toString() + " is not unifiable.");
+}
+
 TypeEnv::~TypeEnv() {
     for (auto it : types)
         delete it.second;
@@ -45,6 +66,9 @@ Tenv TypeEnv::clone() {
         env->set(it.first, it.second->clone());
     for (auto it : mgu)
         env->set_tvar(it.first, it.second->clone());
+
+    env->next_id = next_id;
+
     return env;
 }
 
@@ -68,6 +92,7 @@ void TypeEnv::rem_tvar(string v) {
 
 Type* TypeEnv::make_tvar() {
     auto V = new VarType(next_id);
+    show_proof_step("Let " + next_id + " be a fresh type variable");
 
     // Increment the next_id var
     int i;
@@ -83,31 +108,36 @@ Type* TypeEnv::make_tvar() {
     return V->clone();
 }
 
-string TypeEnv::toString() {
-    string res = "{";
-    int i = 0;
-    for (auto it : types) {
-        if (i) res += ", ";
-        res += it.first + " := " + it.second->toString();
-        i++;
-    }
+bool VarType::isConstant(Tenv tenv) {
+    auto T = tenv->get_tvar(name);
+    if (isType<VarType>(T)) {
+        if (T->toString() == name)
+            return false;
+        else
+            return T->isConstant(tenv);
+    } else
+        return T->isConstant(tenv);
 }
 
 // Unification rules for fundamental type
 Type* BoolType::unify(Type* t, Tenv tenv) {
-    if (isType<BoolType>(t))
+    if (isType<BoolType>(t)) {
+        show_mgu_step(tenv, this, t, this);
         return new BoolType;
-    else if (isType<PrimitiveType>(t))
+    } else if (isType<PrimitiveType>(t)) {
+        show_mgu_step(tenv, this, t, NULL);
         return NULL;
-    else
+    } else
         return t->unify(this, tenv);
 }
 Type* IntType::unify(Type* t, Tenv tenv) {
     if (isType<RealType>(t)) {
+        show_mgu_step(tenv, this, t, t);
         return t->clone();
-    } else if (isType<PrimitiveType>(t))
+    } else if (isType<PrimitiveType>(t)) {
+        show_mgu_step(tenv, this, t, NULL);
         return NULL;
-    else
+    } else
         return t->unify(this, tenv);
 }
 Type* LambdaType::unify(Type* t, Tenv tenv) {
@@ -115,15 +145,27 @@ Type* LambdaType::unify(Type* t, Tenv tenv) {
         LambdaType *other = (LambdaType*) t;
 
         auto x = left->unify(other->left, tenv);
-        if (!x) return NULL;
+        if (!x) {
+            show_proof_therefore("under " + tenv->toString() + ", "
+                + toString() + " = " + other->toString()
+                + " is not unifiable.");
+            return NULL;
+        }
         auto y = right->unify(other->right, tenv);
         if (!y) {
+            show_proof_therefore("under " + tenv->toString() + ", "
+                + toString() + " = " + other->toString()
+                + " is not unifiable.");
             delete x;
             return NULL;
         }
 
         // We now know that the types are both x -> y. Hence, we will change
         // the types.
+
+        show_proof_therefore("under " + tenv->toString() + ", "
+                + toString() + " = " + other->toString()
+                + " unifies to (" + x->toString() + " -> " + y->toString() + ").");
 
         delete other->left;
         delete other->right;
@@ -135,6 +177,7 @@ Type* LambdaType::unify(Type* t, Tenv tenv) {
         left = x->clone();
         right = y->clone();
 
+
         return new LambdaType(x, y);
     } else
         return NULL;
@@ -144,16 +187,24 @@ Type* ListType::unify(Type* t, Tenv tenv) {
         auto A = type;
         auto B = ((ListType*) t)->type;
         auto C = type->unify(((ListType*) t)->type, tenv);
+
+        if (C)
+            show_proof_therefore("under " + tenv->toString() + ", " + toString() + " = " + t->toString() + " unifies to " + C->toString());
+        else
+            show_proof_therefore("under " + tenv->toString() + ", " + toString() + " = " + t->toString() + " is not unifiable");
+
         return C ? new ListType(C) : NULL;
     } else
         return t->unify(this, tenv);
 }
 Type* RealType::unify(Type* t, Tenv tenv) {
-    if (isType<RealType>(t))
+    if (isType<RealType>(t)) {
+        show_mgu_step(tenv, this, t, this);
         return new RealType;
-    else if (isType<PrimitiveType>(t))
+    } else if (isType<PrimitiveType>(t)) {
+        show_mgu_step(tenv, this, t, NULL);
         return NULL;
-    else
+    } else
         return t->unify(this, tenv);
 }
 Type* TupleType::unify(Type* t, Tenv tenv) {
@@ -161,12 +212,24 @@ Type* TupleType::unify(Type* t, Tenv tenv) {
         TupleType *other = (TupleType*) t;
 
         auto x = left->unify(other->left, tenv);
-        if (!x) return NULL;
+        if (!x) {
+            show_proof_therefore("under " + tenv->toString() + ", "
+                + toString() + " = " + other->toString()
+                + " is not unifiable");
+            return NULL;
+        }
         auto y = right->unify(other->right, tenv);
         if (!y) {
+            show_proof_therefore("under " + tenv->toString() + ", "
+                + toString() + " = " + other->toString()
+                + " is not unifiable");
             delete x;
             return NULL;
         }
+
+        show_proof_therefore("under " + tenv->toString() + ", "
+                + toString() + " = " + other->toString()
+                + " unifies to (" + x->toString() + " -> " + y->toString() + ")");
         
         // We now know that the types are both x * y. Hence, we will change
         // the types.
@@ -188,8 +251,11 @@ Type* VarType::unify(Type* t, Tenv tenv) {
     Type *A = tenv->get_tvar(name);
 
     if (isType<VarType>(t)) {
+        // Acquire the other variable
         VarType *v = (VarType*) t;
-        Type *B = tenv->get_tvar(v->toString());
+        Type *B = tenv->get_tvar(v->name);
+
+        show_proof_step("We will attempt to unify variables " + name + " and " + v->name);
 
         // Unify the two types
         Type* x;
@@ -198,7 +264,10 @@ Type* VarType::unify(Type* t, Tenv tenv) {
         else
             x = clone();
 
-        if (!x) return NULL;
+        if (!x) {
+            show_proof_therefore("under " + tenv->toString() + ", " + name + " = " + t->toString() + " is not unifiable");
+            return NULL;
+        }
         
         // Now, we need to update the variable values.
         tenv->set_tvar(v->name, x->clone());
@@ -206,17 +275,26 @@ Type* VarType::unify(Type* t, Tenv tenv) {
 
         return x;
     } else {
-        // We must verify that this variable checks out
+        show_proof_step("We will attempt to unify " + toString() + " = " + t->toString()
+                + " by unifying " + A->toString() + " = " + t->toString() + ".");
+
         Type *T;
+        // We must verify that this variable checks out
         if (A->toString() != name)
             T = A->unify(t, tenv);
         else
             // Since the variable identifies as itself, we can
             // define it to be whatever we want it to be.
             T = t->clone();
+        
+        // Show proof step
+        if (T)
+            show_proof_therefore("under " + tenv->toString() + ", " + T->toString() + "/" + name);
+        else
+            show_proof_therefore("under " + tenv->toString() + ", " + T->toString() + " = " + name + " is not unifiable");
 
         if (!T) return NULL;
-
+        
         // Update the variable state
         tenv->set_tvar(name, T->clone());
          
@@ -224,19 +302,23 @@ Type* VarType::unify(Type* t, Tenv tenv) {
     }
 }
 Type* StringType::unify(Type* t, Tenv tenv) {
-    if (isType<StringType>(t))
-        return new VoidType;
-    else if (isType<PrimitiveType>(t))
+    if (isType<StringType>(t)) {
+        show_mgu_step(tenv, this, t, this);
+        return new StringType;
+    } else if (isType<PrimitiveType>(t)) {
+        show_mgu_step(tenv, this, t, NULL);
         return NULL;
-    else
+    } else
         return t->unify(this, tenv);
 }
 Type* VoidType::unify(Type* t, Tenv tenv) {
-    if (isType<VoidType>(t))
+    if (isType<VoidType>(t)) {
+        show_mgu_step(tenv, this, t, this);
         return new VoidType;
-    else if (isType<PrimitiveType>(t))
+    } else if (isType<PrimitiveType>(t)) {
+        show_mgu_step(tenv, this, t, NULL);
         return NULL;
-    else
+    } else
         return t->unify(this, tenv);
 }
 
@@ -342,6 +424,7 @@ Type* SumType::unify(Type* t, Tenv tenv) {
 }
 
 Type* MultType::unify(Type* t, Tenv tenv) {
+    show_proof_step("Currently, typing of multiplication is undefined.");
     return NULL;
 }
 
@@ -357,7 +440,7 @@ Type* LambdaExp::typeOf(Tenv tenv) {
         // Add it to the parameter arg list
         Ts[i] = tenv->make_tvar();
     }
-    
+
     // We need to evaluate the type of the
     // body. This will also allow us to define
     // restrictions on the domain of the function.
@@ -387,40 +470,51 @@ Type* LambdaExp::typeOf(Tenv tenv) {
         delete T;
         T = V;
     }
+    if (argc == 0) {
+        T = new LambdaType(new VoidType, T);
+        ((LambdaType*) T)->setEnv(tenv->clone());;
+    } else {
+        auto env = tenv->clone();
 
-    if (argc == 0)
-        return new LambdaType(new VoidType, T);
-    
-    // Reset the environment
-    for (int i = 0; i < argc; i++)
-        // Remove the stuff
-        tenv->remove(xs[i]);
-    for (auto it : tmp)
-        // Put the old stuff in
-        tenv->set(it.first, it.second);
+        // Reset the environment
+        for (int i = 0; i < argc; i++)
+            // Remove the stuff
+            tenv->remove(xs[i]);
+        for (auto it : tmp)
+            // Put the old stuff in
+            tenv->set(it.first, it.second);
 
-    for (i = argc - 1; i >= 0; i--) {
-        T = new LambdaType(tenv->get_tvar(Ts[i]->toString())->clone(), T);
+        for (i = argc - 1; i >= 0; i--) {
+            T = new LambdaType(tenv->get_tvar(Ts[i]->toString())->clone(), T);
+        }
+
+        ((LambdaType*) T)->setEnv(env);
     }
 
-    ((LambdaType*) T)->setEnv(tenv->clone());;
 
     delete[] Ts;
+
+    show_proof_therefore(type_res_str(tenv, this, T)); // QED
 
     return T;
 }
 Type* ApplyExp::typeOf(Tenv tenv) {
     auto T = op->typeOf(tenv);
-    if (!isType<LambdaType>(T))
+    if (!isType<LambdaType>(T)) {
+        show_proof_therefore(type_res_str(tenv, this, T));
         return NULL;
+    }
 
     if (!args[0]) {
         // Function take zero arguments
         if (!isType<VoidType>(((LambdaType*) T)->getLeft())) {
+            show_proof_therefore(type_res_str(tenv, this, NULL));
             delete T;
             return NULL;
         }
         
+        show_proof_therefore(type_res_str(tenv, this, T));
+
         // Otherwise, it's the type of the right hand side.
         return ((LambdaType*) T)->getRight()->clone();
     }
@@ -432,6 +526,7 @@ Type* ApplyExp::typeOf(Tenv tenv) {
         if (!isType<LambdaType>(T)) {
             delete T;
             delete env;
+            show_proof_therefore(type_res_str(tenv, this, NULL));
             return NULL;
         }
         auto F = (LambdaType*) T;
@@ -443,18 +538,21 @@ Type* ApplyExp::typeOf(Tenv tenv) {
             // The argument is untypable
             delete T;
             delete env;
+            show_proof_therefore(type_res_str(tenv, this, NULL));
             return NULL;
         }
         X = new LambdaType(X, env->make_tvar());
 
         // In the function tenv, we will unify the
         // argument types
+        show_proof_step("To type " + toString() + ", we must unify " + X->toString() + " and " + F->toString() + ".");
         auto Z = X->unify(F, env);
         delete X;
         delete F;
         if (!Z) {
             // Non-unifiable
             delete env;
+            show_proof_therefore(type_res_str(tenv, this, NULL));
             return NULL;
         }
             
@@ -464,6 +562,8 @@ Type* ApplyExp::typeOf(Tenv tenv) {
     }
 
     delete env;
+    
+    show_proof_therefore(type_res_str(tenv, this, T)); // QED
 
     // End case: return T
     return T;
@@ -473,21 +573,40 @@ Type* ApplyExp::typeOf(Tenv tenv) {
 
 Type* IfExp::typeOf(Tenv tenv) {
     auto C = cond->typeOf(tenv);
-    if (!C) return NULL;
+    if (!C) {
+        show_proof_therefore(type_res_str(tenv, this, NULL));
+        return NULL;
+    }
 
     auto B = new BoolType;
     auto D = C->unify(B, tenv);
     delete B;
     delete C;
 
-    if (!D) return NULL;
+    if (!D) {
+        show_proof_therefore(type_res_str(tenv, this, NULL));
+        return NULL;
+    }
+    delete D;
 
     auto T = tExp->typeOf(tenv);
+    if (!T) {
+        show_proof_therefore(type_res_str(tenv, this, NULL));
+        return NULL;
+    }
+
     auto F = fExp->typeOf(tenv);
+    if (!T) {
+        delete T;
+        show_proof_therefore(type_res_str(tenv, this, NULL));
+        return NULL;
+    }
 
     auto Y = T->unify(F, tenv);
     delete T;
     delete F;
+
+    show_proof_therefore(type_res_str(tenv, this, Y));
 
     return Y;
 }
@@ -503,8 +622,14 @@ Type* LetExp::typeOf(Tenv tenv) {
     
     int i;
     for (i = 0; exps[i]; i++) {
+        show_proof_step("Let value " + ids[i] + " = " + exps[i]->toString()); // Initial condition.
+
         // We seek to define the type of the ith variable to be defined.
         auto t = exps[i]->typeOf(tenv);
+    
+        // Answer to typability
+        show_proof_step("Therefore, " + tenv->toString() + " ⊢ " + ids[i] + (t ? (" : " + t->toString()) : " is untypable"));
+
         if (!t) {
             break;
         } else {
@@ -513,17 +638,25 @@ Type* LetExp::typeOf(Tenv tenv) {
                 tmp[ids[i]] = tenv->apply(ids[i]);
 
             tenv->set(ids[i], t);
+
         }
     }
 
+
     // Evaluate the body if possible
     auto T = exps[i] ? NULL : body->typeOf(tenv);
+
+    show_proof_therefore(type_res_str(tenv, body, T)); // Early QED
     
     // Restore the tenv
+    for (i = 0; exps[i]; i++)
+        tenv->remove(ids[i]);
     for (auto it : tmp) {
         tenv->set(it.first, it.second);
         tmp[it.first] = NULL;
     }
+    
+    show_proof_therefore(type_res_str(tenv, this, T)); // QED
 
     return T;
 }
@@ -792,47 +925,100 @@ Type* ListSliceExp::typeOf(Tenv tenv) {
 // Typing rules that evaluate to type U + V
 Type* SumExp::typeOf(Tenv tenv) {
     auto A = left->typeOf(tenv);
-    if (!A) return NULL;
+    if (!A) {
+        show_proof_therefore(type_res_str(tenv, this, NULL));
+        return NULL;
+    }
 
     auto B = right->typeOf(tenv);
     if (!B) {
+        show_proof_therefore(type_res_str(tenv, this, NULL));
         delete A;
         return NULL;
     }
     
     // We must unify the two types
-    auto C = A->unify(B, tenv);
-
-    if (!C) return NULL;
-    else if (isType<PrimitiveType>(C))
+    Type *C;
+    if (A->isConstant(tenv) && B->isConstant(tenv)) {
+        C = A->unify(B, tenv);
+        delete A; delete B;
+        show_proof_therefore(type_res_str(tenv, this, C));
         return C;
-    else {
-        return new SumType(C, C->clone());
+    } else {
+        C = new SumType(A, B);
+        show_proof_therefore(type_res_str(tenv, this, C));
     }
+    return C;
 }
 Type* DiffExp::typeOf(Tenv tenv) {
     auto A = left->typeOf(tenv);
-    if (!A) return NULL;
+    if (!A) {
+        show_proof_therefore(type_res_str(tenv, this, NULL));
+        return NULL;
+    }
 
     auto B = right->typeOf(tenv);
     if (!B) {
+        show_proof_therefore(type_res_str(tenv, this, NULL));
         delete A;
         return NULL;
     }
     
     // We must unify the two types
-    auto C = A->unify(B, tenv);
-
-    if (!C) return NULL;
-    else if (isType<PrimitiveType>(C))
+    Type *C;
+    if (A->isConstant(tenv) && B->isConstant(tenv)) {
+        C = A->unify(B, tenv);
+        delete A; delete B;
+        show_proof_therefore(type_res_str(tenv, this, C));
         return C;
-    else {
-        return new SumType(C, C->clone());
+    } else {
+        C = new SumType(A, B);
+        show_proof_therefore(type_res_str(tenv, this, C));
     }
+    return C;
 }
 
 Type* VarExp::typeOf(Tenv tenv) {
-    return tenv->apply(id);
+    auto T = tenv->apply(id);
+    show_proof_step("We recognize " + id + " as being defined by " + T->toString());
+    return T;
 }
 
 
+
+Type* IntExp::typeOf(Tenv tenv) {
+    show_proof_step(toString() + " : Z trivially");
+    return new IntType; }
+
+Type* RealExp::typeOf(Tenv tenv) {
+    show_proof_step(toString() + " : R trivially");
+    return new RealType; }
+
+Type* TrueExp::typeOf(Tenv tenv) {
+    show_proof_step(toString() + " : B trivially");
+    return new BoolType; }
+
+Type* FalseExp::typeOf(Tenv tenv) {
+    show_proof_step(toString() + " : B trivially");
+    return new BoolType; }
+
+
+Type* TupleExp::typeOf(Tenv tenv) {
+    auto L = left->typeOf(tenv);
+    if (!L) {
+        show_proof_therefore(type_res_str(tenv, this, NULL));
+        return NULL;
+    }
+
+    auto R = right->typeOf(tenv);
+    if (!R) {
+        delete L;
+        show_proof_therefore(type_res_str(tenv, this, NULL));
+        return NULL;
+    }
+
+    auto T = new TupleType(L, R);
+    show_proof_therefore(type_res_str(tenv, this, T));
+
+    return T;
+}

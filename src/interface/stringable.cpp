@@ -253,6 +253,33 @@ string ExtendEnv::toString() {
     return s;
 }
 
+/* Type env */
+
+string TypeEnv::toString() {
+    string s = "";
+
+    int i = 0;
+    for (auto it : mgu) {
+        string v = it.second->toString();
+        if (v != it.first) {
+            if (s.length() == 0) s = "{";
+            if (i++) s += ", ";
+            s += v + "/" + it.first;
+        }
+    }
+    if (s.length() > 0) s += "}";
+
+    i = 0;
+    s += "{";
+    for (auto it : types) {
+        if (i++) s += ", ";
+        s += it.first + " : " + it.second->toString();
+    }
+    s += "}";
+    
+    return s;
+}
+
 /* VALUES */
 
 string BoolVal::toString() { return val ? "true" : "false"; }

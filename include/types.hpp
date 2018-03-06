@@ -49,6 +49,8 @@ class PairType : public Type {
 
         Type* getLeft() { return left; }
         Type* getRight() { return right; }
+
+        bool isConstant(Tenv t) { return left->isConstant(t) && right->isConstant(t); }
 };
 
 // Composite primitive types
@@ -76,11 +78,12 @@ class ListType : public Type {
         ListType(Type *t) : type(t) {}
         ~ListType() { delete type; }
         Type* clone() { return new ListType(type->clone()); }
+        Type* subtype() { return type; }
 
         Type* unify(Type*, Tenv);
         Type* subst(std::string x, Type *t) { return new ListType(type->subst(x,t)); }
+        bool isConstant(Tenv t) { return type->isConstant(t); }
 
-        Type* subtype() { return type; }
 
         std::string toString();
 };
@@ -160,6 +163,8 @@ class VarType : public Type {
         Type* clone() { return new VarType(name); }
         Type* unify(Type*, Tenv);
         Type* subst(std::string x, Type *t) { return t->clone(); }
+
+        bool isConstant(Tenv);
 
         std::string toString() { return name; }
 };

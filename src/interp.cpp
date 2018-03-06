@@ -38,8 +38,10 @@ Val run(string program) {
             Type* type = exp->typeOf(tenv);
             delete tenv;
             if (type) {
-                std::cout << "Γ ⊢ " << *exp << " : " << *type << "\n";
+                std::cout << "{} ⊢ " << *exp << " : " << *type << "\n";
                 delete type;
+            } else {
+                throw_err("type", exp->toString() + " is untypable\n");
             }
         }
 
