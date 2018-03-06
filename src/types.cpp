@@ -17,7 +17,7 @@ string type_res_str(Tenv tenv, Exp exp, Type *type) {
 }
 
 void show_proof_step(string x) {
-    std::cout << x << "\n";
+    if (VERBOSITY()) std::cout << "\x1b[3m" << x << "\x1b[0m\n";
 }
 void show_proof_therefore(string x) {
     show_proof_step("Therefore, " + x + ".");
@@ -255,8 +255,6 @@ Type* VarType::unify(Type* t, Tenv tenv) {
         VarType *v = (VarType*) t;
         Type *B = tenv->get_tvar(v->name);
 
-        show_proof_step("We will attempt to unify variables " + name + " and " + v->name);
-
         // Unify the two types
         Type* x;
         if (A->toString() != name || B->toString() != t->toString())
@@ -275,9 +273,6 @@ Type* VarType::unify(Type* t, Tenv tenv) {
 
         return x;
     } else {
-        show_proof_step("We will attempt to unify " + toString() + " = " + t->toString()
-                + " by unifying " + A->toString() + " = " + t->toString() + ".");
-
         Type *T;
         // We must verify that this variable checks out
         if (A->toString() != name)

@@ -41,7 +41,7 @@ Val run(string program) {
                 std::cout << "{} ⊢ " << *exp << " : " << *type << "\n";
                 delete type;
             } else {
-                throw_err("type", exp->toString() + " is untypable\n");
+                std::cout << "{} ⊢ " << *exp << " is untypable\n";
             }
         }
 

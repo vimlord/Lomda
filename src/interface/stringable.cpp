@@ -195,7 +195,7 @@ string PrintExp::toString() {
     return s;
 }
 string RealExp::toString() {
-    return to_string((double) val) + "f";
+    return to_string(val);
 }
 string SequenceExp::toString() {
     string s = "";
@@ -327,7 +327,7 @@ string ListVal::toString() {
     s += "]";
     return s;
 }
-string RealVal::toString() { return to_string((double) val); }
+string RealVal::toString() { return to_string(val); }
 string StringVal::toString() { return val; }
 string Thunk::toString() { return val ? val->toString() : ("" + exp->toString() + " | " + env->toString()); }
 string TupleVal::toString() { return "(" + left->toString() + ", " + right->toString() + ")"; }
