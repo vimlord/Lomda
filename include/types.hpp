@@ -4,6 +4,11 @@
 #include "baselang/types.hpp"
 #include "value.hpp"
 
+template<typename T>
+inline bool isType(const Type* t) {
+    return t && dynamic_cast<const T*>(t) != nullptr;
+}
+
 inline bool val_is_integer(Val v) {
     return typeid(*v) == typeid(IntVal);
 }
@@ -67,7 +72,7 @@ class LambdaType : public PairType {
 
         Type* clone() { return new LambdaType(left->clone(), right->clone(), env->clone()); }
         Type* unify(Type*, Tenv);
-        Type* subst(std::string x, Type *t) { return new LambdaType(left->subst(x,t), right->subst(x,t)); }
+        Type* subst(Tenv tenv) { return new LambdaType(left->subst(tenv), right->subst(tenv)); }
 
         std::string toString();
 };
@@ -81,7 +86,7 @@ class ListType : public Type {
         Type* subtype() { return type; }
 
         Type* unify(Type*, Tenv);
-        Type* subst(std::string x, Type *t) { return new ListType(type->subst(x,t)); }
+        Type* subst(Tenv tenv) { return new ListType(type->subst(tenv)); }
         bool isConstant(Tenv t) { return type->isConstant(t); }
 
 
@@ -93,7 +98,7 @@ class TupleType : public PairType {
 
         Type* clone() { return new TupleType(left->clone(), right->clone()); }
         Type* unify(Type*, Tenv);
-        Type* subst(std::string x, Type *t) { return new TupleType(left->subst(x,t), right->subst(x,t)); }
+        Type* subst(Tenv tenv) { return new TupleType(left->subst(tenv), right->subst(tenv)); }
 
         std::string toString();
 };
@@ -106,16 +111,16 @@ class SumType : public PairType {
         using PairType::PairType;
         Type* clone() { return new SumType(left->clone(), right->clone()); }
         Type* unify(Type*, Tenv);
-        Type* subst(std::string x, Type *t) { return new SumType(left->subst(x,t), right->subst(x,t)); }
+        Type* subst(Tenv tenv);
 
         std::string toString();
 };
 class MultType : public PairType {
     public:
         using PairType::PairType;
-        Type* clone();
+        Type* clone() { return new MultType(left->clone(), right->clone()); }
         Type* unify(Type*, Tenv);
-        Type* subst(std::string x, Type *t) { return new MultType(left->subst(x,t), right->subst(x,t)); }
+        Type* subst(Tenv tenv);
 
         std::string toString();
 };
@@ -162,7 +167,7 @@ class VarType : public Type {
         VarType(std::string v) : name(v) {}
         Type* clone() { return new VarType(name); }
         Type* unify(Type*, Tenv);
-        Type* subst(std::string x, Type *t) { return t->clone(); }
+        Type* subst(Tenv tenv);
 
         bool isConstant(Tenv);
 

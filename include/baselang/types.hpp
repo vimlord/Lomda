@@ -12,8 +12,19 @@ typedef TypeEnv* Tenv;
 class Type : public Stringable {
     public:
         virtual Type* clone() = 0;
+
+        /**
+         * Performs unification between two supposedly equal
+         * types under a typing context. Returns NULL on failure
+         * else a copy of the type.
+         */
         virtual Type* unify(Type*, Tenv) = 0;
-        virtual Type* subst(std::string, Type*) { return clone(); }
+
+        /**
+         * Performs simplification on a type, creating a new Type
+         * hierarchy in the process.
+         */
+        virtual Type* subst(Tenv) { return clone(); }
         
         // Whether or not some part of the type is still undefined.
         virtual bool isConstant(Tenv) { return true; }
