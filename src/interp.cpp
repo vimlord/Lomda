@@ -9,6 +9,8 @@
 
 #include "types.hpp"
 
+#include "proof.hpp"
+
 #include "expressions/derivative.hpp"
 
 #include <cstring>
@@ -38,9 +40,11 @@ Val run(string program) {
             Type* type = exp->typeOf(tenv);
             delete tenv;
             if (type) {
+                show_proof_step("Quod erat demonstrandum (QED).");
                 std::cout << "{} ⊢ " << *exp << " : " << *type << "\n";
                 delete type;
             } else {
+                show_proof_step("Reductio ad absurdum.");
                 std::cout << "{} ⊢ " << *exp << " is untypable\n";
             }
         }

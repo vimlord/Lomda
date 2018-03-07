@@ -70,7 +70,7 @@ class LambdaType : public PairType {
         Tenv getEnv() { return env; }
         void setEnv(Tenv e) { env = e; }
 
-        Type* clone() { return new LambdaType(left->clone(), right->clone(), env->clone()); }
+        Type* clone() { return new LambdaType(left->clone(), right->clone(), env ? env->clone() : NULL); }
         Type* unify(Type*, Tenv);
         Type* subst(Tenv tenv) { return new LambdaType(left->subst(tenv), right->subst(tenv)); }
 

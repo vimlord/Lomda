@@ -117,9 +117,11 @@ Type* LambdaExp::typeOf(Tenv tenv) {
     return T;
 }
 Type* ApplyExp::typeOf(Tenv tenv) {
+    show_proof_step("To type " + toString() + ", we must match the parameter type(s) of the function with its arguments.");
     auto T = op->typeOf(tenv);
     if (!isType<LambdaType>(T)) {
         show_proof_therefore(type_res_str(tenv, this, T));
+        delete T;
         return NULL;
     }
 
@@ -142,9 +144,9 @@ Type* ApplyExp::typeOf(Tenv tenv) {
     
     for (int i = 0; args[i]; i++) {
         if (!isType<LambdaType>(T)) {
+            show_proof_therefore(type_res_str(tenv, this, NULL));
             delete T;
             delete env;
-            show_proof_therefore(type_res_str(tenv, this, NULL));
             return NULL;
         }
         auto F = (LambdaType*) T;
@@ -165,8 +167,8 @@ Type* ApplyExp::typeOf(Tenv tenv) {
         // argument types
         show_proof_step("To type " + toString() + ", we must unify " + X->toString() + " and " + F->toString() + ".");
         auto Z = X->unify(F, env);
-        delete X;
         delete F;
+        delete X;
         if (!Z) {
             // Non-unifiable
             delete env;

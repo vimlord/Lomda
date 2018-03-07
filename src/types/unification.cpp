@@ -134,8 +134,15 @@ Type* TupleType::unify(Type* t, Tenv tenv) {
 }
 Type* VarType::unify(Type* t, Tenv tenv) {
     // First, we simplify as far as we can go.
-    Type *A = tenv->get_tvar(name)->subst(tenv);
-    tenv->set_tvar(name, A);
+    // Be super careful that the variable isn't itself
+    Type *A;
+    if (tenv->get_tvar(name)->toString() != name) {
+        A = tenv->get_tvar(name)->subst(tenv);
+        tenv->set_tvar(name, A);
+    } else
+        A = clone();
+
+    show_proof_step("We must unify type var " + name + " as " + A->toString() + " = " + t->toString() + ".");
 
     if (isType<VarType>(t)) {
         // Acquire the other variable
@@ -144,6 +151,8 @@ Type* VarType::unify(Type* t, Tenv tenv) {
         // Simplify it
         Type *B = tenv->get_tvar(v->name)->subst(tenv);
         tenv->set_tvar(v->name, B);
+
+        show_proof_step("Note that " + v->name + " = " + B->toString() + ".");
 
         // Unify the two types
         Type* x;
@@ -165,6 +174,8 @@ Type* VarType::unify(Type* t, Tenv tenv) {
     } else {
         // Simplify the other side
         auto S = t->subst(tenv);
+
+        show_proof_step("The right hand simplifies to " + S->toString() + ".");
 
         Type *T;
         // We must verify that this variable checks out

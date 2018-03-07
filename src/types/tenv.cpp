@@ -66,7 +66,7 @@ void TypeEnv::rem_tvar(string v) {
 
 Type* TypeEnv::make_tvar() {
     auto V = new VarType(next_id);
-    show_proof_step("Let " + next_id + " be a fresh type variable");
+    show_proof_step("Let " + next_id + " be a fresh type variable.");
 
     // Increment the next_id var
     int i;
