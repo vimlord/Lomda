@@ -165,7 +165,7 @@ Type* ApplyExp::typeOf(Tenv tenv) {
 
         // In the function tenv, we will unify the
         // argument types
-        show_proof_step("To type " + toString() + ", we must unify " + X->toString() + " and " + F->toString() + ".");
+        show_proof_step("To type " + toString() + ", we must unify " + X->toString() + " and " + F->toString() + " under " + env->toString() + ".");
         auto Z = X->unify(F, env);
         delete F;
         delete X;

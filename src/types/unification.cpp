@@ -64,8 +64,13 @@ Type* LambdaType::unify(Type* t, Tenv tenv) {
 
 
         return new LambdaType(x, y);
-    } else
+    } else if (isType<VarType>(t)) {
+        // Unify in the other direction.
+        return t->unify(this, tenv);
+    } else {
+        show_mgu_step(tenv, this, t, NULL);
         return NULL;
+    }
 }
 Type* ListType::unify(Type* t, Tenv tenv) {
     if (isType<ListType>(t)) {
@@ -129,8 +134,13 @@ Type* TupleType::unify(Type* t, Tenv tenv) {
         right = y->clone();
 
         return new TupleType(x, y);
-    } else
+    } else if (isType<VarType>(t)) {
+        // Unify in the other direction.
+        return t->unify(this, tenv);
+    } else {
+        show_mgu_step(tenv, this, t, NULL);
         return NULL;
+    }
 }
 Type* VarType::unify(Type* t, Tenv tenv) {
     // First, we simplify as far as we can go.
@@ -248,10 +258,11 @@ Type* SumType::unify(Type* t, Tenv tenv) {
         // Next, we can try unifying x and y
         auto z = x->unify(y, tenv);
 
-        if (!z)
+        if (!z) {
             // x and y have no unification. Hence, it is untypable.
+            show_proof_therefore("under " + tenv->toString() + ", " + toString() + " = " + t->toString() + " is not unifiable");
             return NULL;
-        else {
+        } else {
             delete x;
             delete y;
             left = z->clone();
@@ -284,6 +295,7 @@ Type* SumType::unify(Type* t, Tenv tenv) {
             
             return new SumType(z, z->clone());
         } else
+            show_proof_therefore("under " + tenv->toString() + ", " + toString() + " = " + t->toString() + " is not unifiable");
             // There does not exist a unification
             return NULL;
     } else if (isType<RealType>(t)) {
