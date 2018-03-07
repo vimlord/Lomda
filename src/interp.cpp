@@ -36,6 +36,7 @@ Val run(string program) {
         
         if (USE_TYPES()) {
             // Use the type system.
+            show_proof_step("We seek to find t such that {} ⊢ " + exp->toString() + " : t");
             Tenv tenv = new TypeEnv;
             Type* type = exp->typeOf(tenv);
             delete tenv;

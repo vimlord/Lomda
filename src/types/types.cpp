@@ -273,8 +273,6 @@ Type* LetExp::typeOf(Tenv tenv) {
     // Evaluate the body if possible
     auto T = exps[i] ? NULL : body->typeOf(tenv);
 
-    show_proof_therefore(type_res_str(tenv, body, T)); // Early QED
-    
     // Restore the tenv
     for (i = 0; exps[i]; i++)
         tenv->remove(ids[i]);
