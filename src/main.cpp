@@ -11,6 +11,9 @@ using namespace std;
 #include <cstddef>
 #include <cstring>
 
+#include <readline/readline.h>
+#include <readline/history.h>
+
 void execute(string program) {
     Val v = run(program);
     v = unpack_thunk(v);
@@ -44,13 +47,15 @@ int interpret() {
     cout << "'exit' - exit the interpreter\n";
     cout << "'q/quit' - exit the interpreter\n";
 
-    string program;
+    char *buff;
     
-    while (1) {
-        // Get input
-        cout << "> ";
-        getline(cin, program);
+    while ((buff = readline("> "))) {
+        // Use a string to hold it
+        string program(buff);
         
+        // If it was not a blank string, hold onto it
+        if (*buff) add_history(buff);
+
         if (program == "exit" || program == "quit" || program == "q")
             // Terminate the program
             return 0;
@@ -58,6 +63,9 @@ int interpret() {
             // Evaluate the program
             execute(program);
         }
+        
+        // Garbage collection has to be done manually.
+        free(buff);
     }
 }
 
