@@ -72,7 +72,8 @@ Type* LambdaExp::typeOf(Tenv tenv) {
         }
         tenv->set(xs[i], Ts[i]->clone());
     }
-
+    
+    // Type the body
     auto T = exp->typeOf(tenv);
 
     if (!T) {
@@ -85,9 +86,11 @@ Type* LambdaExp::typeOf(Tenv tenv) {
         // Simplify the body to be the value of the
         // variable, if it is known.
         auto V = tenv->get_tvar(T->toString())->clone();
+        show_proof_step("Hence, the type of body expression " + exp->toString() + " is that of variable " + T->toString() + " = " + V->toString() + " under " + tenv->toString() + ".");
         delete T;
         T = V;
     }
+
     if (argc == 0) {
         T = new LambdaType(new VoidType, T);
         ((LambdaType*) T)->setEnv(tenv->clone());;
@@ -119,74 +122,144 @@ Type* LambdaExp::typeOf(Tenv tenv) {
 Type* ApplyExp::typeOf(Tenv tenv) {
     show_proof_step("To type " + toString() + ", we must match the parameter type(s) of the function with its arguments.");
     auto T = op->typeOf(tenv);
-    if (!isType<LambdaType>(T)) {
+
+    auto Tmp = T->subst(tenv);
+    delete T;
+    T = Tmp;
+
+    show_proof_step("Thus, the function " + op->toString() + " in function call " + toString() + " has type " + T->toString() + " under " + tenv->toString() + ".");
+
+    if (isType<VarType>(T)) {
+        // We need to create a unification that indicates that
+        // the variable is a function.
+        
+        if (!args[0]) {
+            // The function should type as a void -> t
+            auto Y = tenv->make_tvar();
+            auto F = new LambdaType(new VoidType, Y);
+            F->setEnv(tenv->clone());
+            auto G = T->unify(F, tenv);
+            delete T;
+            delete F;
+            delete G;
+
+            return Y;
+        }
+        
+        int argc;
+        for (argc = 0; args[argc]; argc++);
+
+        Type **xs = new Type*[argc];
+        for (int i = 0; args[i]; i++) {
+            auto X = args[i]->typeOf(tenv);
+            if (!X) {
+                while (i--) delete xs[i];
+                delete[] xs;
+                show_proof_therefore(type_res_str(tenv, this, NULL));
+                return NULL;
+            } else {
+                show_proof_step("Knowing " + type_res_str(tenv, args[i], X) + ", we are closer to inferring the type of " + op->toString() + ".");
+                xs[i] = X;
+            }
+        }
+        
+        auto Y = tenv->make_tvar();
+        
+        // Build the lambda type, starting from some arbitrary
+        // body type that could be decided later.
+        auto F = Y->clone();
+        show_proof_step("We will use " + F->toString() + " to define the currently arbitrary return type of " + op->toString() + ", which takes " + to_string(argc) + " arguments.");
+        while (argc--) {
+            show_proof_step("We know that " + type_res_str(tenv, args[argc], xs[argc]) + ".");
+            F = new LambdaType(xs[argc], F);
+        }
+        ((LambdaType*) F)->setEnv(tenv->clone());
+        
+        // Unification of the function type
+        auto S = T->unify(F, tenv);
+        
+        // GC
+        delete T;
+        delete F;
+        delete[] xs;
+
+        if (!S) {
+            delete Y;
+            Y = NULL;
+        }
+         
+        show_proof_therefore(type_res_str(tenv, this, Y));
+        return Y;
+
+    } else if (isType<LambdaType>(T)) {
+        if (!args[0]) {
+            // Function take zero arguments
+            if (!isType<VoidType>(((LambdaType*) T)->getLeft())) {
+                show_proof_therefore(type_res_str(tenv, this, NULL));
+                delete T;
+                return NULL;
+            }
+            
+            show_proof_therefore(type_res_str(tenv, this, T));
+
+            // Otherwise, it's the type of the right hand side.
+            return ((LambdaType*) T)->getRight()->clone();
+        }
+
+        auto env = ((LambdaType*) T)->getEnv()->clone();
+
+        show_proof_step("We must consolidate " + T->toString() + " under " + tenv->toString() + ".");
+        
+        for (int i = 0; args[i]; i++) {
+            if (!isType<LambdaType>(T)) {
+                show_proof_therefore(type_res_str(tenv, this, NULL));
+                delete T;
+                delete env;
+                return NULL;
+            }
+            auto F = (LambdaType*) T;
+            
+            // Type the argument
+            auto X = args[i]->typeOf(tenv);
+
+            if (!X) {
+                // The argument is untypable
+                delete T;
+                delete env;
+                show_proof_therefore(type_res_str(tenv, this, NULL));
+                return NULL;
+            }
+            X = new LambdaType(X, env->make_tvar());
+
+            // In the function tenv, we will unify the
+            // argument types
+            show_proof_step("To type " + toString() + ", we must unify " + X->toString() + " = " + F->toString() + " under " + env->toString() + ".");
+            auto Z = X->unify(F, env);
+            delete F;
+            delete X;
+            if (!Z) {
+                // Non-unifiable
+                delete env;
+                show_proof_therefore(type_res_str(tenv, this, NULL));
+                return NULL;
+            }
+                
+            // Continue
+            T = ((LambdaType*) Z)->getRight()->clone();
+            delete Z;
+        }
+
+        delete env;
+        
+        show_proof_therefore(type_res_str(tenv, this, T)); // QED
+
+        // End case: return T
+        return T;
+    } else {
         show_proof_therefore(type_res_str(tenv, this, T));
         delete T;
         return NULL;
     }
-
-    if (!args[0]) {
-        // Function take zero arguments
-        if (!isType<VoidType>(((LambdaType*) T)->getLeft())) {
-            show_proof_therefore(type_res_str(tenv, this, NULL));
-            delete T;
-            return NULL;
-        }
-        
-        show_proof_therefore(type_res_str(tenv, this, T));
-
-        // Otherwise, it's the type of the right hand side.
-        return ((LambdaType*) T)->getRight()->clone();
-    }
-
-    auto env = ((LambdaType*) T)->getEnv();
-    if (env) env = env->clone();
-    
-    for (int i = 0; args[i]; i++) {
-        if (!isType<LambdaType>(T)) {
-            show_proof_therefore(type_res_str(tenv, this, NULL));
-            delete T;
-            delete env;
-            return NULL;
-        }
-        auto F = (LambdaType*) T;
-        
-        // Type the argument
-        auto X = args[i]->typeOf(tenv);
-
-        if (!X) {
-            // The argument is untypable
-            delete T;
-            delete env;
-            show_proof_therefore(type_res_str(tenv, this, NULL));
-            return NULL;
-        }
-        X = new LambdaType(X, env->make_tvar());
-
-        // In the function tenv, we will unify the
-        // argument types
-        show_proof_step("To type " + toString() + ", we must unify " + X->toString() + " and " + F->toString() + " under " + env->toString() + ".");
-        auto Z = X->unify(F, env);
-        delete F;
-        delete X;
-        if (!Z) {
-            // Non-unifiable
-            delete env;
-            show_proof_therefore(type_res_str(tenv, this, NULL));
-            return NULL;
-        }
-            
-        // Continue
-        T = ((LambdaType*) Z)->getRight()->clone();
-        delete Z;
-    }
-
-    delete env;
-    
-    show_proof_therefore(type_res_str(tenv, this, T)); // QED
-
-    // End case: return T
-    return T;
 }
 
 
@@ -640,7 +713,7 @@ Type* DiffExp::typeOf(Tenv tenv) {
 
 Type* VarExp::typeOf(Tenv tenv) {
     auto T = tenv->apply(id);
-    show_proof_step("We recognize " + id + " as being defined by " + T->toString());
+    show_proof_step("We recognize " + id + " as being defined by " + T->toString() + ".");
     return T;
 }
 

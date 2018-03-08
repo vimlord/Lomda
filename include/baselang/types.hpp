@@ -39,7 +39,7 @@ class TypeEnv : public Stringable {
         std::unordered_map<std::string, Type*> mgu;
 
         // The next type variable name to assign
-        std::string next_id = "a";
+        static std::string next_id;
 
     public:
         TypeEnv() {}
@@ -61,8 +61,9 @@ class TypeEnv : public Stringable {
         Type* get_tvar(std::string v);
         void set_tvar(std::string v, Type *t);
         void rem_tvar(std::string v);
-
         Type* make_tvar();
+
+        TypeEnv* unify(TypeEnv* other, TypeEnv* scope);
 
         TypeEnv* clone();
         std::string toString();
