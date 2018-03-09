@@ -125,6 +125,7 @@ class HasExp : public Expression {
         ~HasExp() { delete item; delete set; }
 
         Val evaluate(Env);
+        Type* typeOf(Tenv);
 
         std::string toString();
 

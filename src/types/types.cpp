@@ -303,6 +303,49 @@ Type* IfExp::typeOf(Tenv tenv) {
 
     return Y;
 }
+Type* HasExp::typeOf(Tenv tenv) {
+    auto X = item->typeOf(tenv);
+    if (!X) {
+        show_proof_therefore(type_res_str(tenv, this, NULL));
+        return NULL;
+    }
+
+    auto Xs = set->typeOf(tenv);
+    if (!Xs) {
+        delete X;
+        show_proof_therefore(type_res_str(tenv, this, NULL));
+        return NULL;
+    }
+
+    if (isType<ListType>(Xs)) {
+        auto Y = X->unify(((ListType*) Xs)->subtype(), tenv);
+        delete X;
+        delete Xs;
+        if (Y) {
+            X = new BoolType;
+            delete Y;
+        } else
+            X = NULL;
+    } else if (isType<VarType>(Xs)) {
+        auto V = (VarType*) X;
+        auto L = new ListType(X);
+        X = Xs->unify(L, tenv);
+        delete L;
+        delete V;
+        if (X) {
+            delete X;
+            X = new BoolType;
+        } else
+            X = NULL;
+    } else {
+        delete Xs;
+        delete X;
+        X = NULL;
+    }
+
+    show_proof_therefore(type_res_str(tenv, this, X));
+    return X;
+}
 Type* IsaExp::typeOf(Tenv tenv) {
     auto T = exp->typeOf(tenv);
     if (!T) {
