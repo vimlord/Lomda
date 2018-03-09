@@ -84,6 +84,7 @@ class FoldExp : public Expression {
         
         Val evaluate(Env);
         Val derivativeOf(std::string, Env, Env);
+        Type* typeOf(Tenv);
 
         Exp clone() { return new FoldExp(list->clone(), func->clone(), base->clone()); }
         std::string toString();
@@ -296,6 +297,7 @@ class MapExp : public Expression {
 
         Val evaluate(Env);
         Val derivativeOf(std::string, Env, Env);
+        Type* typeOf(Tenv);
         
         std::string toString();
 

@@ -261,8 +261,150 @@ Type* ApplyExp::typeOf(Tenv tenv) {
         return NULL;
     }
 }
+Type* MapExp::typeOf(Tenv tenv) {
+    /* To type a map, we require that:
+    1) list : [a] for some t
+    2) func : a -> b
+    Then, map : [b]
+    */
+    Type *F = func->typeOf(tenv);
+    if (!F) {
+        show_proof_therefore(type_res_str(tenv, this, NULL));
+        return NULL;
+    }
 
+    Type *L = list->typeOf(tenv);
+    if (!L) {
+        delete F;
+        show_proof_therefore(type_res_str(tenv, this, NULL));
+        return NULL;
+    }
 
+    show_proof_step("To type the map, we let the function have type "
+            + F->toString() + " and the list have type " + L->toString() + ".");
+    
+    // Compute the type of the source type
+    Type *a = NULL;
+    if (isType<ListType>(L)) {
+        a = ((ListType*) L)->subtype()->clone();
+    } else if (isType<VarType>(L)) {
+        Type *t = new ListType(tenv->make_tvar());
+        Type *u = L->unify(t, tenv);
+        delete t;
+
+        if (u) {
+            a = ((ListType*) u)->subtype()->clone();
+            delete u;
+        }
+    }
+    
+    // If we can't find a, then we're screwed.
+    delete L;
+    if (!a) {
+        delete F;
+        show_proof_therefore(type_res_str(tenv, this, NULL));
+        return NULL;
+    }
+
+    // Next, we need to verify the functionness of F, and
+    // go from there.
+    Type *t = new LambdaType(a->clone(), tenv->make_tvar());
+    show_proof_step("We require that " + F->toString() + " and " + t->toString() + " unify under " + tenv->toString() + ".");
+    Type *u = F->unify(t, tenv);
+    delete t;
+    
+    Type *b = NULL;
+    if (u) {
+        b = ((LambdaType*) u)->getRight()->clone();
+        delete u;
+    }
+
+    delete F;
+    delete a;
+    
+    // Final simplifications
+    if (b) {
+        a = b->subst(tenv);
+        delete b;
+        b = a;
+    }
+
+    L = b ? new ListType(b) : NULL;
+
+    show_proof_therefore(type_res_str(tenv, this, L));
+
+    return L;
+}
+Type* FoldExp::typeOf(Tenv tenv) {
+    /* Typing requires the following:
+    list : [a]
+    base : b
+    func : b -> a -> b
+    */
+
+    Type *L = list->typeOf(tenv);
+    if (!L) {
+        show_proof_therefore(type_res_str(tenv, this, NULL));
+        return NULL;
+    }
+
+    Type *a;
+    if (isType<ListType>(L))
+        a = ((ListType*) L)->subtype()->clone();
+    else if (isType<VarType>(L)) {
+        auto M = new ListType(tenv->make_tvar());
+        auto N = L->unify(M, tenv);
+        delete M;
+        if (N) {
+            a = ((ListType*) N)->subtype()->clone();
+            delete N;
+        } else
+            a = NULL;
+    } else
+        a = NULL;
+
+    delete L;
+    if (!a) {
+        show_proof_therefore(type_res_str(tenv, this, NULL));
+        return NULL;
+    }
+
+    Type *b = base->typeOf(tenv);
+    if (!b) {
+        delete a;
+        show_proof_therefore(type_res_str(tenv, this, NULL));
+        return NULL;
+    }
+
+    Type *F = func->typeOf(tenv);
+    if (!F) {
+        delete a;
+        delete b;
+        show_proof_therefore(type_res_str(tenv, this, NULL));
+        return NULL;
+    }
+
+    // The function must be properly unifiable
+    Type *G = new LambdaType(b->clone(), new LambdaType(a, b->clone()));
+    Type *H = F->unify(G, tenv);
+    
+    delete F;
+    delete G;
+
+    if (H) {
+        delete H;
+        auto T = b->subst(tenv);
+        delete b;
+        b = T;
+    } else {
+        delete b;
+        b = NULL;
+    }
+
+    show_proof_therefore(type_res_str(tenv, this, b));
+
+    return b;
+}
 
 Type* IfExp::typeOf(Tenv tenv) {
     auto C = cond->typeOf(tenv);
