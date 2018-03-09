@@ -559,7 +559,10 @@ Type* ListExp::typeOf(Tenv tenv) {
 }
 Type* ListAccessExp::typeOf(Tenv tenv) {
     auto L = list->typeOf(tenv);
-    if (!L) return NULL;
+    if (!L) {
+        show_proof_therefore(type_res_str(tenv, this, NULL));
+        return NULL;
+    }
 
     auto Ts = new ListType(tenv->make_tvar());
 
@@ -567,12 +570,15 @@ Type* ListAccessExp::typeOf(Tenv tenv) {
     delete L;
     delete Ts;
 
-    if (!A)
+    if (!A) {
+        show_proof_therefore(type_res_str(tenv, this, NULL));
         return NULL;
+    }
 
     auto I = idx->typeOf(tenv);
     if (!I) {
         delete A;
+        show_proof_therefore(type_res_str(tenv, this, NULL));
         return NULL;
     }
 
@@ -584,6 +590,7 @@ Type* ListAccessExp::typeOf(Tenv tenv) {
     delete Z;
     if (!B) {
         delete A;
+        show_proof_therefore(type_res_str(tenv, this, NULL));
         return NULL;
     }
     
@@ -596,7 +603,10 @@ Type* ListAccessExp::typeOf(Tenv tenv) {
 }
 Type* ListSliceExp::typeOf(Tenv tenv) {
     auto L = list->typeOf(tenv);
-    if (!L) return NULL;
+    if (!L) {
+        show_proof_therefore(type_res_str(tenv, this, NULL));
+        return NULL;
+    }
 
     auto Ts = new ListType(tenv->make_tvar());
     
@@ -615,6 +625,7 @@ Type* ListSliceExp::typeOf(Tenv tenv) {
         I = from->typeOf(tenv);
         if (!I) {
             delete A;
+            show_proof_therefore(type_res_str(tenv, this, NULL));
             return NULL;
         }
 
@@ -627,6 +638,7 @@ Type* ListSliceExp::typeOf(Tenv tenv) {
 
         if (!B) {
             delete A;
+            show_proof_therefore(type_res_str(tenv, this, NULL));
             return NULL;
         } else delete B;
     }
@@ -637,6 +649,7 @@ Type* ListSliceExp::typeOf(Tenv tenv) {
         if (!I) {
             delete A;
             delete Z;
+            show_proof_therefore(type_res_str(tenv, this, NULL));
             return NULL;
         }
         Z = new IntType;
@@ -646,12 +659,46 @@ Type* ListSliceExp::typeOf(Tenv tenv) {
 
         if (!B) {
             delete A;
+            show_proof_therefore(type_res_str(tenv, this, NULL));
             return NULL;
         }
     } else
         delete Z;
 
+    show_proof_therefore(type_res_str(tenv, this, A));
     return A;
+}
+
+Type* TupleAccessExp::typeOf(Tenv tenv) {
+    auto T = exp->typeOf(tenv);
+    if (T) {
+    if (isType<TupleType>(T)) {
+        auto TT = (TupleType*) T;
+        T = (idx ? TT->getRight() : TT->getLeft())->clone();
+        delete TT;
+    } else if (isType<VarType>(T)) {
+        // Simplify and toss out 
+        auto TT = new TupleType(tenv->make_tvar(), tenv->make_tvar());
+        auto t = T->unify(TT, tenv);
+        delete T;
+        delete TT;
+
+        if (t) {
+            T = (idx ?
+                ((TupleType*) t)->getRight()
+                : ((TupleType*) t)->getLeft())->clone();
+            delete t;
+        } else
+            T = NULL;
+    } else {
+        delete T;
+        T = NULL;
+    }
+    }
+    
+    // End result
+    show_proof_therefore(type_res_str(tenv, this, T));
+    return T;
 }
 
 // Typing rules that evaluate to type U + V
