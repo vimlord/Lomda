@@ -582,6 +582,48 @@ Type* SetExp::typeOf(Tenv tenv) {
     
     return S;
 }
+Type* ForExp::typeOf(Tenv tenv) {
+    auto T = set->typeOf(tenv);
+    if (!T) return NULL;
+
+    auto L = new ListType(tenv->make_tvar());
+    
+    auto S = T->unify(L, tenv);
+    delete T;
+    delete L;
+
+    if (!S) return NULL;
+    S = ((ListType*) S)->subtype();
+    
+    show_proof_step("Thus, in the for body " + body->toString() + ", " + id + " : " + S->toString() + ".");
+    show_proof_step("Let " + id + " : " + S->toString() + ".");
+    
+    // Remove the variable name from scope.
+    Type *X = tenv->hasVar(id)
+        ? tenv->apply(id)
+        : NULL;
+
+    // Add the var
+    tenv->set(id, S);
+    
+    // Evaluate the body type
+    T = body->typeOf(tenv);
+
+    // Clean out the types
+    if (X)
+        tenv->set(id, X);
+    else
+        tenv->remove(id);
+    
+    // We now know the answer
+    if (T) {
+        delete T;
+        T = new VoidType;
+    }
+
+    show_proof_therefore(type_res_str(tenv, this, T));
+    return T;
+}
 Type* WhileExp::typeOf(Tenv tenv) {
     auto C = cond->typeOf(tenv);
     auto B = new BoolType;
@@ -943,12 +985,28 @@ Type* DiffExp::typeOf(Tenv tenv) {
     return C;
 }
 
+
+Type* PrintExp::typeOf(Tenv tenv) {
+    for (int i = 0; args[i]; i++) {
+        Type *T = args[i]->typeOf(tenv);
+        if (!T) {
+            show_proof_therefore(type_res_str(tenv, this, NULL));
+            return NULL;
+        } else
+            delete T;
+    }
+    
+    Type *T = new VoidType;
+    show_proof_therefore(type_res_str(tenv, this, T));
+    return T;
+}
+
+
 Type* VarExp::typeOf(Tenv tenv) {
     auto T = tenv->apply(id);
     show_proof_step("We recognize " + id + " as being defined by " + T->toString() + ".");
     return T;
 }
-
 
 
 Type* IntExp::typeOf(Tenv tenv) {

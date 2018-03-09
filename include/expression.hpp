@@ -104,8 +104,10 @@ class ForExp : public Expression {
     public:
         ForExp(std::string x, Exp xs, Exp e) : id(x), set(xs), body(e) {}
         ~ForExp() { delete set; delete body; }
+
         Val evaluate(Env);
         Val derivativeOf(std::string, Env, Env);
+        Type* typeOf(Tenv);
 
         Exp clone() { return new ForExp(id, set->clone(), body->clone()); }
         std::string toString();
