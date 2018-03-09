@@ -339,7 +339,9 @@ string Thunk::toString() { return val ? val->toString() : ("" + exp->toString() 
 string TupleVal::toString() { return "(" + left->toString() + ", " + right->toString() + ")"; }
 
 
-std::string LambdaType::toString() { return "(" + left->toString() + " -> " + right->toString() + ")"; }
+std::string LambdaType::toString() {
+    return "(" + left->toString() + " -> " + right->toString() + (env ? (" | " + env->toString()) : "") + ")";
+}
 std::string ListType::toString() { return "[" + type->toString() + "]"; }
 std::string TupleType::toString() { return "(" + left->toString() + " * " + right->toString() + ")"; }
 std::string SumType::toString() { return "(" + left->toString() + " + " + right->toString() + ")"; }

@@ -3,6 +3,8 @@
 
 using namespace std;
 
+string TypeEnv::next_id = "a";
+
 TypeEnv::~TypeEnv() {
     for (auto it : types)
         delete it.second;
@@ -49,8 +51,10 @@ Tenv TypeEnv::clone() {
 Type* TypeEnv::get_tvar(string v) {
     if (mgu.find(v) != mgu.end())
         return mgu[v];
-    else
-        return NULL;
+    else {
+        mgu[v] = new VarType(v);
+        return mgu[v];
+    }
 }
 
 void TypeEnv::set_tvar(string v, Type *t) {
@@ -65,9 +69,6 @@ void TypeEnv::rem_tvar(string v) {
 }
 
 Type* TypeEnv::make_tvar() {
-    auto V = new VarType(next_id);
-    show_proof_step("Let " + next_id + " be a fresh type variable.");
-
     // Increment the next_id var
     int i;
     for (i = next_id.length()-1; i >= 0 && next_id[i] == 'z'; i--)
@@ -77,9 +78,61 @@ Type* TypeEnv::make_tvar() {
     else
         next_id[i]++;
 
-    mgu[V->toString()] = V;
+    auto V = new VarType(next_id);
+    show_proof_step("Let " + next_id + " be a fresh type variable.");
+
+    mgu[next_id] = V;
 
     return V->clone();
+}
+
+
+Tenv TypeEnv::unify(Tenv other, Tenv scope) {
+    Tenv tenv = new TypeEnv;;
+
+    // Merge the MGUs
+    for (auto it : mgu) {
+        string s = it.first;
+        if (other->mgu.find(s) != other->mgu.end()) {
+            auto T = it.second->unify(other->mgu[s], scope);
+            if (!T) {
+                delete tenv;
+                return NULL;
+            } else
+                tenv->types[s] = T;
+        } else {
+            tenv->types[s] = it.second->clone();
+        }
+    }
+    for (auto it : other->mgu) {
+        string s = it.first;
+        if (tenv->mgu.find(s) != tenv->mgu.end()) {
+            tenv->types[s] = it.second->clone();
+        }
+    }
+    
+    // Merge the types
+    for (auto it : types) {
+        string s = it.first;
+        if (other->hasVar(s)) {
+            auto T = it.second->unify(other->types[s], scope);
+            if (!T) {
+                delete tenv;
+                return NULL;
+            } else
+                tenv->types[s] = T;
+        } else {
+            tenv->types[s] = it.second->clone();
+        }
+    }
+    for (auto it : other->types) {
+        string s = it.first;
+        if (!tenv->hasVar(s)) {
+            tenv->types[s] = it.second->clone();
+        }
+    }
+
+    return tenv;
 }
 
 

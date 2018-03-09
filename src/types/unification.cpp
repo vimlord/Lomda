@@ -51,7 +51,8 @@ Type* LambdaType::unify(Type* t, Tenv tenv) {
         show_proof_therefore("under " + tenv->toString() + ", "
                 + toString() + " = " + other->toString()
                 + " unifies to (" + x->toString() + " -> " + y->toString() + ")");
-
+        
+        // Immediately simplify wherever possible.
         delete other->left;
         delete other->right;
         other->left = x->clone();
@@ -61,9 +62,23 @@ Type* LambdaType::unify(Type* t, Tenv tenv) {
         delete right;
         left = x->clone();
         right = y->clone();
+        
+        // We must also unify the two environments
+        Tenv te;
+        if (env && other->env)
+            te = env->unify(other->env, tenv);
+        else if (env)
+            te = env->clone();
+        else if (other->env)
+            te = other->env->clone();
+        else
+            te = new TypeEnv;
 
+        if (te) {
+            return new LambdaType(x, y, te);
+        } else
+            return NULL;
 
-        return new LambdaType(x, y);
     } else if (isType<VarType>(t)) {
         // Unify in the other direction.
         return t->unify(this, tenv);
@@ -149,11 +164,12 @@ Type* VarType::unify(Type* t, Tenv tenv) {
     if (tenv->get_tvar(name)->toString() != name) {
         A = tenv->get_tvar(name)->subst(tenv);
         tenv->set_tvar(name, A);
+        A = A->clone();
     } else
         A = clone();
 
     show_proof_step("We must unify type var " + name + " as " + A->toString() + " = " + t->toString() + ".");
-
+    
     if (isType<VarType>(t)) {
         // Acquire the other variable
         VarType *v = (VarType*) t;
@@ -162,11 +178,32 @@ Type* VarType::unify(Type* t, Tenv tenv) {
         Type *B = tenv->get_tvar(v->name)->subst(tenv);
         tenv->set_tvar(v->name, B);
 
-        show_proof_step("Note that " + v->name + " = " + B->toString() + ".");
+        // Trivial equivalence test
+        if (name == v->name) {
+            show_proof_step(name + " = " + v->name + " trivially.");
+            if (A->toString() == B->toString())
+                A = A->clone();
+            else if (!isType<VarType>(A))
+                A = A->clone();
+            else
+                A = B->clone();
+            
+            tenv->set_tvar(name, A->clone());
 
-        // Unify the two types
+            show_proof_therefore("under " + tenv->toString() + ", " + name + " = " + t->toString() + " unifies to " + A->toString());
+
+            return A;
+        }
+
+        show_proof_step("We know that " + v->name + " = " + B->toString());
+
         Type* x;
-        if (A->toString() != name || B->toString() != t->toString())
+        if (isType<VarType>(A) && isType<VarType>(B) && A->toString() == B->toString()) {
+            // They are equivalent
+            show_proof_step(A->toString() + " and " + B->toString() + " are trivially equivalent");
+            x = new VarType(A->toString());
+        } else if (A->toString() != name || B->toString() != t->toString())
+            // Unify the two types
             x = A->unify(B, tenv);
         else
             x = clone();
