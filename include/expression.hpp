@@ -276,6 +276,7 @@ class MagnitudeExp : public Expression {
         MagnitudeExp(Exp e) : exp(e) {}
         ~MagnitudeExp() { delete exp; }
         Exp clone() { return new MagnitudeExp(exp->clone()); }
+        Type* typeOf(Tenv);
 
         Val evaluate(Env);
         Val derivativeOf(std::string, Env, Env);

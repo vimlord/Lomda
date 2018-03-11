@@ -937,6 +937,10 @@ Val MagnitudeExp::evaluate(Env env) {
         // Magnitude of list is its length
         int val = ((ListVal*) v)->get()->size();
         res = new IntVal(val);
+    } else if (typeid(*v) == typeid(StringVal)) {
+        res = new IntVal(v->toString().length());
+    } else if (typeid(*v) == typeid(BoolVal)) {
+        res = new IntVal(((BoolVal*) v)->get() ? 1 : 0);
     }
     
     // Garbage collection
