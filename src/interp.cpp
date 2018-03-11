@@ -1247,7 +1247,7 @@ Val SetExp::evaluate(Env env) {
             
             // On failure, new element
             if (!done)
-                vals->add(0, v);
+                vals->add(idx, v);
            
         } else {
             u->rem_ref();
