@@ -221,6 +221,12 @@ string ThunkExp::toString() {
     return "thunk { " + exp->toString() + " }";
 }
 string TupleExp::toString() { return "(" + left->toString() + ", " + right->toString() + ")"; }
+string TupleAccessExp::toString() {
+    if (idx)
+        return "right of " + exp->toString();
+    else
+        return "left of " + exp->toString();
+}
 string ValExp::toString() {
     return "antithunk { " + val->toString() + " }";
 }
@@ -254,18 +260,17 @@ string ExtendEnv::toString() {
 }
 
 /* Type env */
-
 string TypeEnv::toString() {
     string s = "";
 
     int i = 0;
     for (auto it : mgu) {
         string v = it.second->toString();
-        if (v != it.first) {
+        //if (v != it.first) {
             if (s.length() == 0) s = "{";
             if (i++) s += ", ";
             s += v + "/" + it.first;
-        }
+        //}
     }
     if (s.length() > 0) s += "}";
 

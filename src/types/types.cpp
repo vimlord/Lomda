@@ -261,8 +261,150 @@ Type* ApplyExp::typeOf(Tenv tenv) {
         return NULL;
     }
 }
+Type* MapExp::typeOf(Tenv tenv) {
+    /* To type a map, we require that:
+    1) list : [a] for some t
+    2) func : a -> b
+    Then, map : [b]
+    */
+    Type *F = func->typeOf(tenv);
+    if (!F) {
+        show_proof_therefore(type_res_str(tenv, this, NULL));
+        return NULL;
+    }
 
+    Type *L = list->typeOf(tenv);
+    if (!L) {
+        delete F;
+        show_proof_therefore(type_res_str(tenv, this, NULL));
+        return NULL;
+    }
 
+    show_proof_step("To type the map, we let the function have type "
+            + F->toString() + " and the list have type " + L->toString() + ".");
+    
+    // Compute the type of the source type
+    Type *a = NULL;
+    if (isType<ListType>(L)) {
+        a = ((ListType*) L)->subtype()->clone();
+    } else if (isType<VarType>(L)) {
+        Type *t = new ListType(tenv->make_tvar());
+        Type *u = L->unify(t, tenv);
+        delete t;
+
+        if (u) {
+            a = ((ListType*) u)->subtype()->clone();
+            delete u;
+        }
+    }
+    
+    // If we can't find a, then we're screwed.
+    delete L;
+    if (!a) {
+        delete F;
+        show_proof_therefore(type_res_str(tenv, this, NULL));
+        return NULL;
+    }
+
+    // Next, we need to verify the functionness of F, and
+    // go from there.
+    Type *t = new LambdaType(a->clone(), tenv->make_tvar());
+    show_proof_step("We require that " + F->toString() + " and " + t->toString() + " unify under " + tenv->toString() + ".");
+    Type *u = F->unify(t, tenv);
+    delete t;
+    
+    Type *b = NULL;
+    if (u) {
+        b = ((LambdaType*) u)->getRight()->clone();
+        delete u;
+    }
+
+    delete F;
+    delete a;
+    
+    // Final simplifications
+    if (b) {
+        a = b->subst(tenv);
+        delete b;
+        b = a;
+    }
+
+    L = b ? new ListType(b) : NULL;
+
+    show_proof_therefore(type_res_str(tenv, this, L));
+
+    return L;
+}
+Type* FoldExp::typeOf(Tenv tenv) {
+    /* Typing requires the following:
+    list : [a]
+    base : b
+    func : b -> a -> b
+    */
+
+    Type *L = list->typeOf(tenv);
+    if (!L) {
+        show_proof_therefore(type_res_str(tenv, this, NULL));
+        return NULL;
+    }
+
+    Type *a;
+    if (isType<ListType>(L))
+        a = ((ListType*) L)->subtype()->clone();
+    else if (isType<VarType>(L)) {
+        auto M = new ListType(tenv->make_tvar());
+        auto N = L->unify(M, tenv);
+        delete M;
+        if (N) {
+            a = ((ListType*) N)->subtype()->clone();
+            delete N;
+        } else
+            a = NULL;
+    } else
+        a = NULL;
+
+    delete L;
+    if (!a) {
+        show_proof_therefore(type_res_str(tenv, this, NULL));
+        return NULL;
+    }
+
+    Type *b = base->typeOf(tenv);
+    if (!b) {
+        delete a;
+        show_proof_therefore(type_res_str(tenv, this, NULL));
+        return NULL;
+    }
+
+    Type *F = func->typeOf(tenv);
+    if (!F) {
+        delete a;
+        delete b;
+        show_proof_therefore(type_res_str(tenv, this, NULL));
+        return NULL;
+    }
+
+    // The function must be properly unifiable
+    Type *G = new LambdaType(b->clone(), new LambdaType(a, b->clone()));
+    Type *H = F->unify(G, tenv);
+    
+    delete F;
+    delete G;
+
+    if (H) {
+        delete H;
+        auto T = b->subst(tenv);
+        delete b;
+        b = T;
+    } else {
+        delete b;
+        b = NULL;
+    }
+
+    show_proof_therefore(type_res_str(tenv, this, b));
+
+    return b;
+}
 
 Type* IfExp::typeOf(Tenv tenv) {
     auto C = cond->typeOf(tenv);
@@ -302,6 +444,49 @@ Type* IfExp::typeOf(Tenv tenv) {
     show_proof_therefore(type_res_str(tenv, this, Y));
 
     return Y;
+}
+Type* HasExp::typeOf(Tenv tenv) {
+    auto X = item->typeOf(tenv);
+    if (!X) {
+        show_proof_therefore(type_res_str(tenv, this, NULL));
+        return NULL;
+    }
+
+    auto Xs = set->typeOf(tenv);
+    if (!Xs) {
+        delete X;
+        show_proof_therefore(type_res_str(tenv, this, NULL));
+        return NULL;
+    }
+
+    if (isType<ListType>(Xs)) {
+        auto Y = X->unify(((ListType*) Xs)->subtype(), tenv);
+        delete X;
+        delete Xs;
+        if (Y) {
+            X = new BoolType;
+            delete Y;
+        } else
+            X = NULL;
+    } else if (isType<VarType>(Xs)) {
+        auto V = (VarType*) X;
+        auto L = new ListType(X);
+        X = Xs->unify(L, tenv);
+        delete L;
+        delete V;
+        if (X) {
+            delete X;
+            X = new BoolType;
+        } else
+            X = NULL;
+    } else {
+        delete Xs;
+        delete X;
+        X = NULL;
+    }
+
+    show_proof_therefore(type_res_str(tenv, this, X));
+    return X;
 }
 Type* IsaExp::typeOf(Tenv tenv) {
     auto T = exp->typeOf(tenv);
@@ -396,6 +581,48 @@ Type* SetExp::typeOf(Tenv tenv) {
     show_proof_therefore(type_res_str(tenv, this, S));
     
     return S;
+}
+Type* ForExp::typeOf(Tenv tenv) {
+    auto T = set->typeOf(tenv);
+    if (!T) return NULL;
+
+    auto L = new ListType(tenv->make_tvar());
+    
+    auto S = T->unify(L, tenv);
+    delete T;
+    delete L;
+
+    if (!S) return NULL;
+    S = ((ListType*) S)->subtype();
+    
+    show_proof_step("Thus, in the for body " + body->toString() + ", " + id + " : " + S->toString() + ".");
+    show_proof_step("Let " + id + " : " + S->toString() + ".");
+    
+    // Remove the variable name from scope.
+    Type *X = tenv->hasVar(id)
+        ? tenv->apply(id)
+        : NULL;
+
+    // Add the var
+    tenv->set(id, S);
+    
+    // Evaluate the body type
+    T = body->typeOf(tenv);
+
+    // Clean out the types
+    if (X)
+        tenv->set(id, X);
+    else
+        tenv->remove(id);
+    
+    // We now know the answer
+    if (T) {
+        delete T;
+        T = new VoidType;
+    }
+
+    show_proof_therefore(type_res_str(tenv, this, T));
+    return T;
 }
 Type* WhileExp::typeOf(Tenv tenv) {
     auto C = cond->typeOf(tenv);
@@ -559,7 +786,10 @@ Type* ListExp::typeOf(Tenv tenv) {
 }
 Type* ListAccessExp::typeOf(Tenv tenv) {
     auto L = list->typeOf(tenv);
-    if (!L) return NULL;
+    if (!L) {
+        show_proof_therefore(type_res_str(tenv, this, NULL));
+        return NULL;
+    }
 
     auto Ts = new ListType(tenv->make_tvar());
 
@@ -567,12 +797,15 @@ Type* ListAccessExp::typeOf(Tenv tenv) {
     delete L;
     delete Ts;
 
-    if (!A)
+    if (!A) {
+        show_proof_therefore(type_res_str(tenv, this, NULL));
         return NULL;
+    }
 
     auto I = idx->typeOf(tenv);
     if (!I) {
         delete A;
+        show_proof_therefore(type_res_str(tenv, this, NULL));
         return NULL;
     }
 
@@ -584,6 +817,7 @@ Type* ListAccessExp::typeOf(Tenv tenv) {
     delete Z;
     if (!B) {
         delete A;
+        show_proof_therefore(type_res_str(tenv, this, NULL));
         return NULL;
     }
     
@@ -596,7 +830,10 @@ Type* ListAccessExp::typeOf(Tenv tenv) {
 }
 Type* ListSliceExp::typeOf(Tenv tenv) {
     auto L = list->typeOf(tenv);
-    if (!L) return NULL;
+    if (!L) {
+        show_proof_therefore(type_res_str(tenv, this, NULL));
+        return NULL;
+    }
 
     auto Ts = new ListType(tenv->make_tvar());
     
@@ -615,6 +852,7 @@ Type* ListSliceExp::typeOf(Tenv tenv) {
         I = from->typeOf(tenv);
         if (!I) {
             delete A;
+            show_proof_therefore(type_res_str(tenv, this, NULL));
             return NULL;
         }
 
@@ -627,6 +865,7 @@ Type* ListSliceExp::typeOf(Tenv tenv) {
 
         if (!B) {
             delete A;
+            show_proof_therefore(type_res_str(tenv, this, NULL));
             return NULL;
         } else delete B;
     }
@@ -637,6 +876,7 @@ Type* ListSliceExp::typeOf(Tenv tenv) {
         if (!I) {
             delete A;
             delete Z;
+            show_proof_therefore(type_res_str(tenv, this, NULL));
             return NULL;
         }
         Z = new IntType;
@@ -646,12 +886,46 @@ Type* ListSliceExp::typeOf(Tenv tenv) {
 
         if (!B) {
             delete A;
+            show_proof_therefore(type_res_str(tenv, this, NULL));
             return NULL;
         }
     } else
         delete Z;
 
+    show_proof_therefore(type_res_str(tenv, this, A));
     return A;
+}
+
+Type* TupleAccessExp::typeOf(Tenv tenv) {
+    auto T = exp->typeOf(tenv);
+    if (T) {
+    if (isType<TupleType>(T)) {
+        auto TT = (TupleType*) T;
+        T = (idx ? TT->getRight() : TT->getLeft())->clone();
+        delete TT;
+    } else if (isType<VarType>(T)) {
+        // Simplify and toss out 
+        auto TT = new TupleType(tenv->make_tvar(), tenv->make_tvar());
+        auto t = T->unify(TT, tenv);
+        delete T;
+        delete TT;
+
+        if (t) {
+            T = (idx ?
+                ((TupleType*) t)->getRight()
+                : ((TupleType*) t)->getLeft())->clone();
+            delete t;
+        } else
+            T = NULL;
+    } else {
+        delete T;
+        T = NULL;
+    }
+    }
+    
+    // End result
+    show_proof_therefore(type_res_str(tenv, this, T));
+    return T;
 }
 
 // Typing rules that evaluate to type U + V
@@ -711,12 +985,28 @@ Type* DiffExp::typeOf(Tenv tenv) {
     return C;
 }
 
+
+Type* PrintExp::typeOf(Tenv tenv) {
+    for (int i = 0; args[i]; i++) {
+        Type *T = args[i]->typeOf(tenv);
+        if (!T) {
+            show_proof_therefore(type_res_str(tenv, this, NULL));
+            return NULL;
+        } else
+            delete T;
+    }
+    
+    Type *T = new VoidType;
+    show_proof_therefore(type_res_str(tenv, this, T));
+    return T;
+}
+
+
 Type* VarExp::typeOf(Tenv tenv) {
     auto T = tenv->apply(id);
     show_proof_step("We recognize " + id + " as being defined by " + T->toString() + ".");
     return T;
 }
-
 
 
 Type* IntExp::typeOf(Tenv tenv) {

@@ -69,6 +69,12 @@ void TypeEnv::rem_tvar(string v) {
 }
 
 Type* TypeEnv::make_tvar() {
+    // Create a brand new type variable.
+    auto V = new VarType(next_id);
+    mgu[next_id] = V;
+    show_proof_step("Let " + next_id + " be a fresh type variable.");
+    show_proof_step("This extends the tenv to " + toString() + ".");
+
     // Increment the next_id var
     int i;
     for (i = next_id.length()-1; i >= 0 && next_id[i] == 'z'; i--)
@@ -77,11 +83,6 @@ Type* TypeEnv::make_tvar() {
         next_id = "a" + next_id;
     else
         next_id[i]++;
-
-    auto V = new VarType(next_id);
-    show_proof_step("Let " + next_id + " be a fresh type variable.");
-
-    mgu[next_id] = V;
 
     return V->clone();
 }

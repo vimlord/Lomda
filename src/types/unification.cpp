@@ -26,18 +26,24 @@ Type* IntType::unify(Type* t, Tenv tenv) {
         return t->unify(this, tenv);
 }
 Type* LambdaType::unify(Type* t, Tenv tenv) {
+
     if (isType<LambdaType>(t)) {
         LambdaType *other = (LambdaType*) t;
-
+        
+        show_proof_step("First, we unify the left; suppose " + left->toString() + " = " + other->left->toString() + ".");
         auto x = left->unify(other->left, tenv);
         if (!x) {
+            show_proof_step("Thus, the lhs does not unify.");
             show_proof_therefore("under " + tenv->toString() + ", "
                 + toString() + " = " + other->toString()
                 + " is not unifiable");
             return NULL;
         }
+
+        show_proof_step("Next, we unify the right; suppose " + right->toString() + " = " + other->right->toString() + ".");
         auto y = right->unify(other->right, tenv);
         if (!y) {
+            show_proof_step("Thus, the rhs does not unify.");
             show_proof_therefore("under " + tenv->toString() + ", "
                 + toString() + " = " + other->toString()
                 + " is not unifiable");
@@ -47,10 +53,6 @@ Type* LambdaType::unify(Type* t, Tenv tenv) {
 
         // We now know that the types are both x -> y. Hence, we will change
         // the types.
-
-        show_proof_therefore("under " + tenv->toString() + ", "
-                + toString() + " = " + other->toString()
-                + " unifies to (" + x->toString() + " -> " + y->toString() + ")");
         
         // Immediately simplify wherever possible.
         delete other->left;
@@ -73,11 +75,20 @@ Type* LambdaType::unify(Type* t, Tenv tenv) {
             te = other->env->clone();
         else
             te = new TypeEnv;
+        
+        auto T = te ? new LambdaType(x, y, te) : NULL;
+        
+        if (T) {
+        show_proof_therefore("under " + tenv->toString() + ", "
+                + toString() + " = " + other->toString()
+                + " unifies to (" + x->toString() + " -> " + y->toString() + ")");
+        } else {
+        show_proof_therefore("under " + tenv->toString() + ", "
+                + toString() + " = " + other->toString()
+                + " is not unifiable.");
+        }
 
-        if (te) {
-            return new LambdaType(x, y, te);
-        } else
-            return NULL;
+        return T;
 
     } else if (isType<VarType>(t)) {
         // Unify in the other direction.
@@ -272,11 +283,17 @@ Type* VoidType::unify(Type* t, Tenv tenv) {
 
 // Unification rules for operational types
 Type* SumType::unify(Type* t, Tenv tenv) {
-    if (isType<SumType>(t)) {
-        SumType* other = (SumType*) t;
+    auto T = t->subst(tenv);
+
+    if (isType<SumType>(T)) {
+        show_proof_step("We seek to unify " + toString() + " = " + T->toString() + " by unifying the two halves.");
+        SumType* other = (SumType*) T;
 
         auto x = left->unify(other->left, tenv);
-        if (!x) return NULL;
+        if (!x) {
+            delete T;
+            return NULL;
+        }
 
         delete left;
         delete other->left;
@@ -284,8 +301,10 @@ Type* SumType::unify(Type* t, Tenv tenv) {
         other->left = x->clone();
 
         auto y = right->unify(other->right, tenv);
-        if (!y)
+        if (!y) {
+            delete T;
             return NULL;
+        }
 
         delete other->right;
         delete right;
@@ -298,6 +317,7 @@ Type* SumType::unify(Type* t, Tenv tenv) {
         if (!z) {
             // x and y have no unification. Hence, it is untypable.
             show_proof_therefore("under " + tenv->toString() + ", " + toString() + " = " + t->toString() + " is not unifiable");
+            delete T;
             return NULL;
         } else {
             delete x;
@@ -316,6 +336,7 @@ Type* SumType::unify(Type* t, Tenv tenv) {
 
         if (isType<RealType>(x)) {
             // It has resolved to an nd array. Hence, the solution has been found.
+            delete T;
             return z;
         } else if (isType<VarType>(x)) {
             delete other->right;
@@ -329,20 +350,29 @@ Type* SumType::unify(Type* t, Tenv tenv) {
 
             delete left;
             other->left = z->clone();
+
+            delete T;
             
             return new SumType(z, z->clone());
         } else
             show_proof_therefore("under " + tenv->toString() + ", " + toString() + " = " + t->toString() + " is not unifiable");
             // There does not exist a unification
+            delete T;
             return NULL;
-    } else if (isType<RealType>(t)) {
-        auto x = left->unify(t, tenv);
-        if (!x) return NULL;
+    } else if (isType<RealType>(T)) {
+        show_proof_step("We seek to unify " + toString() + " = " + T->toString() + " to the fundamental form.");
+
+        auto x = left->unify(T, tenv);
+        if (!x) {
+            delete T;
+            return NULL;
+        }
 
         delete left;
         left = x;
         
-        x = right->unify(t, tenv);
+        x = right->unify(T, tenv);
+        delete T;
         if (!x) return NULL;
 
         delete right;
@@ -370,6 +400,16 @@ Type* SumType::unify(Type* t, Tenv tenv) {
             // There does not exist a unification
             return NULL;
 
+    } else if (isType<VarType>(T)) {
+        Type *U = subst(tenv);
+        Type *X = T->unify(U, tenv);
+        delete T;
+        delete U;
+        
+        return X;
+
+    } else {
+        show_proof_step("We are unable to unify " + toString() + " = " + T->toString() + " under " + tenv->toString() + ".");
     }
 }
 
