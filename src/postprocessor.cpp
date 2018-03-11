@@ -59,7 +59,18 @@ bool SequenceExp::postprocessor(Trie<bool> *vars) {
     return res;
 }
 
-bool ForExp::postprocessor(Trie<bool> *vars) { return set->postprocessor(vars) && body->postprocessor(vars); }
+bool ForExp::postprocessor(Trie<bool> *vars) {
+    if(!set->postprocessor(vars)) return false;
+    if (vars->hasKey(id)) {
+        throw_err("", "redefinition of variable " + id + " is not permitted");
+        return false;
+    }
+    vars->add(id, true);
+    bool res = body->postprocessor(vars); 
+    vars->remove(id);
+
+    return res;
+}
 bool HasExp::postprocessor(Trie<bool> *vars) { return item->postprocessor(vars) && set->postprocessor(vars); }
 bool IsaExp::postprocessor(Trie<bool> *vars) { return exp->postprocessor(vars); }
 bool MagnitudeExp::postprocessor(Trie<bool> *vars) { return exp->postprocessor(vars); }

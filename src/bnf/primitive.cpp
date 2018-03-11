@@ -1541,6 +1541,41 @@ ParsedPrgms parseParentheses(string str, bool ends) {
 
 }
 
+ParsedPrgms parseTupleAcc(string str, bool ends) {
+    auto res = new LinkedList<parsed_prgm>;
+
+    bool side = false;
+    int len = parseLit(str, "left");
+    if (len < 0) {
+        side = true;
+        if ((len = parseLit(str, "right")) < 0)
+            // Could not find either of the keywords
+            return res;
+    }
+    
+    // Progress through the string
+    str = str.substr(len);
+
+    int i = parseLit(str, "of");
+    if (i < 0)
+        return res;
+    
+    // Further progress.
+    len += i;
+    str = str.substr(i);
+
+    auto exps = parsePemdas(str, ends);
+
+    while(!exps->isEmpty()) {
+        parsed_prgm p = exps->remove(0);
+        p.item = new TupleAccessExp(p.item, side);
+        p.len += len;
+        res->add(0, p);
+    }
+
+    return res;
+}
+
 /**
  * <primitive> ::= <lambda-exp> | <int-exp> | <var-exp> | <bool-exp>
  */
@@ -1554,6 +1589,11 @@ ParsedPrgms parsePrimitive(string str, bool ends) {
 
     // Parse for magnitude
     tmp = parseMagnitude(str, ends);
+    if (!tmp->isEmpty()) { return tmp; }
+    delete tmp;
+
+    // Parse for tuple access
+    tmp = parseTupleAcc(str, ends);
     if (!tmp->isEmpty()) { return tmp; }
     delete tmp;
 

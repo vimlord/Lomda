@@ -84,6 +84,7 @@ class FoldExp : public Expression {
         
         Val evaluate(Env);
         Val derivativeOf(std::string, Env, Env);
+        Type* typeOf(Tenv);
 
         Exp clone() { return new FoldExp(list->clone(), func->clone(), base->clone()); }
         std::string toString();
@@ -103,8 +104,10 @@ class ForExp : public Expression {
     public:
         ForExp(std::string x, Exp xs, Exp e) : id(x), set(xs), body(e) {}
         ~ForExp() { delete set; delete body; }
+
         Val evaluate(Env);
         Val derivativeOf(std::string, Env, Env);
+        Type* typeOf(Tenv);
 
         Exp clone() { return new ForExp(id, set->clone(), body->clone()); }
         std::string toString();
@@ -125,6 +128,7 @@ class HasExp : public Expression {
         ~HasExp() { delete item; delete set; }
 
         Val evaluate(Env);
+        Type* typeOf(Tenv);
 
         std::string toString();
 
@@ -295,6 +299,7 @@ class MapExp : public Expression {
 
         Val evaluate(Env);
         Val derivativeOf(std::string, Env, Env);
+        Type* typeOf(Tenv);
         
         std::string toString();
 

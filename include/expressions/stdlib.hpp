@@ -11,6 +11,7 @@ class PrintExp : public Expression {
         ~PrintExp() { for (int i = 0; args[i]; i++) delete args[i]; delete[] args; }
 
         Val evaluate(Env);
+        Type* typeOf(Tenv);
 
         Exp clone();
         std::string toString();

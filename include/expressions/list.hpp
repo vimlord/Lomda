@@ -76,4 +76,19 @@ class ListSliceExp : public Expression {
         std::string toString();
 };
 
+class TupleAccessExp : public Expression {
+    private:
+        Exp exp;
+        bool idx;
+    public:
+        TupleAccessExp(Exp exp, bool b) : exp(exp), idx(b) {}
+        ~TupleAccessExp() { delete exp; }
+
+        Val evaluate(Env);
+        Type* typeOf(Tenv);
+
+        Exp clone() { return new TupleAccessExp(exp->clone(), idx); }
+        std::string toString();
+};
+
 #endif
