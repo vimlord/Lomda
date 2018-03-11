@@ -931,7 +931,7 @@ Val MagnitudeExp::evaluate(Env env) {
         res = new IntVal(val > 0 ? val : -val);
     } else if (typeid(*v) == typeid(RealVal)) {
         // Magnitude of number is its absolute value
-        int val = ((RealVal*) v)->get();
+        float val = ((RealVal*) v)->get();
         res = new RealVal(val > 0 ? val : -val);
     } else if (typeid(*v) == typeid(ListVal)) {
         // Magnitude of list is its length
