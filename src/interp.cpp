@@ -39,15 +39,17 @@ Val run(string program) {
             show_proof_step("We seek to find t such that {} ⊢ " + exp->toString() + " : t");
             Tenv tenv = new TypeEnv;
             Type* type = exp->typeOf(tenv);
-            delete tenv;
+
             if (type) {
                 show_proof_step("Quod erat demonstrandum (QED).");
-                std::cout << "{} ⊢ " << *exp << " : " << *type << "\n";
+                std::cout << *tenv << " ⊢ " << *exp << " : " << *type << "\n";
                 delete type;
             } else {
                 show_proof_step("Reductio ad absurdum.");
-                std::cout << "{} ⊢ " << *exp << " is untypable\n";
+                std::cout << *tenv << " ⊢ " << *exp << " is untypable\n";
             }
+
+            delete tenv;
         }
 
         // If optimization is requested, grant it.
