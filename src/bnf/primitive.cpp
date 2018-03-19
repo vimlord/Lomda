@@ -830,7 +830,7 @@ ParsedPrgms parseCastExp(string str, bool ends) {
         s = s.substr(i);
         p.len += i;
         
-        parsed_id type = parseId(s);
+        parsed_type type = parseType(s, ends);
         if (type.len < 0) {
             delete p.item;
             continue;
@@ -838,22 +838,11 @@ ParsedPrgms parseCastExp(string str, bool ends) {
 
         s = s.substr(type.len);
         p.len += type.len;
-        if (ends && parseSpaces(s) != s.length()) {
-            delete p.item;
-            continue;
-        }
         
-        if (
-        type.item == "bool" || type.item == "boolean" ||
-        type.item == "int" || type.item == "integer" ||
-        type.item == "real" || type.item == "number" ||
-        type.item == "lambda" || type.item == "list" ||
-        type.item == "string") {
-            p.item = use == 0
-                        ? (Exp) new CastExp(type.item, p.item)
-                        : (Exp) new IsaExp(p.item, type.item);
+        p.item = use == 0
+            ? (Exp) new CastExp(type.item, p.item)
+            : (Exp) new IsaExp(p.item, type.item);
             res->add(0, p);
-        }
 
     }
 

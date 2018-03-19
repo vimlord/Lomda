@@ -31,7 +31,7 @@ string ApplyExp::toString() {
     return s;
 }
 string CastExp::toString() {
-    return exp->toString() + " as " + type;
+    return exp->toString() + " as " + type->toString();
 }
 string DerivativeExp::toString() {
     string s = "d/d" + var; 
@@ -105,7 +105,7 @@ string IntExp::toString() {
     return to_string(val);
 }
 string IsaExp::toString() {
-    return exp->toString() + " isa " + type;
+    return exp->toString() + " isa " + type->toString();
 }
 string LambdaExp::toString() {
     string s = "lambda ("; 

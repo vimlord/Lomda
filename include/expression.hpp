@@ -33,15 +33,15 @@ class ApplyExp : public Expression {
 // Casting values; {type t, a} -> t
 class CastExp : public Expression {
     private:
-        std::string type;
+        Type *type;
         Exp exp;
     public:
-        CastExp(std::string t, Exp e) : type(t), exp(e) {}
+        CastExp(Type *t, Exp e) : type(t), exp(e) {}
         ~CastExp() { delete exp; }
 
         Val evaluate(Env);
 
-        Exp clone() { return new CastExp(type, exp->clone()); }
+        Exp clone() { return new CastExp(type->clone(), exp->clone()); }
         std::string toString();
 
         Exp optimize() { exp->optimize(); return this; }
@@ -218,15 +218,15 @@ class InputExp : public Expression {
 class IsaExp : public Expression {
     private:
         Exp exp;
-        std::string type;
+        Type *type;
     public:
-        IsaExp(Exp e, std::string t) : exp(e), type(t) {}
+        IsaExp(Exp e, Type *t) : exp(e), type(t) {}
         ~IsaExp() { delete exp; }
 
         Val evaluate(Env);
         Type* typeOf(Tenv);
 
-        Exp clone() { return new IsaExp(exp->clone(), type); }
+        Exp clone() { return new IsaExp(exp->clone(), type->clone()); }
         std::string toString();
 
         bool postprocessor(Trie<bool> *vars);

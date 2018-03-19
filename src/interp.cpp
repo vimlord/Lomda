@@ -131,9 +131,9 @@ Val CastExp::evaluate(Env env) {
     Val res = NULL;
 
     if (!val) return NULL;
-    else if (type == "string")
+    else if (isType<StringType>(type))
         res = new StringVal(val->toString());
-    else if (type == "int" || type == "integer") {
+    else if (isType<IntType>(type)) {
         // Type conversion to an integer
         if (typeid(*val) == typeid(IntVal))
             return val;
@@ -148,7 +148,7 @@ Val CastExp::evaluate(Env env) {
             if (p.len >= 0 && parseSpaces(s.substr(p.len)) + p.len == s.length())
                 res = new IntVal(p.item);
         }
-    } else if (type == "real") {
+    } else if (isType<RealType>(type)) {
         // Type conversion to a float
         if (typeid(*val) == typeid(IntVal))
             res = new RealVal(((IntVal*) val)->get());
@@ -163,7 +163,7 @@ Val CastExp::evaluate(Env env) {
             if (p.len >= 0 && parseSpaces(s.substr(p.len)) + p.len == s.length())
                 res = new RealVal(p.item);
         }
-    } else if (type == "bool" || type == "boolean") {
+    } else if (isType<BoolType>(type)) {
         // Type conversion to a boolean
         if (typeid(*val) == typeid(IntVal))
             res = new BoolVal(((IntVal*) val)->get());
@@ -181,13 +181,13 @@ Val CastExp::evaluate(Env env) {
                 res = new BoolVal(false);
         }
     } else {
-        throw_err("type", "type " + type + " is not a castable type");
+        throw_err("type", "type " + type->toString() + " is not a castable type");
         val->rem_ref();
         return NULL;
     }
     
     if (!res)
-        throw_err("type", "expression '" + exp->toString() + "' cannot be casted to " + type);
+        throw_err("type", "expression '" + exp->toString() + "' cannot be casted to " + type->toString());
 
     val->rem_ref();
     return res;
@@ -542,31 +542,46 @@ Val IntExp::evaluate(Env env) {
     return new IntVal(val);
 }
 
+bool static_typecheck(Val val, Type *type) {
+    if (typeid(*val) == typeid(IntVal))
+        return isType<IntType>(type) || isType<RealType>(type);
+    else if (typeid(*val) == typeid(RealVal))
+        return isType<RealType>(type);
+    else if (typeid(*val) == typeid(BoolVal))
+        return isType<BoolType>(type);
+    else if (typeid(*val) == typeid(StringVal))
+        return isType<StringType>(type);
+    else if (typeid(*val) == typeid(TupleVal)) {
+        // Type each side if it is a tuple.
+        return isType<TupleType>(type) &&
+            static_typecheck(((TupleVal*) val)->getLeft(), ((TupleType*) type)->getLeft())
+        &&  static_typecheck(((TupleVal*) val)->getRight(), ((TupleType*) type)->getRight());
+    } else if (typeid(*val) == typeid(ListVal)) {
+        if (isType<ListType>(type)) {
+            // We must check each element for correctness.
+            auto T = ((ListType*) type)->subtype();
+            auto it = ((ListVal*) val)->get()->iterator();
+            bool res = true;
+            while (res && it->hasNext())
+                res = static_typecheck(it->next(), T);
+            return res;
+        } else
+            return false;
+    } else
+        return false;
+}
 Val IsaExp::evaluate(Env env) {
     Val val = exp->evaluate(env);
     val = unpack_thunk(val);
     if (!val) return NULL;
     
     // Compare the object type with the sought type
-    bool res;
-    if (typeid(*val) == typeid(IntVal))
-        res = type == "int" || type == "integer" || type == "number";
-    else if (typeid(*val) == typeid(RealVal))
-        res = type == "real" || type == "number";
-    else if (typeid(*val) == typeid(ListVal))
-        res = type == "list";
-    else if (typeid(*val) == typeid(DictVal))
-        res = type == "dict";
-    else if (typeid(*val) == typeid(TupleVal))
-        res = type == "tuple";
-    else if (typeid(*val) == typeid(LambdaVal))
-        res = type == "function" || type == "lambda";
-    else if (typeid(*val) == typeid(StringVal))
-        res = type == "string";
-    else
-        res = false;
+    auto res = new BoolVal(static_typecheck(val, type));
+    
+    // GC
+    val->rem_ref();
 
-    return new BoolVal(res);
+    return res;
 }
 
 Val LambdaExp::evaluate(Env env) {
