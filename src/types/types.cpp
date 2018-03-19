@@ -292,6 +292,18 @@ Type* ApplyExp::typeOf(Tenv tenv) {
         return NULL;
     }
 }
+Type* CastExp::typeOf(Tenv tenv) {
+    auto T = exp->typeOf(tenv);
+    if (!T) {
+        show_proof_therefore(type_res_str(tenv, this, NULL));
+        return NULL;
+    }
+    delete T;
+
+    T = new BoolType;
+    show_proof_therefore(type_res_str(tenv, this, T));
+    return T;
+}
 Type* DiffExp::typeOf(Tenv tenv) {
     auto A = left->typeOf(tenv);
     if (!A) {
@@ -523,9 +535,7 @@ Type* IsaExp::typeOf(Tenv tenv) {
     delete T;
 
     T = new BoolType;
-
     show_proof_therefore(type_res_str(tenv, this, T));
-
     return T;
 }
 Type* LambdaExp::typeOf(Tenv tenv) {

@@ -40,6 +40,7 @@ class CastExp : public Expression {
         ~CastExp() { delete exp; }
 
         Val evaluate(Env);
+        Type* typeOf(Tenv);
 
         Exp clone() { return new CastExp(type->clone(), exp->clone()); }
         std::string toString();
