@@ -28,6 +28,9 @@ class Type : public Stringable {
         
         // Whether or not some part of the type is still undefined.
         virtual bool isConstant(Tenv) { return true; }
+
+        virtual bool equals(Type*, Tenv) { return false; }
+
 };
 
 class TypeEnv : public Stringable {

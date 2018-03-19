@@ -74,6 +74,7 @@ class LambdaType : public PairType {
         Type* unify(Type*, Tenv);
         Type* subst(Tenv tenv) { return new LambdaType(left->subst(tenv), right->subst(tenv), env ? env->clone() : NULL); }
 
+        bool equals(Type*, Tenv);
         std::string toString();
 };
 class ListType : public Type {
@@ -89,7 +90,7 @@ class ListType : public Type {
         Type* subst(Tenv tenv) { return new ListType(type->subst(tenv)); }
         bool isConstant(Tenv t) { return type->isConstant(t); }
 
-
+        bool equals(Type*, Tenv);
         std::string toString();
 };
 class TupleType : public PairType {
@@ -100,6 +101,7 @@ class TupleType : public PairType {
         Type* unify(Type*, Tenv);
         Type* subst(Tenv tenv) { return new TupleType(left->subst(tenv), right->subst(tenv)); }
 
+        bool equals(Type*, Tenv);
         std::string toString();
 };
 
@@ -113,6 +115,7 @@ class SumType : public PairType {
         Type* unify(Type*, Tenv);
         Type* subst(Tenv tenv);
 
+        bool equals(Type*, Tenv);
         std::string toString();
 };
 class MultType : public PairType {
@@ -122,6 +125,7 @@ class MultType : public PairType {
         Type* unify(Type*, Tenv);
         Type* subst(Tenv tenv);
 
+        bool equals(Type*, Tenv);
         std::string toString();
 };
 
@@ -131,24 +135,28 @@ class BoolType : public PrimitiveType {
     public:
         Type* clone() { return new BoolType; }
         Type* unify(Type*, Tenv);
+        bool equals(Type*, Tenv);
         std::string toString() { return "B"; }
 };
 class RealType : public PrimitiveType {
     public:
         virtual Type* clone() { return new RealType; }
         virtual Type* unify(Type*, Tenv);
+        bool equals(Type*, Tenv);
         virtual std::string toString() { return "R"; }
 };
 class IntType : public RealType {
     public:
         Type* clone() { return new IntType; }
         Type* unify(Type*, Tenv);
+        bool equals(Type*, Tenv);
         std::string toString() { return "Z"; }
 };
 class StringType : public PrimitiveType {
     public:
         Type* clone() { return new StringType; }
         Type* unify(Type*, Tenv);
+        bool equals(Type*, Tenv);
         std::string toString() { return "S"; }
 };
 class VoidType : public PrimitiveType {
@@ -156,6 +164,7 @@ class VoidType : public PrimitiveType {
         VoidType() {}
         Type* clone() { return new VoidType; }
         Type* unify(Type*, Tenv);
+        bool equals(Type*, Tenv);
         std::string toString() { return "void"; }
 };
 
@@ -168,9 +177,8 @@ class VarType : public Type {
         Type* clone() { return new VarType(name); }
         Type* unify(Type*, Tenv);
         Type* subst(Tenv tenv);
-
         bool isConstant(Tenv);
-
+        bool equals(Type*, Tenv);
         std::string toString() { return name; }
 };
 

@@ -3,6 +3,7 @@
 
 #include "structures/list.hpp"
 #include "baselang/expression.hpp"
+#include "baselang/types.hpp"
 
 // The output structure from parsing
 template <typename T>
@@ -18,6 +19,7 @@ typedef List<parsed_prgm>* ParsedPrgms;
 typedef struct parsed<std::string> parsed_id;
 typedef struct parsed<int> parsed_int;
 typedef struct parsed<float> parsed_float;
+typedef struct parsed<Type*> parsed_type;
 
 // Argument types for the let expression
 struct arg {
@@ -38,6 +40,8 @@ int parseSpaces(std::string);
 int parseLit(std::string, std::string);
 
 LinkedList<struct arglist>* parseArgList(std::string, bool = true);
+
+parsed_type parseType(std::string, bool = true);
 
 ParsedPrgms parseCodeBlock(std::string, bool = true);
 
