@@ -196,6 +196,7 @@ class ImportExp : public Expression {
         }
 
         Val evaluate(Env);
+        Type* typeOf(Tenv);
 
         Exp clone() { return new ImportExp(module, name, exp->clone()); }
         std::string toString();

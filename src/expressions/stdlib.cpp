@@ -8,15 +8,15 @@
 
 using namespace std;
 
-LambdaVal* make_fn(string *xs, Val (*f)(Env), Val (*df)(string, Env, Env) = NULL) {
-    return new LambdaVal(xs, new ImplementExp(f, df));
+LambdaVal* make_fn(string *xs, Val (*f)(Env), Type *t, Val (*df)(string, Env, Env) = NULL) {
+    return new LambdaVal(xs, new ImplementExp(f, t, df));
 }
 
-LambdaVal* make_mono_fn(string x, Val (*f)(Env), Val (*df)(string, Env, Env) = NULL) {
+LambdaVal* make_mono_fn(string x, Val (*f)(Env), Type *t, Val (*df)(string, Env, Env) = NULL) {
     string *xs = new string[2];
     xs[0] = x;
     xs[1] = "";
-    return make_fn(xs, f, df);
+    return make_fn(xs, f, t, df);
 }
 
 Val evaluate_sin(Env env) {
@@ -188,11 +188,13 @@ DictVal* build_lib_math() {
         new LinkedList<string>,
         new LinkedList<Val>
     );
+
+    Type *ZtoZ = new LambdaType(new RealType, new RealType);
     
-    add_to_lib(lib, "sin", make_mono_fn("x", evaluate_sin, differentiate_sin));
-    add_to_lib(lib, "cos", make_mono_fn("x", evaluate_cos, differentiate_cos));
-    add_to_lib(lib, "log", make_mono_fn("x", evaluate_log, differentiate_log));
-    add_to_lib(lib, "sqrt", make_mono_fn("x", evaluate_sqrt, differentiate_sqrt));
+    add_to_lib(lib, "sin", make_mono_fn("x", evaluate_sin, ZtoZ, differentiate_sin));
+    add_to_lib(lib, "cos", make_mono_fn("x", evaluate_cos, ZtoZ, differentiate_cos));
+    add_to_lib(lib, "log", make_mono_fn("x", evaluate_log, ZtoZ, differentiate_log));
+    add_to_lib(lib, "sqrt", make_mono_fn("x", evaluate_sqrt, ZtoZ, differentiate_sqrt));
 
     return lib;
 

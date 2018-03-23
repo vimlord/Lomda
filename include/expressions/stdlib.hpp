@@ -2,6 +2,7 @@
 #define _EXPRESSIONS_STDLIB_HPP_
 
 #include "baselang/expression.hpp"
+#include "baselang/types.hpp"
 
 class PrintExp : public Expression {
     private:
@@ -26,10 +27,11 @@ class ImplementExp : public Expression {
     private:
         Val (*f)(Env); // The function
         Val (*df)(std::string, Env, Env); // The derivative of the function
+        Type *type;
     public:
-        ImplementExp(Val (*fn)(Env), Val (*dfn)(std::string, Env, Env) = NULL) : f(fn), df(dfn) {}
+        ImplementExp(Val (*fn)(Env), Type *t, Val (*dfn)(std::string, Env, Env) = NULL) : f(fn), df(dfn), type(t) {}
 
-        Exp clone() { return new ImplementExp(f, df); }
+        Exp clone() { return new ImplementExp(f, type ? type->clone() : NULL, df); }
 
         Val evaluate(Env env) { return f(env); }
         Val derivativeOf(std::string x, Env env, Env denv) { return df(x, env, denv); }

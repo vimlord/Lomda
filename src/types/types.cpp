@@ -2,6 +2,9 @@
 #include "expression.hpp"
 #include "proof.hpp"
 
+#include "bnf.hpp"
+#include <fstream>
+
 using namespace std;
 
 Type* reduce_type(Type *t, Tenv tenv) {
@@ -525,6 +528,60 @@ Type* IfExp::typeOf(Tenv tenv) {
     show_proof_therefore(type_res_str(tenv, this, Y));
 
     return Y;
+}
+Type* ImportExp::typeOf(Tenv tenv) {
+    // Attempt to open the file
+    ifstream file;
+    file.open("./" + module + ".lom");
+    
+    // Ensure that the file exists
+    if (!file) {
+        throw_err("IO", "could not load module " + module);
+        return NULL;
+    }
+    
+    // Read the program from the input file
+    int i = 0;
+    string program = "";
+    do {
+        string s;
+        getline(file, s);
+
+        if (i++) program += " ";
+        program += s;
+    } while (file);
+
+    throw_debug("module IO", "module " + module + " is defined by '" + program + "'\n");
+    file.close();
+    
+    Exp modexp = compile(program);
+
+    if (!modexp) {
+        show_proof_therefore(type_res_str(tenv,this,NULL));
+        return NULL;
+    }
+
+    Type *T = modexp->typeOf(tenv);
+    delete modexp;
+    
+    if (!T) {
+        show_proof_therefore(type_res_str(tenv,this,NULL));
+        return NULL;
+    }
+    
+    // Store the type
+    tenv->set(name, T);
+    
+    // Evaluate the body
+    Type *B = exp->typeOf(tenv);
+    
+    // Cleanup
+    tenv->remove(name);
+    
+    // End of computation
+    show_proof_therefore(type_res_str(tenv,this,B));
+    return B;
+
 }
 Type* IsaExp::typeOf(Tenv tenv) {
     auto T = exp->typeOf(tenv);

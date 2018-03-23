@@ -520,7 +520,8 @@ Val ImportExp::evaluate(Env env) {
         // We will extend the environment with the newly found module
         env->add_ref();
         env = new ExtendEnv(name, mod, env);
-
+        
+        // Evaluate the subexpression.
         Val v = exp->evaluate(env);
 
         // Garbage collection
