@@ -21,6 +21,15 @@ bool LambdaExp::postprocessor(Trie<bool> *vars) {
     for (int i = 0; xs[i] != ""; i++)
         trie->add(xs[i], true);
     
+    auto it = vars->iterator();
+
+    while (it->hasNext()) {
+        auto k = it->next();
+        if (!trie->hasKey(k))
+            trie->add(k, true);
+    }
+    delete it;
+    
     bool res = exp->postprocessor(trie);
 
     delete trie;
@@ -28,23 +37,43 @@ bool LambdaExp::postprocessor(Trie<bool> *vars) {
 }
 
 bool LetExp::postprocessor(Trie<bool> *vars) {
-    for (int i = 0; exps[i]; i++)
-        if (!exps[i]->postprocessor(vars))
-            return false;
+    bool res = true;
 
-    for (int i = 0; ids[i] != ""; i++)
+    // Evaluate the processing of the non-recursive variables
+    for (int i = 0; res && exps[i]; i++)
+        if (!rec[i] && !exps[i]->postprocessor(vars)) {
+            throw_err("", "in definition " + ids[i] + " = " + exps[i]->toString());
+            res = false;
+        }
+    
+    // Add the variables to the recognized varset
+    for (int i = 0; res && ids[i] != ""; i++)
         if (vars->hasKey(ids[i])) {
             throw_err("", "redefinition of variable " + ids[i] + " is not permitted");
             while (i--) vars->remove(ids[i]);
-            return false;
+            res = false;
         } else {
             vars->add(ids[i], true);
         }
-
-    auto res = body->postprocessor(vars);
+    
+    // Evaluate the processing of the recursive variables
+    for (int i = 0; res && exps[i]; i++)
+        if (rec[i] && !exps[i]->postprocessor(vars)) {
+            throw_err("", "in recursive definition " + ids[i] + " = " + exps[i]->toString());
+            res = false;
+        }
+    
+    if (res) {
+        res = body->postprocessor(vars);
+        if (!res)
+            throw_err("", "in expression '" + body->toString() + "'");
+    }
 
     for (int i = 0; ids[i] != ""; i++)
         vars->remove(ids[i]);
+    
+    if (!res)
+        throw_err("", "in expression '" + toString() + "'");
 
     return res;
 }
