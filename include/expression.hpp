@@ -63,10 +63,8 @@ class DerivativeExp : public Expression {
             if (!vars->hasKey(var)) {
                 throw_err("", "cannot differentiate " + func->toString() + " over unbound variable " + var);
                 return NULL;
-            } else {
-                auto res = func->postprocessor(vars);
-                return res;
-            }
+            } else
+                return func->postprocessor(vars);
         }
 
         Exp clone() { return new DerivativeExp(func->clone(), var); }

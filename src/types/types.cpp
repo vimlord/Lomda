@@ -103,6 +103,31 @@ bool VarType::isConstant(Tenv tenv) {
         return T->isConstant(tenv);
 }
 
+Type* MultType::subst(Tenv tenv) {
+    auto L = left->subst(tenv);
+    auto R = right->subst(tenv);
+    delete left; delete right;
+    left = L; right = R;
+
+    // TODO: Reduce L and R
+
+    return new MultType(L->clone(), R->clone());
+}
+
+Type* SumType::subst(Tenv tenv) {
+    // Simplify both sides
+    auto L = left->subst(tenv);
+    auto R = right->subst(tenv);
+    delete left; delete right;
+    left = L; right = R;
+    
+    // Unify if possible
+    if (L->isConstant(tenv) && R->isConstant(tenv)) {
+        auto S = L->unify(R, tenv);
+        return S;
+    } else
+        return clone();
+}
 Type* VarType::subst(Tenv tenv) {
     // Get the known value
     Type *T = tenv->get_tvar(name);
@@ -333,6 +358,80 @@ Type* DiffExp::typeOf(Tenv tenv) {
 
     show_proof_therefore(type_res_str(tenv, this, C));
 
+    return C;
+}
+Type* DivExp::typeOf(Tenv tenv) {
+    auto A = left->typeOf(tenv);
+    if (!A) {
+        show_proof_therefore(type_res_str(tenv, this, NULL));
+        return NULL;
+    }
+
+    auto B = right->typeOf(tenv);
+    if (!B) {
+        show_proof_therefore(type_res_str(tenv, this, NULL));
+        delete A;
+        return NULL;
+    }
+    
+    // We must unify the two types
+    Type *C;
+    if (A->isConstant(tenv) && B->isConstant(tenv)) {
+        
+        int a = 0;
+        int b = 0;
+
+        while (isType<ListType>(A)) {
+            a++;
+            auto C = A;
+            A = ((ListType*) C)->subtype()->clone();
+            delete C;
+        }
+        while (isType<ListType>(B)) {
+            b++;
+            auto C = B;
+            B = ((ListType*) C)->subtype()->clone();
+            delete C;
+        }
+
+        if (a > 2 || b > 2) {
+            // Do not go beyond 2nd order.
+            delete A;
+            delete B;
+            show_proof_therefore(type_res_str(tenv, this, NULL));
+            return NULL;
+        }
+
+        auto C = A->unify(B, tenv);
+        delete A;
+        delete B;
+        if (!C) {
+            show_proof_therefore(type_res_str(tenv, this, NULL));
+            return NULL;
+        } else if (!isType<RealType>(C) || !isType<IntType>(C)) {
+            // The components must be numerical.
+            delete C;
+            show_proof_therefore(type_res_str(tenv, this, NULL));
+            return NULL;
+        }
+
+        switch (a+b) {
+            case 4:
+                C = new ListType(new ListType(C));
+            case 3:
+                C = new ListType(C);
+            case 2:
+                C = a == b ? C : new ListType(C);
+            case 1:
+                C = new ListType(C);
+        }
+
+        show_proof_therefore(type_res_str(tenv, this, C));
+        return C;
+    } else {
+        C = new MultType(A, B);
+        show_proof_therefore(type_res_str(tenv, this, C));
+    }
     return C;
 }
 Type* FoldExp::typeOf(Tenv tenv) {
@@ -916,7 +1015,81 @@ Type* MapExp::typeOf(Tenv tenv) {
 
     return L;
 }
-Type* MultType::subst(Tenv tenv) { return new MultType(left->subst(tenv), right->subst(tenv)); }
+Type* MultExp::typeOf(Tenv tenv) {
+    auto A = left->typeOf(tenv);
+    if (!A) {
+        show_proof_therefore(type_res_str(tenv, this, NULL));
+        return NULL;
+    }
+
+    auto B = right->typeOf(tenv);
+    if (!B) {
+        show_proof_therefore(type_res_str(tenv, this, NULL));
+        delete A;
+        return NULL;
+    }
+    
+    // We must unify the two types
+    Type *C;
+    if (A->isConstant(tenv) && B->isConstant(tenv)) {
+        
+        int a = 0;
+        int b = 0;
+
+        while (isType<ListType>(A)) {
+            a++;
+            auto C = A;
+            A = ((ListType*) C)->subtype()->clone();
+            delete C;
+        }
+        while (isType<ListType>(B)) {
+            b++;
+            auto C = B;
+            B = ((ListType*) C)->subtype()->clone();
+            delete C;
+        }
+
+        if (a > 2 || b > 2) {
+            // Do not go beyond 2nd order.
+            show_proof_step("multiplication is not defined beyond order 2");
+            delete A;
+            delete B;
+            show_proof_therefore(type_res_str(tenv, this, NULL));
+            return NULL;
+        }
+
+        auto C = A->unify(B, tenv);
+        delete A;
+        delete B;
+        if (!C) {
+            show_proof_therefore(type_res_str(tenv, this, NULL));
+            return NULL;
+        } else if (!isType<RealType>(C) && !isType<IntType>(C)) {
+            // The components must be numerical.
+            delete C;
+            show_proof_therefore(type_res_str(tenv, this, NULL));
+            return NULL;
+        }
+
+        switch (a+b) {
+            case 4:
+                C = new ListType(new ListType(C));
+            case 3:
+                C = new ListType(C);
+            case 2:
+                C = a == b ? C : new ListType(C);
+            case 1:
+                C = new ListType(C);
+        }
+
+        show_proof_therefore(type_res_str(tenv, this, C));
+        return C;
+    } else {
+        C = new MultType(A, B);
+        show_proof_therefore(type_res_str(tenv, this, C));
+    }
+    return C;
+}
 Type* NotExp::typeOf(Tenv tenv) {
     auto T = exp->typeOf(tenv);
     if (!T) return NULL;
@@ -1027,20 +1200,6 @@ Type* SetExp::typeOf(Tenv tenv) {
     
     return S;
 }
-Type* SumType::subst(Tenv tenv) {
-    // Simplify both sides
-    auto L = left->subst(tenv);
-    auto R = right->subst(tenv);
-    delete left; delete right;
-    left = L; right = R;
-    
-    // Unify if possible
-    if (L->isConstant(tenv) && R->isConstant(tenv)) {
-        auto S = L->unify(R, tenv);
-        return S;
-    } else
-        return clone();
-}
 Type* LetExp::typeOf(Tenv tenv) {
     unordered_map<string, Type*> tmp;
     
@@ -1065,7 +1224,6 @@ Type* LetExp::typeOf(Tenv tenv) {
 
         }
     }
-
 
     // Evaluate the body if possible
     auto T = exps[i] ? NULL : body->typeOf(tenv);

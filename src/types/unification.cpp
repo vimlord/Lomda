@@ -309,7 +309,7 @@ Type* SumType::unify(Type* t, Tenv tenv) {
         delete other->right;
         delete right;
         right = y;
-        other->right = y->clone();;
+        other->right = y->clone();
         
         // Next, we can try unifying x and y
         auto z = x->unify(y, tenv);
@@ -410,11 +410,57 @@ Type* SumType::unify(Type* t, Tenv tenv) {
 
     } else {
         show_proof_step("We are unable to unify " + toString() + " = " + T->toString() + " under " + tenv->toString() + ".");
+        return NULL;
     }
 }
 
 Type* MultType::unify(Type* t, Tenv tenv) {
-    show_proof_step("Currently, typing of multiplication is undefined.");
+    auto T = t->subst(tenv);
+
+    if (isType<MultType>(t)) {
+        show_proof_step("We seek to unify " + toString() + " = " + T->toString() + " by unifying the two halves.");
+        auto M = (MultType*) t;
+        
+        // Unify the left
+        auto x = left->unify(M->left, tenv);
+        if (!x) {
+            delete T;
+            return NULL;
+        }
+
+        delete left;
+        delete M->left;
+        left = x;
+        M->left = x->clone();
+        
+        // Unify the right
+        auto y = right->unify(M->right, tenv);
+        if (!y) {
+            delete T;
+            return NULL;
+        }
+
+        delete M->right;
+        delete right;
+        right = y;
+        M->right = y->clone();
+
+        auto z = subst(tenv);
+        delete T;
+
+        return z;
+
+    } else if (isType<VarType>(t)) {
+        auto U = subst(tenv);
+        auto V = T->unify(U,tenv);
+
+        delete T;
+        delete U;
+
+        return V;
+    }
+
+    show_proof_step("We are unable to unify " + toString() + " = " + T->toString() + " under " + tenv->toString() + ".");
     return NULL;
 }
 
