@@ -9,6 +9,265 @@
 
 using namespace std;
 
+int is_vector(ListVal *list) {
+    auto it = list->get()->iterator();
+    int i;
+    for (i = 0; it->hasNext(); i++) {
+        auto v = it->next();
+        if (typeid(*v) != typeid(RealVal) && typeid(*v) != typeid(IntVal)) {
+            delete it;
+            return 0;
+        }
+    }
+
+    delete it;
+    return i;
+}
+
+int* is_matrix(ListVal *list) {
+    auto it = list->get()->iterator();
+
+    int cols = 0;
+
+    // Empty lists are not matrices
+    int i;
+    for (i = 0; it->hasNext(); i++) {
+        auto v = it->next();
+
+        if (typeid(*v) == typeid(ListVal)) {
+            int c = is_vector((ListVal*) v);
+            if (i == 0) {
+                if (c) {
+                    cols = c;
+                } else {
+                    delete it;
+                    return NULL;
+                }
+            } else if (!c || c != cols) {
+                delete it;
+                return NULL;
+            }
+        } else {
+            delete it;
+            return NULL;
+        }
+    }
+    
+    delete it;
+
+    int *size = new int[2];
+    size[0] = i;
+    size[1] = cols;
+
+    return size;
+}
+
+bool is_negligible_mtrx(ListVal *mtrx, double eps = 1e-4) {
+    auto it = mtrx->get()->iterator();
+    while (it->hasNext()) {
+        ListVal *row = (ListVal*) it->next();
+        auto jt = row->get()->iterator();
+        while (jt->hasNext()) {
+            Val v = jt->next();
+            if (typeid(*v) == typeid(IntVal)) {
+                return 0 == ((IntVal*) v)->get();
+            } else {
+                float f = ((RealVal*) v)->get();
+                return f*f <= eps*eps;
+            }
+        }
+        delete jt;
+    }
+    delete it;
+    return true;
+}
+
+Val exp(Val v) {
+    if (!v) return NULL;
+    else if (typeid(*v) == typeid(RealVal))
+        return new RealVal(exp(((RealVal*) v)->get()));
+    else if (typeid(*v) == typeid(IntVal))
+        return new RealVal(exp(((IntVal*) v)->get()));
+    else if (typeid(*v) == typeid(ListVal)) {
+        // Perhaps a matrix
+        int *dim = is_matrix((ListVal*) v);
+        if (!dim) {
+            throw_err("runtime", "exponentiation is not defined on " + v->toString());
+            return NULL;
+        } else if (dim[0] != dim[1]) {
+            delete[] dim;
+            throw_err("runtime", "exponentiation is not defined on non-square matrix " + v->toString());
+            return NULL;
+        }
+
+        // It is, so we can begin. Let there be a progress counter
+        // that trachs X^n. We will initialize it for n = 0; X^n = I
+        auto Xn = new ListVal;
+        for (int i = 0; i < dim[0]; i++) {
+            auto row = new ListVal;
+            Xn->get()->add(i, row);
+            for (int j = 0; j < dim[0]; j++)
+                row->get()->add(j, new IntVal(i == j ? 1 : 0));
+        }
+
+        Val S = Xn->clone();
+        MultExp mult(NULL, NULL);
+        DivExp div(NULL, NULL);
+        SumExp sum(NULL, NULL);
+        
+        // Now, we compute the Taylor polynomial
+        for (int n = 1; !is_negligible_mtrx((ListVal*) Xn); n++) {
+            // Raise Xn by a power
+            auto Xn1 = mult.op(Xn,v);
+
+            Xn->rem_ref();
+            if (!Xn1) {
+                S->rem_ref();
+                return NULL;
+            } else
+                Xn = (ListVal*) Xn1;
+
+            auto N = new IntVal(n);
+
+            Xn1 = div.op(Xn,N);
+            N->rem_ref();
+            Xn->rem_ref();
+            
+            if (!Xn1) {
+                S->rem_ref();
+                return NULL;
+            } else
+                Xn = (ListVal*) Xn1;
+
+            auto Su = sum.op(S, Xn);
+            
+            S->rem_ref();
+            if (!Su) {
+                Xn->rem_ref();
+                return NULL;
+            } else
+                S = (ListVal*) Su;
+        }
+
+        return S;
+
+    } else 
+        return NULL;
+}
+
+Val log(Val v) {
+    if (!v) return NULL;
+    else if (typeid(*v) == typeid(RealVal))
+        return new RealVal(log(((RealVal*) v)->get()));
+    else if (typeid(*v) == typeid(IntVal))
+        return new RealVal(log(((IntVal*) v)->get()));
+    else {
+        // Perhaps a matrix
+        int *dim = is_matrix((ListVal*) v);
+        if (!dim) {
+            throw_err("runtime", "logarithm is not defined on " + v->toString());
+            return NULL;
+        } else if (dim[0] != dim[1]) {
+            throw_err("runtime", "logarithm is not defined on non-square matrix " + v->toString());
+            delete[] dim;
+            return NULL;
+        }
+    
+        // Initialize Xn = I
+        auto I = new ListVal;
+        for (int i = 0; i < dim[0]; i++) {
+            auto row = new ListVal;
+            I->get()->add(i, row);
+            for (int j = 0; j < dim[0]; j++)
+                row->get()->add(j, new IntVal(i == j ? 1 : 0));
+        }
+
+        MultExp mult(NULL, NULL);
+        DivExp div(NULL, NULL);
+        SumExp sum(NULL, NULL);
+        DiffExp diff(NULL, NULL);
+        
+        // 1-x
+        auto Xn = diff.op(v, I);
+        auto X = diff.op(I, v);
+        
+        Val S = Xn->clone();
+
+        auto term = Xn->clone();
+
+        // Now, we compute the Taylor polynomial
+        for (int n = 2; !is_negligible_mtrx((ListVal*) term); n++) {
+
+            // Raise Xn by a power
+            auto Xn1 = mult.op(Xn, X);
+
+            Xn->rem_ref();
+            if (!Xn1) {
+                term->rem_ref();
+                S->rem_ref();
+                X->rem_ref();
+                return NULL;
+            } else
+                Xn = Xn1;
+
+            auto N = new RealVal(n);
+
+            Xn1 = div.op(Xn, N);
+            N->rem_ref();
+            term->rem_ref();
+
+            if (!Xn1) {
+                S->rem_ref();
+                v->rem_ref();
+                return NULL;
+            } else {
+                term = Xn1;
+            }
+            
+            auto Su = sum.op(S, Xn1);
+            S->rem_ref();
+
+            if (!Su) {
+                term->rem_ref();
+                Xn->rem_ref();
+                X->rem_ref();
+                return NULL;
+            } else
+                S = Su;
+        }
+        
+        term->rem_ref();
+        Xn->rem_ref();
+        X->rem_ref();
+        
+        return S;
+    }
+}
+
+Val pow(Val b, Val p) {
+    if (!b || !p) return NULL;
+    else {
+        MultExp mult(NULL, NULL);
+        auto lnb = log(b);
+        
+        if (!lnb) {
+            return NULL;
+        }
+
+        auto plnb = mult.op(p, lnb);
+
+        lnb->rem_ref();
+
+        if (!plnb)
+            return NULL;
+        
+        auto y = exp(plnb);
+        delete plnb;
+
+        return y;
+    }
+}
+
 OperatorExp::~OperatorExp() {
     delete left;
     delete right;
@@ -57,7 +316,9 @@ Val DiffExp::op(Value *a, Value *b) {
             ArrayList<Val> *A = ((ListVal*) a)->get();
             ArrayList<Val> *B = ((ListVal*) b)->get();
             if (A->size() != B->size()) {
-                throw_err("runtime", "cannot subtract lists '" + left->toString() + "' and '" + right->toString() + "' of differing lengths");
+                Stringable *l = left ? (Stringable*) left : (Stringable*) a;
+                Stringable *r = right ? (Stringable*) right : (Stringable*) b;
+                throw_err("runtime", "cannot add lists " + l->toString() + " and " + r->toString() + " of differing lengths");
                 return NULL;
             }
 
@@ -96,40 +357,55 @@ Val DiffExp::op(Value *a, Value *b) {
             return new IntVal(z);
 
     } else {
-        throw_err("runtime", "subtraction is not defined between " + left->toString() + " and " + right->toString());
+        Stringable *l = left ? (Stringable*) left : (Stringable*) a;
+        Stringable *r = right ? (Stringable*) right : (Stringable*) b;
+        throw_err("runtime", "subtraction is not defined between " + l->toString() + " and " + r->toString());
         return NULL;
     }
 
 }
 
 Val ExponentExp::op(Val a, Val b) {
-    if (val_is_number(a) && val_is_number(b)) {
-        auto x = val_is_integer(a) ? ((IntVal*) a)->get() : ((RealVal*) a)->get();
-        auto y = val_is_integer(b) ? ((IntVal*) b)->get() : ((RealVal*) b)->get();
-
-        // Compute the result
-        auto z = pow(x, y);
-        return new RealVal(z);
-    } else {
-        throw_err("runtime", "division is not defined between " + left->toString() + " and " + right->toString());
-    }
+    return pow(a, b);
 }
 
 // Expression for multiplying studd
 Val DivExp::op(Value *a, Value *b) {
 
-    if (val_is_number(a) && val_is_number(b)) {
-        auto x = val_is_integer(a) ? ((IntVal*) a)->get() : ((RealVal*) a)->get();
+    if (val_is_number(b)) {
         auto y = val_is_integer(b) ? ((IntVal*) b)->get() : ((RealVal*) b)->get();
 
-        // Compute the result
-        auto z = x / y;
-        if (typeid(*a) == typeid(RealVal) || typeid(*b) == typeid(RealVal))
-            return new RealVal(z);
-        else
-            return new IntVal(z);
+        if (val_is_number(a)) {
+            auto x = val_is_integer(a) ? ((IntVal*) a)->get() : ((RealVal*) a)->get();
+
+            // Compute the result
+            auto z = x / y;
+            if (typeid(*a) == typeid(RealVal) || typeid(*b) == typeid(RealVal))
+                return new RealVal(z);
+            else
+                return new IntVal(z);
+        } else if (val_is_list(a)) {
+            ListVal *c = new ListVal;
+            auto it = ((ListVal*) a)->get()->iterator();
+
+            while (c && it->hasNext()) {
+                auto d = op(it->next(), b);
+                if (!d) {
+                    c->rem_ref();
+                    c = NULL;
+                } else
+                    c->get()->add(c->get()->size(), d);
+            }
+
+            delete it;
+            return c;
+        } else {
+            throw_err("runtime", "division is not defined between " + (left ? left->toString() : a->toString()) + " and " + (right ? right->toString() : b->toString()));
+            return NULL;
+        }
     } else {
-        throw_err("runtime", "division is not defined between " + left->toString() + " and " + right->toString());
+        throw_err("runtime", "division is not defined between " + (left ? left->toString() : a->toString()) + " and " + (right ? right->toString() : b->toString()));
+        return NULL;
     }
 }
 
@@ -376,7 +652,9 @@ Val SumExp::op(Value *a, Value *b) {
             List<Val> *A = ((ListVal*) a)->get();
             List<Val> *B = ((ListVal*) b)->get();
             if (A->size() != B->size()) {
-                throw_err("runtime", "cannot add lists '" + left->toString() + "' and '" + right->toString() + "' of differing lengths");
+                Stringable *l = left ? (Stringable*) left : (Stringable*) a;
+                Stringable *r = right ? (Stringable*) right : (Stringable*) b;
+                throw_err("runtime", "cannot add lists " + l->toString() + " and " + r->toString() + " of differing lengths");
                 return NULL;
             }
 
@@ -415,7 +693,9 @@ Val SumExp::op(Value *a, Value *b) {
             return new IntVal(z);
 
     } else {
-        throw_err("runtime", "addition is not defined between " + left->toString() + " and " + right->toString());
+        Stringable *l = left ? (Stringable*) left : (Stringable*) a;
+        Stringable *r = right ? (Stringable*) right : (Stringable*) b;
+        throw_err("runtime", "addition is not defined between " + l->toString() + " and " + r->toString());
         return NULL;
     }
 
