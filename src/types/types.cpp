@@ -532,7 +532,8 @@ Type* FoldExp::typeOf(Tenv tenv) {
     }
 
     // The function must be properly unifiable
-    Type *G = new LambdaType(b->clone(), new LambdaType(a, b->clone()));
+    auto c = tenv->make_tvar();
+    Type *G = new LambdaType(b->clone(), new LambdaType(a, c->clone()));
     Type *H = F->unify(G, tenv);
     
     delete F;
@@ -541,16 +542,24 @@ Type* FoldExp::typeOf(Tenv tenv) {
     if (H) {
         delete H;
         auto T = b->subst(tenv);
-        delete b;
         b = T;
     } else {
         delete b;
+        delete c;
         b = NULL;
+
+        show_proof_therefore(type_res_str(tenv, this, NULL));
+        return NULL;
     }
 
-    show_proof_therefore(type_res_str(tenv, this, b));
+    H = c->unify(b, tenv);
 
-    return b;
+    delete b;
+    delete c;
+
+    show_proof_therefore(type_res_str(tenv, this, H));
+
+    return H;
 }
 Type* ForExp::typeOf(Tenv tenv) {
     auto T = set->typeOf(tenv);
