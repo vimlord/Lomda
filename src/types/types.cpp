@@ -108,10 +108,58 @@ Type* MultType::subst(Tenv tenv) {
     auto R = right->subst(tenv);
     delete left; delete right;
     left = L; right = R;
+    
+    if (L->isConstant(tenv) && R->isConstant(tenv)) {
+        int a = 0;
+        while (isType<ListType>(L)) {
+            L = ((ListType*) L)->subtype();
+            a++;
+        }
+        
+        int b = 0;
+        while (isType<ListType>(R)) {
+            R = ((ListType*) R)->subtype();
+            b++;
+        }
+        
+        if (a > 2)
+            // Will evaluate to bad type
+            return NULL;
+        else if (b > 2)
+            // Will evaluate to bad type
+            return NULL;
+        
+        auto T = L->unify(R, tenv); 
 
-    // TODO: Reduce L and R
-
-    return new MultType(L->clone(), R->clone());
+        if (!T)
+            return NULL;
+        else if (isType<VarType>(T)) {
+            // We can only assume that T is of the real type
+            RealType R;
+            auto U = T->unify(&R, tenv);
+            delete T;
+            T = U;
+        } else if (!(isType<RealType>(T) || isType<IntType>(T))) {
+            delete T;
+            return NULL;
+        }
+        
+        // The outcome is based on the combined orders.
+        switch(a+b) {
+            case 4:
+                return new ListType(new ListType(T));
+            case 3:
+                return new ListType(T);
+            case 2:
+                return a == b ? T : new ListType(T);
+            case 1:
+                return new ListType(T);
+            default:
+                return T;
+        }
+    } else
+        return clone();
+    
 }
 
 Type* SumType::subst(Tenv tenv) {
@@ -1039,13 +1087,13 @@ Type* MultExp::typeOf(Tenv tenv) {
         while (isType<ListType>(A)) {
             a++;
             auto C = A;
-            A = ((ListType*) C)->subtype()->clone();
+            A = ((ListType*) A)->subtype()->clone();
             delete C;
         }
         while (isType<ListType>(B)) {
             b++;
             auto C = B;
-            B = ((ListType*) C)->subtype()->clone();
+            B = ((ListType*) B)->subtype()->clone();
             delete C;
         }
 
@@ -1056,6 +1104,10 @@ Type* MultExp::typeOf(Tenv tenv) {
             delete B;
             show_proof_therefore(type_res_str(tenv, this, NULL));
             return NULL;
+        } else {
+            show_proof_step(
+                    "We know that " + left->toString() + " is order " + to_string(a)
+                    + " and " + right->toString() + " is order " + to_string(b) + ".");
         }
 
         auto C = A->unify(B, tenv);
@@ -1071,15 +1123,21 @@ Type* MultExp::typeOf(Tenv tenv) {
             return NULL;
         }
 
+        show_proof_step("Hence, we can follow the order " + to_string(a+b) + " case with content type " + C->toString());
+
         switch (a+b) {
             case 4:
                 C = new ListType(new ListType(C));
+                break;
             case 3:
                 C = new ListType(C);
+                break;
             case 2:
                 C = a == b ? C : new ListType(C);
+                break;
             case 1:
                 C = new ListType(C);
+                break;
         }
 
         show_proof_therefore(type_res_str(tenv, this, C));

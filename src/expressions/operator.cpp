@@ -178,7 +178,7 @@ Val MultExp::op(Value *a, Value *b) {
 
     if (typeid(*a) == typeid(ListVal)) {
         if (typeid(*b) == typeid(ListVal)) {
-            std::cout << "compute " << *a << " * " << *b << "\n";
+            //std::cout << "compute " << *a << " * " << *b << "\n";
 
             if (((ListVal*) a)->get()->size() == 0) {
                 throw_err("runtime", "multiplication is not defined on empty lists");
@@ -214,7 +214,7 @@ Val MultExp::op(Value *a, Value *b) {
                 MultExp mult(NULL, NULL);
 
                 if (ordB == 1) {
-                    std::cout << "2 by 1\n";
+                    //std::cout << "2 by 1\n";
                     // Matrix by vector
                     auto it = ((ListVal*) a)->get()->iterator();
 
@@ -230,7 +230,7 @@ Val MultExp::op(Value *a, Value *b) {
                     delete it;
                 } else {
                     // Matrix by matrix
-                    std::cout << "2 by 2\n";
+                    //std::cout << "2 by 2\n";
                     
                     auto it = ((ListVal*) a)->get()->iterator();
                     while (res && it->hasNext()) {
@@ -246,7 +246,7 @@ Val MultExp::op(Value *a, Value *b) {
                 }
 
             } else if (ordB == 2) {
-                std::cout << "1 by 2\n";
+                //std::cout << "1 by 2\n";
                 // List by matrix
                 auto ait = ((ListVal*) a)->get()->iterator();
                 auto bit = ((ListVal*) b)->get()->iterator();
@@ -256,7 +256,7 @@ Val MultExp::op(Value *a, Value *b) {
 
                 res = mult.op(ait->next(), bit->next());
                 if (res)
-                    std::cout << "init: " << *res << "\n";
+                    //std::cout << "init: " << *res << "\n";
                 
                 while (res && ait->hasNext() && bit->hasNext()) {
                     Val u = mult.op(ait->next(), bit->next());
@@ -278,7 +278,7 @@ Val MultExp::op(Value *a, Value *b) {
                 }
 
             } else {
-                std::cout << "1 by 1\n";
+                //std::cout << "1 by 1\n";
                 // Dot product
                 res = new IntVal;
                 
