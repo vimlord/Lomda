@@ -42,16 +42,21 @@ bool LetExp::postprocessor(Trie<bool> *vars) {
     // Evaluate the processing of the non-recursive variables
     for (int i = 0; res && exps[i]; i++)
         if (!rec[i] && !exps[i]->postprocessor(vars)) {
-            throw_err("", "in definition " + ids[i] + " = " + exps[i]->toString());
-            res = false;
+            std::cout << "in definition " + ids[i] + " = " + exps[i]->toString() << "\n";
+            std::cout << "in expression '" + toString() + "'\n";
+            return NULL;
         }
     
     // Add the variables to the recognized varset
     for (int i = 0; res && ids[i] != ""; i++)
         if (vars->hasKey(ids[i])) {
+            // Error message
             throw_err("", "redefinition of variable " + ids[i] + " is not permitted");
+            std::cout << "in expression '" + toString() + "'\n";
+
+            // Cleanup
             while (i--) vars->remove(ids[i]);
-            res = false;
+            return NULL;
         } else {
             vars->add(ids[i], true);
         }
@@ -59,21 +64,21 @@ bool LetExp::postprocessor(Trie<bool> *vars) {
     // Evaluate the processing of the recursive variables
     for (int i = 0; res && exps[i]; i++)
         if (rec[i] && !exps[i]->postprocessor(vars)) {
-            throw_err("", "in recursive definition " + ids[i] + " = " + exps[i]->toString());
+            std::cout << "in recursive definition " + ids[i] + " = " + exps[i]->toString() << "\n";
             res = false;
         }
     
     if (res) {
         res = body->postprocessor(vars);
-        if (!res)
-            throw_err("", "in expression '" + body->toString() + "'");
+        if (!res && typeid(*body) != typeid(LetExp))
+            std::cout << "in expression '" + body->toString() + "'\n";
     }
 
     for (int i = 0; ids[i] != ""; i++)
         vars->remove(ids[i]);
     
     if (!res)
-        throw_err("", "in expression '" + toString() + "'");
+        std::cout << "in expression '" + toString() + "'\n";
 
     return res;
 }
