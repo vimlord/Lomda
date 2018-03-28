@@ -1328,6 +1328,7 @@ Val TupleAccessExp::evaluate(Env env) {
     if (!val) return NULL;
     else if (typeid(*val) != typeid(TupleVal)) {
         throw_type_err(exp, "tuple");
+        val->rem_ref();
         return NULL;
     }
     

@@ -85,6 +85,7 @@ class TupleAccessExp : public Expression {
         ~TupleAccessExp() { delete exp; }
 
         Val evaluate(Env);
+        Val derivativeOf(std::string, Env, Env);
         Type* typeOf(Tenv);
 
         Exp clone() { return new TupleAccessExp(exp->clone(), idx); }

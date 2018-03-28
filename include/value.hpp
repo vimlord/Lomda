@@ -156,7 +156,7 @@ class TupleVal : public Value {
         int set(Val);
         
         std::string toString();
-        TupleVal* clone() { left->add_ref(); right->rem_ref(); return new TupleVal(left, right); }
+        TupleVal* clone() { left->add_ref(); right->add_ref(); return new TupleVal(left, right); }
 };
 
 class VoidVal : public Value {

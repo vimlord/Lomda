@@ -189,6 +189,7 @@ class TupleExp : public Expression {
         ~TupleExp() { delete left; delete right; }
 
         Val evaluate(Env);
+        Val derivativeOf(std::string, Env, Env);
         Type* typeOf(Tenv tenv);
         std::string toString();
 

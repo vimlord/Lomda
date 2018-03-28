@@ -44,6 +44,18 @@ void resolveIdentity(Val val, List<int> *idx = NULL) {
         }
 
         if (idx->size() == 0) delete idx;
+    } else if (typeid(*val) == typeid(TupleVal)) {
+        if (!idx) idx = new LinkedList<int>;
+
+        idx->add(0, 0);
+        resolveIdentity(((TupleVal*) val)->getLeft(), idx);
+        idx->remove(0);
+
+        idx->add(0, 1);
+        resolveIdentity(((TupleVal*) val)->getRight(), idx);
+        idx->remove(0);
+
+        if (idx->size() == 0) delete idx;
     } else if (idx->size() % 2 == 0) {
 
         auto it = idx->iterator();
@@ -100,6 +112,18 @@ Val deriveConstVal(Val v, int c) {
         delete vit;
 
         return res;
+
+    } else if (typeid(*v) == typeid(TupleVal)) {
+        Val L = deriveConstVal(((TupleVal*) v)->getLeft(), c);
+        if (!L) return NULL;
+
+        Val R = deriveConstVal(((TupleVal*) v)->getRight(), c);
+        if (!R) { L->rem_ref(); return NULL; }
+
+        L->add_ref();
+        R->add_ref();
+
+        return new TupleVal(L, R);
 
     } else
         return new IntVal(c);
@@ -161,6 +185,22 @@ Val deriveConstVal(Val y, Val x, int c) {
         
         // This is to ensure an initial condition for data structures:
         // to ensure that an identity is met.
+        if (c == 1) resolveIdentity(res);
+
+        return res;
+
+    } else if (typeid(*x) == typeid(TupleVal)) {
+        Val L = deriveConstVal(y, ((TupleVal*) x)->getLeft(), 0);
+        if (!L) return NULL;
+
+        Val R = deriveConstVal(y, ((TupleVal*) x)->getRight(), 0);
+        if (!R) { L->rem_ref(); return NULL; }
+
+        L->add_ref();
+        R->add_ref();
+
+        auto res = new TupleVal(L, R);
+
         if (c == 1) resolveIdentity(res);
 
         return res;
@@ -885,6 +925,7 @@ Val MultExp::derivativeOf(string x, Env env, Env denv) {
     return c;
 }
 
+// d/dx A+B = dA/dx + dB/dx
 Val SumExp::derivativeOf(string x, Env env, Env denv) {
     Val a = left->derivativeOf(x, env, denv);
     if (!a) return NULL;
@@ -899,6 +940,40 @@ Val SumExp::derivativeOf(string x, Env env, Env denv) {
     
     a->rem_ref(); b->rem_ref();
     return c;
+}
+
+// d/dx (L, R) = (d/dx L, d/dx R)
+Val TupleExp::derivativeOf(string x, Env env, Env denv) {
+    auto L = left->derivativeOf(x, env, denv);
+    if (!L) return NULL;
+
+    auto R = right->derivativeOf(x, env, denv);
+    if (!R) { L->rem_ref(); return NULL; }
+
+    return new TupleVal(L, R);
+}
+
+// d/dx left of T = left of dT/dx
+Val TupleAccessExp::derivativeOf(string x, Env env, Env denv) {
+    Val dv = exp->derivativeOf(x, env, denv);
+
+    if (!dv) return NULL;
+    else if (typeid(*dv) != typeid(TupleVal)) {
+        throw_type_err(exp, "tuple");
+        dv->rem_ref();
+        return NULL;
+    }
+    
+    TupleVal *tup = (TupleVal*) dv;
+
+    Val Y = idx ? tup->getRight() : tup->getLeft();
+    
+    // Memory mgt
+    Y->add_ref();
+    tup->rem_ref();
+
+    return Y;
+
 }
 
 Val VarExp::derivativeOf(string x, Env env, Env denv) {
