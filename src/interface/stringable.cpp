@@ -345,5 +345,6 @@ std::string ListType::toString() { return "[" + type->toString() + "]"; }
 std::string TupleType::toString() { return "(" + left->toString() + " * " + right->toString() + ")"; }
 std::string SumType::toString() { return "(" + left->toString() + " + " + right->toString() + ")"; }
 std::string MultType::toString() { return "(" + left->toString() + " x " + right->toString() + ")"; }
+std::string DerivativeType::toString() { return "d" + left->toString() + "/d" + right->toString(); }
 
 

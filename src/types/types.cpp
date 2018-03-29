@@ -162,6 +162,38 @@ Type* MultType::subst(Tenv tenv) {
     
 }
 
+Type* DerivativeType::subst(Tenv tenv) {
+    auto L = left->subst(tenv);
+    auto R = right->subst(tenv);
+    delete left; delete right;
+    left = L; right = R;
+
+    if (isType<ListType>(L)) {
+        R = new DerivativeType(((ListType*) L)->subtype()->clone(), R->clone());
+        L = R->subst(tenv);
+        delete R;
+
+        if (L) return new ListType(L);
+        else return NULL;
+        
+    } else if (isType<RealType>(L) || isType<IntType>(L)) {
+        // dZ/dt = dR/dt = t
+        return R->clone();
+    } else if (isType<TupleType>(L)) {
+        R = new TupleType(
+            new DerivativeType(((TupleType*) L)->getLeft()->clone(), R->clone()),
+            new DerivativeType(((TupleType*) L)->getRight()->clone(), R->clone()));
+
+        L = R->subst(tenv);
+        delete R;
+        
+        return L;
+    } else if (isType<VarType>(L))
+        return clone();
+    else
+        return NULL;
+}
+
 Type* SumType::subst(Tenv tenv) {
     // Simplify both sides
     auto L = left->subst(tenv);
@@ -407,6 +439,26 @@ Type* DiffExp::typeOf(Tenv tenv) {
     show_proof_therefore(type_res_str(tenv, this, C));
 
     return C;
+}
+/*
+C |- x : s    C |- M : t
+------------------------
+   C |- d/dx M : dt/ds
+*/
+Type* DerivativeExp::typeOf(Tenv tenv) {
+    auto X = tenv->apply(var);
+
+    auto Y = func->typeOf(tenv);
+
+    if (Y) {
+        auto S = new DerivativeType(Y, X);
+        auto T = S->subst(tenv);
+        delete S;
+
+        show_proof_therefore(type_res_str(tenv, this, T));
+        return T;
+    }
+
 }
 Type* DivExp::typeOf(Tenv tenv) {
     auto A = left->typeOf(tenv);

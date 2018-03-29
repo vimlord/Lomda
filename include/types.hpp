@@ -128,6 +128,16 @@ class MultType : public PairType {
         bool equals(Type*, Tenv);
         std::string toString();
 };
+class DerivativeType : public PairType {
+    public:
+        using PairType::PairType;
+        Type* clone() { return new DerivativeType(left->clone(), right->clone()); }
+        Type* unify(Type*, Tenv);
+        Type* subst(Tenv);
+
+        std::string toString();
+
+};
 
 // Primitive types
 class PrimitiveType : public Type {};

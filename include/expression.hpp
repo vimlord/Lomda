@@ -58,6 +58,7 @@ class DerivativeExp : public Expression {
         ~DerivativeExp() { delete func; }
 
         Val evaluate(Env);
+        Type* typeOf(Tenv);
 
         bool postprocessor(Trie<bool> *vars) {
             if (!vars->hasKey(var)) {

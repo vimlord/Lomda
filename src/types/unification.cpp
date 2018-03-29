@@ -417,9 +417,9 @@ Type* SumType::unify(Type* t, Tenv tenv) {
 Type* MultType::unify(Type* t, Tenv tenv) {
     auto T = t->subst(tenv);
 
-    if (isType<MultType>(t)) {
+    if (isType<MultType>(T)) {
         show_proof_step("We seek to unify " + toString() + " = " + T->toString() + " by unifying the two halves.");
-        auto M = (MultType*) t;
+        auto M = (MultType*) T;
         
         // Unify the left
         auto x = left->unify(M->left, tenv);
@@ -450,7 +450,7 @@ Type* MultType::unify(Type* t, Tenv tenv) {
 
         return z;
 
-    } else if (isType<VarType>(t)) {
+    } else if (isType<VarType>(T)) {
         auto U = subst(tenv);
         auto V = T->unify(U,tenv);
 
@@ -460,6 +460,58 @@ Type* MultType::unify(Type* t, Tenv tenv) {
         return V;
     }
 
+    delete T;
+    show_proof_step("We are unable to unify " + toString() + " = " + T->toString() + " under " + tenv->toString() + ".");
+    return NULL;
+}
+
+Type* DerivativeType::unify(Type* t, Tenv tenv) {
+    auto T = t->subst(tenv);
+
+    if (isType<DerivativeType>(t)) {
+        show_proof_step("We seek to unify " + toString() + " = " + T->toString() + " by unifying the two halves.");
+        auto D = (DerivativeType*) T;
+
+        // Unify the left
+        auto x = left->unify(D->left, tenv);
+        if (!x) {
+            delete T;
+            return NULL;
+        }
+
+        delete left;
+        delete D->left;
+        left = x;
+        D->left = x->clone();
+        
+        // Unify the right
+        auto y = right->unify(D->right, tenv);
+        if (!y) {
+            delete T;
+            return NULL;
+        }
+
+        delete D->right;
+        delete right;
+        right = y;
+        D->right = y->clone();
+
+        auto z = subst(tenv);
+        delete T;
+
+        return z;
+
+    } else if (isType<VarType>(T)) {
+        auto U = subst(tenv);
+        auto V = T->unify(U,tenv);
+
+        delete T;
+        delete U;
+        
+        return V;
+    }
+
+    delete T;
     show_proof_step("We are unable to unify " + toString() + " = " + T->toString() + " under " + tenv->toString() + ".");
     return NULL;
 }
