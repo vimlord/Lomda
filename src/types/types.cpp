@@ -177,11 +177,7 @@ Type* DerivativeType::subst(Tenv tenv) {
         else return NULL;
         
     } else if (isType<RealType>(L) || isType<IntType>(L)) {
-        // dZ/dt = dR/dt = t
-
-        if (isType<RealType>(R))
-            return new RealType;
-        else if (isType<IntType>(R))
+        if (isType<RealType>(R) || isType<IntType>(R))
             return L->clone();
         else if (isType<ListType>(R)) {
             R = new DerivativeType(L->clone(), ((ListType*) R)->subtype()->clone());

@@ -467,8 +467,13 @@ Type* MultType::unify(Type* t, Tenv tenv) {
 
 Type* DerivativeType::unify(Type* t, Tenv tenv) {
     auto T = t->subst(tenv);
-
-    if (isType<DerivativeType>(t)) {
+    
+    if (isType<RealType>(right) || isType<IntType>(left)) {
+        // Base case: derivative of type wrt number is the type
+        auto U = T->unify(left, tenv);
+        delete T;
+        return U;
+    } else if (isType<DerivativeType>(t)) {
         show_proof_step("We seek to unify " + toString() + " = " + T->toString() + " by unifying the two halves.");
         auto D = (DerivativeType*) T;
 
@@ -542,6 +547,44 @@ Type* DerivativeType::unify(Type* t, Tenv tenv) {
         
         // The result is the type f the top.
         return T;
+    } else if (isType<ListType>(T)) {
+        auto L = (ListType*) T;
+        auto E = L->subtype();
+
+        if (isType<ListType>(left)) {
+            auto lY = (ListType*) left;
+            auto Y = lY->subtype();
+            
+            // Subderivative
+            auto dYdX = new DerivativeType(Y->clone(), right->clone());
+            
+            // Unify the two types
+            Y = dYdX->unify(E, tenv);
+            delete dYdX;
+            
+            // Thus, if Y is defined, we have an answer.
+            if (Y) Y = new ListType(Y);
+            else show_proof_step("We are unable to unify " + toString() + " = " + T->toString() + " under " + tenv->toString() + ".");
+
+            return Y;
+        } else if (isType<RealType>(left) || isType<IntType>(left)) {
+            if (isType<ListType>(right)) {
+                auto lX = (ListType*) right;
+                auto X = lX->subtype();
+
+                // Subderivative
+                auto dYdX = new DerivativeType(left->clone(), X->clone());
+
+                auto Y = dYdX->unify(E, tenv);
+                delete dYdX;
+
+                // Thus, if Y is defined, we have an answer.
+                if (Y) Y = new ListType(Y);
+                else show_proof_step("We are unable to unify " + toString() + " = " + T->toString() + " under " + tenv->toString() + ".");
+
+                return Y;
+            }
+        }
     }
 
     delete T;
