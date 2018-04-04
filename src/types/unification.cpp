@@ -509,6 +509,39 @@ Type* DerivativeType::unify(Type* t, Tenv tenv) {
         delete U;
         
         return V;
+    } else if (isType<IntType>(T) || isType<RealType>(T)) {
+        // If we can reduce the typing, then we can conclude the
+        // top half of the expression.
+
+
+        // Output type is same as other side.
+        auto Y = left->unify(T, tenv);
+        
+        if (!Y) {
+            delete T;
+            show_proof_step("We are unable to unify " + toString() + " = " + T->toString() + " under " + tenv->toString() + ".");
+            return NULL;
+        }
+
+        delete left;
+        left = Y;
+
+        // We know that the bottom must be a real number
+        auto R = new RealType;
+        auto X = right->unify(R, tenv);
+        delete R;
+
+        if (!X) {
+            delete T;
+            show_proof_step("We are unable to unify " + toString() + " = " + T->toString() + " under " + tenv->toString() + ".");
+            return NULL;
+        }
+
+        delete right;
+        right = X;
+        
+        // The result is the type f the top.
+        return T;
     }
 
     delete T;
