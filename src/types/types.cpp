@@ -178,6 +178,32 @@ Type* DerivativeType::subst(Tenv tenv) {
         
     } else if (isType<RealType>(L) || isType<IntType>(L)) {
         // dZ/dt = dR/dt = t
+
+        if (isType<RealType>(R))
+            return new RealType;
+        else if (isType<IntType>(R))
+            return L->clone();
+        else if (isType<ListType>(R)) {
+            R = new DerivativeType(L->clone(), ((ListType*) R)->subtype()->clone());
+            L = R->subst(tenv);
+            delete R;
+
+            if (L) return new ListType(L);
+            else return NULL;
+        } else if (isType<TupleType>(R)) {
+            R = new TupleType(
+                new DerivativeType(L->clone(), ((TupleType*) R)->getLeft()->clone()),
+                new DerivativeType(L->clone(), ((TupleType*) R)->getRight()->clone()));
+
+            L = R->subst(tenv);
+            delete R;
+            
+            return L;
+        } else if (isType<VarType>(R))
+            return clone();
+        else
+            return NULL;
+
         return R->clone();
     } else if (isType<TupleType>(L)) {
         R = new TupleType(
@@ -1304,6 +1330,8 @@ Type* SetExp::typeOf(Tenv tenv) {
     }
     auto E = exp->typeOf(tenv);
 
+    show_proof_step("Typing requires assignment: " + T->toString() + " = " + E->toString());
+
     Type *S = NULL;
     
     if (E) {
@@ -1314,6 +1342,11 @@ Type* SetExp::typeOf(Tenv tenv) {
     }
     
     delete T;
+
+    if (S && typeid(*tgt) == typeid(VarExp)) {
+        show_proof_step(tgt->toString() + " is a variable, hence we generalize its type to " + S->toString());
+        tenv->set(tgt->toString(), S->clone());
+    }
     
     show_proof_therefore(type_res_str(tenv, this, S));
     
