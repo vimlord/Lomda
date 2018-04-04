@@ -25,7 +25,13 @@ void execute(string program) {
     }
 }
 
-void print_version() { cout << "Lambda 0.1.0\n"; }
+void print_version() {
+    // Version number
+    cout << "Lambda 0.1.0\n";
+
+    // Compilation time
+    cout << "Compiled " << __DATE__ << " @ " << __TIME__ << "\n";
+}
 
 void display_config() {
     std::cout << "The following configuration is in use:\n";
