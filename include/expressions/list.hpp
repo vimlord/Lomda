@@ -34,7 +34,8 @@ class ListAddExp : public Expression {
     public:
         ListAddExp(Exp x, Exp i, Exp e) : list(x), idx(i), elem(e) {}
         ~ListAddExp() { delete list; delete idx; delete elem; }
-
+        
+        Type* typeOf(Tenv);
         Val evaluate(Env);
 
         Exp clone() { return new ListAddExp(list->clone(), idx->clone(), elem->clone()); }
@@ -49,7 +50,8 @@ class ListRemExp : public Expression {
     public:
         ListRemExp(Exp x, Exp i) : list(x), idx(i) {}
         ~ListRemExp() { delete list; delete idx; }
-
+        
+        Type* typeOf(Tenv);
         Val evaluate(Env);
 
         Exp clone() { return new ListRemExp(list->clone(), idx->clone()); }

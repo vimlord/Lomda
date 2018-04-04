@@ -933,10 +933,103 @@ Type* ListExp::typeOf(Tenv tenv) {
         show_proof_therefore(type_res_str(tenv, this, NULL));
         return NULL;
     }
-    
-
 }
 Type* ListAccessExp::typeOf(Tenv tenv) {
+    auto L = list->typeOf(tenv);
+    if (!L) {
+        show_proof_therefore(type_res_str(tenv, this, NULL));
+        return NULL;
+    }
+
+    auto Ts = new ListType(tenv->make_tvar());
+
+    auto A = L->unify(Ts, tenv);
+    delete L;
+    delete Ts;
+
+    if (!A) {
+        show_proof_therefore(type_res_str(tenv, this, NULL));
+        return NULL;
+    }
+
+    auto I = idx->typeOf(tenv);
+    if (!I) {
+        delete A;
+        show_proof_therefore(type_res_str(tenv, this, NULL));
+        return NULL;
+    }
+
+    auto Z = new IntType;
+
+    // The type of the index must be unifiable w/ Z
+    auto B = I->unify(Z, tenv);
+    delete I;
+    delete Z;
+    if (!B) {
+        delete A;
+        show_proof_therefore(type_res_str(tenv, this, NULL));
+        return NULL;
+    }
+    
+    auto T = ((ListType*) A)->subtype()->clone();
+
+    delete A;
+    delete B;
+
+    return T;
+}
+Type* ListAddExp::typeOf(Tenv tenv) {
+    auto L = list->typeOf(tenv);
+    if (!L) {
+        show_proof_therefore(type_res_str(tenv, this, NULL));
+        return NULL;
+    }
+
+    auto E = elem->typeOf(tenv);
+    if (!E) {
+        show_proof_therefore(type_res_str(tenv, this, NULL));
+        delete L;
+        return NULL;
+    }
+
+    auto Ts = new ListType(E);
+
+    auto A = L->unify(Ts, tenv);
+    delete L;
+    delete Ts;
+
+    if (!A) {
+        show_proof_therefore(type_res_str(tenv, this, NULL));
+        return NULL;
+    }
+
+    auto I = idx->typeOf(tenv);
+    if (!I) {
+        delete A;
+        show_proof_therefore(type_res_str(tenv, this, NULL));
+        return NULL;
+    }
+
+    auto Z = new IntType;
+
+    // The type of the index must be unifiable w/ Z
+    auto B = I->unify(Z, tenv);
+    delete I;
+    delete Z;
+    if (!B) {
+        delete A;
+        show_proof_therefore(type_res_str(tenv, this, NULL));
+        return NULL;
+    }
+    
+    auto T = ((ListType*) A)->subtype()->clone();
+
+    delete A;
+    delete B;
+
+    return T;
+}
+Type* ListRemExp::typeOf(Tenv tenv) {
     auto L = list->typeOf(tenv);
     if (!L) {
         show_proof_therefore(type_res_str(tenv, this, NULL));
