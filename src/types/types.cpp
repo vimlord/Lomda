@@ -518,6 +518,27 @@ Type* DerivativeExp::typeOf(Tenv tenv) {
     }
 
 }
+Type* DictExp::typeOf(Tenv tenv) {
+    auto trie = new Trie<Type*>;
+
+    auto T = new DictType(trie);
+    auto kt = keys->iterator();
+    auto vt = vals->iterator();
+    while (kt->hasNext()) {
+        auto k = kt->next();
+        auto v = vt->next();
+
+        auto t = v->typeOf(tenv);
+        if (!t) {
+            delete T;
+            return NULL;
+        } else
+            trie->add(k, t);
+    }
+
+    return T;
+
+}
 Type* DivExp::typeOf(Tenv tenv) {
     auto A = left->typeOf(tenv);
     if (!A) {
