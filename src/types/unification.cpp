@@ -17,8 +17,60 @@ Type* BoolType::unify(Type* t, Tenv tenv) {
 }
 Type* DictType::unify(Type *t, Tenv tenv) {
     throw_err("type", "Unification of dictionary types is not currently supported");
-    // TODO: Implement unification of dictionary types
-    return NULL;
+
+    if (isType<DictType>(t)) {
+        // The result dictionary type
+        DictType *D = new DictType(new Trie<Type*>);
+
+        DictType *B = (DictType*) t;
+        
+        // Handle all of the type records of this side of the unity
+        auto it = types->iterator();
+        while (it->hasNext()) {
+            auto k = it->next();
+            auto t = types->get(k);
+
+            Type *T;
+
+            if (B->types->hasKey(k)) {
+                auto p = B->types->get(k);
+                
+                // The unification of t = p
+                T = t->unify(p, tenv);
+
+                if (!T) {
+                    show_proof_therefore("under "+tenv->toString()+", "+toString()+" = "+t->toString()+" is not unifiable");
+                    delete D;
+                    delete it;
+                    return NULL;
+                }
+
+            } else
+                // Add the type
+                T = t->clone();
+
+            D->types->add(k, T);
+        }
+        delete it;
+
+        // Handle the rest of the unity
+        it = B->types->iterator();
+        while (it->hasNext()) {
+            auto k = it->next();
+
+            if (!D->types->hasKey(k))
+                D->types->add(k, B->types->get(k));
+
+        }
+        delete it;
+
+        return D;
+
+    } else if (isType<VarType>(t))
+        return t->unify(this, tenv);
+    else
+        return NULL;
+
 }
 Type* IntType::unify(Type* t, Tenv tenv) {
     if (isType<RealType>(t)) {
