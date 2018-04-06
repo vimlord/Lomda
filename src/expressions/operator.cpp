@@ -458,6 +458,48 @@ Val ExponentExp::op(Val a, Val b) {
     return pow(a, b);
 }
 
+// Perform Gaussian elimination on an n x n matrix
+bool mtrx_inv(float** mtrx, int n) {
+    // First, we aim to make the initial matrix upper triangular.
+    // This is the only stage in which we will discover whether or
+    // not our matrix is singular.
+    for (int i = 0; i < n; i++) {
+        int k = i;
+        while (!mtrx[k][i] && ++k < n);
+        
+        if (k == n) return false;
+        else if (k > i) {
+            // Perform a row swap
+            auto tmp = mtrx[i];
+            mtrx[i] = mtrx[k];
+            mtrx[k] = tmp;
+        }
+
+        for (int j = i+1; j < 2*n; j++)
+            mtrx[i][j] /= mtrx[i][i];
+        mtrx[i][i] = 1;
+
+        for (int j = i+1; j < n; j++) {
+            for (int k = i; k < 2*n; k++)
+                mtrx[j][k] -= mtrx[i][k] * mtrx[j][i];
+        }
+    }
+
+    // Now, we have assurances that there must exist an inverse.
+    // Complete the inverse.
+    for (int i = n-1; i >= 0; i--) {
+        for (int j = 0; j < i; j++) {
+            for (int k = n; k < 2*n; k++)
+                mtrx[j][k] -= mtrx[i][k] * mtrx[j][i];
+            
+            mtrx[j][i] = 0;
+        }
+    }
+
+    return true;
+
+}
+
 // Expression for multiplying studd
 Val DivExp::op(Value *a, Value *b) {
 
@@ -493,8 +535,45 @@ Val DivExp::op(Value *a, Value *b) {
             return NULL;
         }
     } else {
-        throw_err("runtime", "division is not defined between " + (left ? left->toString() : a->toString()) + " and " + (right ? right->toString() : b->toString()));
-        return NULL;
+        int *dta = typeid(*b) == typeid(ListVal) ? is_matrix(((ListVal*) b)) : NULL;
+        if (!dta || dta[0] != dta[1]) {
+            throw_err("runtime", "division is not defined between " + (left ? left->toString() : a->toString()) + " and " + (right ? right->toString() : b->toString()));
+            return NULL;
+        }
+
+        // Thus, b is a matrix. We can now see if we can invert it via Gaussian reduction.
+        int n = dta[0];
+        delete dta;
+
+        float **mtrx = new float*[n];
+        for (int i = 0; i < n; i++) {
+            mtrx[i] = new float[2*n];
+            for (int j = 0; j < n; j++) {
+                auto ij = (((ListVal*) ((ListVal*) b)->get()->get(i)))->get()->get(j);
+                mtrx[i][j] = typeid(*ij) == typeid(IntVal) ? ((IntVal*) ij)->get() : ((RealVal*) ij)->get();
+                mtrx[i][j+n] = i == j;
+            }
+        }
+
+        bool nsing = mtrx_inv(mtrx, n);
+
+        if (!nsing) {
+            delete mtrx;
+            throw_err("runtime", "matrix defined by " + (right ? right->toString() : b->toString()) + " is singular!");
+            return NULL;
+        }
+
+        auto L = new ListVal;
+        for (int i = 0; i < n; i++) {
+            auto R = new ArrayList<Val>;
+            L->get()->add(i, new ListVal(R));
+            for (int j = 0; j < n; j++)
+                R->add(j, new RealVal(mtrx[i][j+n]));
+            delete[] mtrx[i];
+        }
+        delete[] mtrx;
+
+        return L;
     }
 }
 
