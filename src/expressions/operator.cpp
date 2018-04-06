@@ -244,9 +244,98 @@ Val log(Val v) {
     }
 }
 
+Val identity_matrix(int n) {
+    auto B = new ListVal;
+    for (int i = 0; i < n; i++) {
+        auto L = new ArrayList<Val>;
+        B->get()->add(i, new ListVal(L));
+        for (int j = 0; j < n; j++)
+            L->add(j, new IntVal(i == j ? 1 : 0));
+    }
+    return B;
+}
+
 Val pow(Val b, Val p) {
     if (!b || !p) return NULL;
-    else {
+    else if (typeid(*p) == typeid(IntVal)) {
+        MultExp mult(NULL, NULL);
+        
+        int n = ((IntVal*) p)->get();
+
+        if (n == 0) {
+            // Return the identity
+        } else if (n > 0) {
+            Val v;
+            
+            // We may need to generate an identity matrix
+            if (typeid(*b) == typeid(ListVal)) {
+                auto dta = is_matrix((ListVal*) b);
+                if (dta && dta[0] == dta[1]) {
+                    if (n == 1) {
+                        // Anything to the 1st power is itself.
+                        delete dta;
+                        return b->clone();
+                    }
+
+                    v = identity_matrix(dta[0]);
+                    delete dta;
+
+                } else {
+                    delete dta;
+                    return NULL;
+                }
+            } else if (typeid(*b) == typeid(IntVal) || typeid(*b) == typeid(RealVal))
+                v = new IntVal(1);
+            
+            // If n is nonzero, we need to prevent accidental GC
+            if (n) b->add_ref();
+            while (n) {
+                Val u;
+                if (n & 1) {
+                    // Raise v up by the base
+                    u = mult.op(v, b);
+                    v->rem_ref();
+                    v = u;
+                }
+
+                // Now, we progress the base
+                u = mult.op(b, b);
+                b->rem_ref();
+                b = u;
+
+                n >>= 1;
+            }
+
+            return v;
+
+        } else {
+            DivExp div(NULL, NULL);
+            RealVal I(1);
+            
+            // Invert b
+            b = div.op(&I, b);
+            if (!b) {
+                return NULL;
+            }
+            
+            // Special handling for the minimum integer
+            if (n-1 > n) {
+                MultExp mult(NULL, NULL);
+                auto B = mult.op(b, b);
+                delete b;
+                b = B;
+                p = new IntVal(-(n/2));
+            } else
+                p = new IntVal(-n);
+            
+            // Compute the outcome
+            Val v = pow(b, p);
+            b->rem_ref();
+            p->rem_ref();
+            return v;
+        }
+
+    } else {
         MultExp mult(NULL, NULL);
         auto lnb = log(b);
         
@@ -495,7 +584,8 @@ Val MultExp::op(Value *a, Value *b) {
                     auto it = ((ListVal*) a)->get()->iterator();
 
                     while (res && it->hasNext()) {
-                        Val v = mult.op(it->next(), b);
+                        Val v = it->next();
+                        v = mult.op(v, b);
                         
                         if (!v) {
                             res->rem_ref();
@@ -559,12 +649,14 @@ Val MultExp::op(Value *a, Value *b) {
                 res = new IntVal;
                 
                 auto ait = ((ListVal*) a)->get()->iterator();
-                auto bit = ((ListVal*) a)->get()->iterator();
+                auto bit = ((ListVal*) b)->get()->iterator();
 
                 SumExp sum(NULL, NULL);
                 
                 while (res && ait->hasNext() && bit->hasNext()) {
-                    Val v = op(ait->next(), bit->next());
+                    Val A = ait->next();
+                    Val B = bit->next();
+                    Val v = op(A, B);
                     if (!v) {
                         res->rem_ref();
                         res = NULL;
