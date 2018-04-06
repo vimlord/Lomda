@@ -684,11 +684,8 @@ Val ListAccessExp::evaluate(Env env) {
 
     if (!f)
         return NULL;
-    else if (
-    typeid(*f) != typeid(ListVal) &&
-    typeid(*f) != typeid(StringVal)
-    ) {
-        throw_type_err(list, "list or string");
+    else if (typeid(*f) != typeid(ListVal)) {
+        throw_type_err(list, "list");
         return NULL;
     }
     
@@ -698,58 +695,32 @@ Val ListAccessExp::evaluate(Env env) {
 
     if (!index) return NULL;  
 
-    if (typeid(*f) == typeid(ListVal)) {
-        // The list
-        List<Val> *vals = ((ListVal*) f)->get();
+    // The list
+    List<Val> *vals = ((ListVal*) f)->get();
 
-        if (typeid(*index) != typeid(IntVal)) {
-                throw_type_err(idx, "integer");
-                f->rem_ref();
-                return NULL;
-        }
-        int i = ((IntVal*) index)->get();
-        index->rem_ref();
-        
-        // Bound check
-        if (i < 0 || i >= vals->size()) {
-            throw_err("runtime", "index " + to_string(i) + " is out of bounds (len: " + to_string(vals->size()) + ")");
+    if (typeid(*index) != typeid(IntVal)) {
+            throw_type_err(idx, "integer");
             f->rem_ref();
             return NULL;
-        }
-    
-        // Get the item
-        Val v = vals->get(i);
-
-        v->add_ref();
-        f->rem_ref();
-
-        return v;
-    
-    } else {
-        // The string
-        string s = f->toString();
-        
-        if (typeid(*index) != typeid(IntVal)) {
-                throw_type_err(idx, "integer");
-                f->rem_ref();
-                return NULL;
-        }
-        int i = ((IntVal*) index)->get();
-        index->rem_ref();
-
-        // Bound check
-        if (i < 0 || i >= s.length()) {
-            throw_err("runtime", "index " + to_string(i) + " is out of bounds (len: " + to_string(s.length()) + ")");
-            f->rem_ref();
-            return NULL;
-        }
-
-        s = s.substr(i, 1);
-
-        f->rem_ref();
-        
-        return new StringVal(s);
     }
+    int i = ((IntVal*) index)->get();
+    index->rem_ref();
+    
+    // Bound check
+    if (i < 0 || i >= vals->size()) {
+        throw_err("runtime", "index " + to_string(i) + " is out of bounds (len: " + to_string(vals->size()) + ")");
+        f->rem_ref();
+        return NULL;
+    }
+
+    // Get the item
+    Val v = vals->get(i);
+
+    v->add_ref();
+    f->rem_ref();
+
+    return v;
+
 }
 
 Val DictAccessExp::evaluate(Env env) {
@@ -848,8 +819,8 @@ Val ListSliceExp::evaluate(Env env) {
 
     if (!lst)
         return NULL;
-    else if (typeid(*lst) != typeid(ListVal) && typeid(*lst) != typeid(StringVal)) {
-        throw_type_err(list, "list or string");
+    else if (typeid(*lst) != typeid(ListVal)) {
+        throw_type_err(list, "list");
         lst->rem_ref(); // Garbage collection
         return NULL;
     }
@@ -895,51 +866,36 @@ Val ListSliceExp::evaluate(Env env) {
     else
         j = lst->toString().length();
     
-    if (typeid(*lst) == typeid(ListVal)) {
-        // The list
-        ArrayList<Val> *vals = ((ListVal*) lst)->get();
+    // The list
+    ArrayList<Val> *vals = ((ListVal*) lst)->get();
 
-        if (i < 0 || j < 0 || i >= vals->size() || j > vals->size()) {
-            throw_err("runtime", "index " + to_string(i) + " is out of bounds (len: " + to_string(vals->size()) + ")");
-            lst->rem_ref();
-            return NULL;
-        }
-
-        // Get the item
-        auto vs = new ArrayList<Val>;
-        
-        auto it = vals->iterator();
-
-        int x;
-        for (x = 0; x < i; x++) it->next();
-        for (;x < j && it->hasNext(); x++) {
-            // Add the value and a reference to it
-            Val v = it->next();
-            vs->add(vs->size(), v);
-            v->add_ref();
-        }
-        
-        // Garbage collection
+    if (i < 0 || j < 0 || i >= vals->size() || j > vals->size()) {
+        throw_err("runtime", "index " + to_string(i) + " is out of bounds (len: " + to_string(vals->size()) + ")");
         lst->rem_ref();
-        delete it;
-
-        Val res = new ListVal(vs);
-
-        return res;
-    } else {
-        // String
-        string s = lst->toString();
-
-        if (i < 0 || j < 0 || i >= s.length() || j > s.length()) {
-            throw_err("runtime", "index " + to_string(i) + " is out of bounds (len: " + to_string(s.length()) + ")");
-            lst->rem_ref();
-            return NULL;
-        }
-
-        lst->rem_ref();
-
-        return new StringVal(s.substr(i, j-i));
+        return NULL;
     }
+
+    // Get the item
+    auto vs = new ArrayList<Val>;
+    
+    auto it = vals->iterator();
+
+    int x;
+    for (x = 0; x < i; x++) it->next();
+    for (;x < j && it->hasNext(); x++) {
+        // Add the value and a reference to it
+        Val v = it->next();
+        vs->add(vs->size(), v);
+        v->add_ref();
+    }
+    
+    // Garbage collection
+    lst->rem_ref();
+    delete it;
+
+    Val res = new ListVal(vs);
+
+    return res;
 }
 
 Val MagnitudeExp::evaluate(Env env) {
