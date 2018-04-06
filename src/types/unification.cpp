@@ -16,8 +16,6 @@ Type* BoolType::unify(Type* t, Tenv tenv) {
         return t->unify(this, tenv);
 }
 Type* DictType::unify(Type *t, Tenv tenv) {
-    throw_err("type", "Unification of dictionary types is not currently supported");
-
     if (isType<DictType>(t)) {
         // The result dictionary type
         DictType *D = new DictType(new Trie<Type*>);

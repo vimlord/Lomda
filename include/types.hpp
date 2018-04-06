@@ -183,13 +183,15 @@ class DictType : public Type {
     private:
         Trie<Type*> *types;
     public:
-        DictType(Trie<Type*> *ts)
+        DictType(Trie<Type*> *ts = new Trie<Type*>)
         : types(ts) {}
         ~DictType() {
             auto it = types->iterator();
             while (it->hasNext()) delete types->get(it->next());
             delete types;
         }
+
+        Trie<Type*>* getTypes() { return types; }
 
         Type* clone();
         Type* unify(Type*, Tenv);

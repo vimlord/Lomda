@@ -151,6 +151,9 @@ string ListExp::toString() {
 
 }
 
+string DictAccessExp::toString() {
+    return list->toString() + "." + idx;
+}
 string ListAccessExp::toString() {
     return list->toString() + "[" + idx->toString() + "]";
 }

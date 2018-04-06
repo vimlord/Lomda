@@ -549,6 +549,10 @@ Exp DictExp::opt_const_prop(opt_varexp_map &vs, opt_varexp_map &end) {
     return this;
 }
 
+Exp DictAccessExp::optimize() {
+    return this;
+}
+
 Exp SetExp::optimize() {
     tgt->optimize();
     exp->optimize();

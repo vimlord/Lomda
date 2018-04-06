@@ -686,10 +686,9 @@ Val ListAccessExp::evaluate(Env env) {
         return NULL;
     else if (
     typeid(*f) != typeid(ListVal) &&
-    typeid(*f) != typeid(DictVal) &&
     typeid(*f) != typeid(StringVal)
     ) {
-        throw_type_err(list, "dict, list, or string");
+        throw_type_err(list, "list or string");
         return NULL;
     }
     
@@ -726,27 +725,6 @@ Val ListAccessExp::evaluate(Env env) {
 
         return v;
     
-    } else if (typeid(*f) == typeid(DictVal)) {
-
-        if (typeid(*index) != typeid(StringVal)) {
-            throw_type_err(idx, "string");
-            f->rem_ref();
-            index->rem_ref();
-            return NULL;
-        }
-        string i = ((StringVal*) index)->get();
-        index->rem_ref();
-        
-        Val v = ((DictVal*) f)->apply(i);
-        
-        // We will return a void-exp on failure.
-        if (!v) {
-            throw_err("runtime", "key " + i + " is not defined in dictionary " + f->toString());
-        } else
-            v->add_ref();
-
-        return v;
-
     } else {
         // The string
         string s = f->toString();
@@ -771,6 +749,32 @@ Val ListAccessExp::evaluate(Env env) {
         f->rem_ref();
         
         return new StringVal(s);
+    }
+}
+
+Val DictAccessExp::evaluate(Env env) {
+    Val f = list->evaluate(env);
+    f = unpack_thunk(f);
+
+    if (!f)
+        return NULL;
+    else if (typeid(*f) != typeid(DictVal)) {
+        throw_type_err(list, "dict, list, or string");
+        return NULL;
+    } else {
+        DictVal *d = (DictVal*) f;
+        Val v;
+
+        if (d->getVals()->hasKey(idx)) {
+            v = d->getVals()->get(idx);
+            v->add_ref();
+            return v;
+        } else
+            v = new VoidVal;
+
+        d->rem_ref();
+        
+        return v;
     }
 }
 

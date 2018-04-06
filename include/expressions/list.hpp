@@ -3,6 +3,27 @@
 
 #include "expression.hpp"
 
+class DictAccessExp : public Expression {
+    private:
+        Exp list;
+        std::string idx;
+    public:
+        DictAccessExp(Exp x, std::string i) : list(x), idx(i) {}
+        ~DictAccessExp() { delete list; }
+
+        Val evaluate(Env);
+        Val derivativeOf(std::string, Env, Env);
+        Type* typeOf(Tenv);
+
+        Exp clone() { return new DictAccessExp(list->clone(), idx); }
+        std::string toString();
+
+        Exp getList() { return list; }
+        std::string getIdx() { return idx; }
+
+        Exp optimize();
+};
+
 // For accessing an element of an array (theoretically, can be used to get or set)
 class ListAccessExp : public Expression {
     private:

@@ -530,14 +530,40 @@ Type* DictExp::typeOf(Tenv tenv) {
 
         auto t = v->typeOf(tenv);
         if (!t) {
+            show_proof_therefore(type_res_str(tenv, this, NULL));
             delete T;
             return NULL;
         } else
             trie->add(k, t);
     }
 
+    show_proof_therefore(type_res_str(tenv, this, T));
     return T;
+}
+Type* DictAccessExp::typeOf(Tenv tenv) {
+    Type *D = list->typeOf(tenv);
 
+    Type *E = new DictType(new Trie<Type*>);
+
+    Type *F = D->unify(E, tenv);
+    delete D;
+    delete E;
+
+    if (!F) {
+        show_proof_therefore(type_res_str(tenv, this, NULL));
+        return NULL;
+    }
+    
+    Type *T;
+    if (((DictType*) F)->getTypes()->hasKey(idx))
+        T = ((DictType*) F)->getTypes()->get(idx)->clone();
+    else
+        T = new VoidType;
+    delete F;
+
+    show_proof_therefore(type_res_str(tenv, this, T));
+
+    return T;
 }
 Type* DivExp::typeOf(Tenv tenv) {
     auto A = left->typeOf(tenv);

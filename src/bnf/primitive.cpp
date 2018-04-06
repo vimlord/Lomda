@@ -572,7 +572,7 @@ ParsedPrgms parseAccessor(string str, bool ends) {
             parsed_id id = parseId(s);
             if (id.len > 0) {
                 parsed_prgm p;
-                p.item = new ListAccessExp(lst.item->clone(), new StringExp(id.item));
+                p.item = new DictAccessExp(lst.item->clone(), id.item);
                 p.len = lst.len + id.len;
 
                 lists->add(0, p);

@@ -535,6 +535,29 @@ Val ListExp::derivativeOf(string x, Env env, Env denv) {
     return val;
 }
 
+Val DictAccessExp::derivativeOf(string x, Env env, Env denv) {
+    Val lst = list->derivativeOf(x, env, denv);
+    if (!lst) return NULL;
+    else if (typeid(*lst) != typeid(DictVal)) {
+        throw_type_err(list, "list");
+        lst->rem_ref();
+        return NULL;
+    }
+
+    auto trie = ((DictVal*) lst)->getVals();
+    
+    Val v;
+    if (trie->hasKey(idx)) {
+        v = trie->get(idx);
+        v->add_ref();
+    } else
+        v = NULL;
+
+    lst->rem_ref();
+
+    return v;
+}
+
 Val ListAccessExp::derivativeOf(string x, Env env, Env denv) {
     Val lst = list->derivativeOf(x, env, denv);
     if (!lst) return NULL;
