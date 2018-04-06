@@ -1042,7 +1042,10 @@ Val sqnorm(Val v, Env env) {
 
         return new RealVal(sum);
 
-    } else return NULL;
+    } else {
+        throw_err("type", "value " + v->toString() + " does not evaluate to a numerical type");
+        return NULL;
+    }
 }
 Val NormExp::evaluate(Env env) {
     Val val = exp->evaluate(env);

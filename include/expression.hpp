@@ -322,6 +322,7 @@ class NormExp : public Expression {
 
         Val evaluate(Env);
         //Val derivativeOf(std::string, Env, Env);
+        Type* typeOf(Tenv);
 
         std::string toString();
 

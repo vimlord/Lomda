@@ -1407,6 +1407,37 @@ Type* MultExp::typeOf(Tenv tenv) {
     }
     return C;
 }
+Type* NormExp::typeOf(Tenv tenv) {
+    auto T = exp->typeOf(tenv);
+    if (!T) {
+        show_proof_therefore(type_res_str(tenv, this, T));
+        return NULL;
+    } else if (T->isConstant(tenv)) {
+        // We can check numericality
+        Type *R = T;
+        int d = 0;
+        while (isType<ListType>(R) && ++d <= 2)
+            R = ((ListType*) R)->subtype();
+        
+        // Ban normalization of 3D or higher lists. We also verify sums.
+        if (d > 2 || !isType<RealType>(R) && !isType<IntType>(R))
+            R = NULL;
+        else
+            R = new RealType;
+        
+        delete T;
+
+        show_proof_therefore(type_res_str(tenv, this, R));
+        return NULL;
+    } else {
+        T = new MultType(T, tenv->make_tvar());
+        auto U = T->subst(tenv);
+        delete T;
+
+        show_proof_therefore(type_res_str(tenv, this, U));
+        return U;
+    }
+}
 Type* NotExp::typeOf(Tenv tenv) {
     auto T = exp->typeOf(tenv);
     if (!T) return NULL;

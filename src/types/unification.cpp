@@ -16,7 +16,9 @@ Type* BoolType::unify(Type* t, Tenv tenv) {
         return t->unify(this, tenv);
 }
 Type* DictType::unify(Type *t, Tenv tenv) {
-    if (isType<DictType>(t)) {
+    if (isType<PrimitiveType>(t)) {
+        return NULL;
+    } else if (isType<DictType>(t)) {
         // The result dictionary type
         DictType *D = new DictType(new Trie<Type*>);
 
@@ -81,8 +83,9 @@ Type* IntType::unify(Type* t, Tenv tenv) {
         return t->unify(this, tenv);
 }
 Type* LambdaType::unify(Type* t, Tenv tenv) {
-
-    if (isType<LambdaType>(t)) {
+    if (isType<PrimitiveType>(t)) {
+        return NULL;
+    } else if (isType<LambdaType>(t)) {
         LambdaType *other = (LambdaType*) t;
         
         show_proof_step("First, we unify the left; suppose " + left->toString() + " = " + other->left->toString() + ".");
@@ -154,7 +157,9 @@ Type* LambdaType::unify(Type* t, Tenv tenv) {
     }
 }
 Type* ListType::unify(Type* t, Tenv tenv) {
-    if (isType<ListType>(t)) {
+    if (isType<PrimitiveType>(t)) {
+        return NULL;
+    } else if (isType<ListType>(t)) {
         auto A = type;
         auto B = ((ListType*) t)->type;
         auto C = type->unify(((ListType*) t)->type, tenv);
