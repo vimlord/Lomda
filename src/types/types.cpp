@@ -30,6 +30,42 @@ Type* reduces_to_type(Type *t, Tenv tenv) {
         return isType<T>(t) ? t : NULL;
 }
 
+Type* DictType::clone() {
+    auto ts = new Trie<Type*>;
+
+    auto tt = types->iterator();
+    while (tt->hasNext()) {
+        string k = tt->next();
+        ts->add(k, types->get(k));
+    }
+    
+    return new DictType(ts);
+}
+
+bool DictType::equals(Type *t, Tenv tenv) {
+    t = reduces_to_type<DictType>(t, tenv);
+    if (!t) return false;
+    else if (isType<VarType>(t))
+        return true;
+    else if (isType<DictType>(t)) {
+        auto T = (DictType*) t;
+        auto it = types->iterator();
+        
+        // Equality checks the intersection of the dictionaries.
+        while (it->hasNext()) {
+            string k = it->next();
+            if (T->types->hasKey(k)) {
+                auto b = types->get(k)->equals(T->types->get(k), tenv);
+                if (!b) {
+                    delete it;
+                    return false;
+                }
+            }
+        }
+        return true;
+    } else
+        return false;
+}
 bool BoolType::equals(Type *t, Tenv tenv) {
     return reduces_to_type<BoolType>(t, tenv);
 }

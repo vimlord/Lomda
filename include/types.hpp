@@ -178,6 +178,25 @@ class VoidType : public PrimitiveType {
         std::string toString() { return "void"; }
 };
 
+// Dictionary type (records)
+class DictType : public Type {
+    private:
+        Trie<Type*> *types;
+    public:
+        DictType(Trie<Type*> *ts)
+        : types(ts) {}
+        ~DictType() {
+            auto it = types->iterator();
+            while (it->hasNext()) delete types->get(it->next());
+            delete types;
+        }
+
+        Type* clone();
+        Type* unify(Type*, Tenv);
+        bool equals(Type*, Tenv);
+        std::string toString();
+};
+
 // Special types for polymorphism
 class VarType : public Type {
     private:

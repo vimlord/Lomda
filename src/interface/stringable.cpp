@@ -346,5 +346,17 @@ std::string TupleType::toString() { return "(" + left->toString() + " * " + righ
 std::string SumType::toString() { return "(" + left->toString() + " + " + right->toString() + ")"; }
 std::string MultType::toString() { return "(" + left->toString() + " x " + right->toString() + ")"; }
 std::string DerivativeType::toString() { return "d" + left->toString() + "/d" + right->toString(); }
+std::string DictType::toString() {
+    string s = "{";
+    auto tt = types->iterator();
+    while (tt->hasNext()) {
+        string id = tt->next();
+        s += id + " : " + types->get(id)->toString();
+        if (tt->hasNext()) s += ", ";
+    }
+    delete tt;
+
+    return s + "}";
+}
 
 

@@ -15,6 +15,11 @@ Type* BoolType::unify(Type* t, Tenv tenv) {
     } else
         return t->unify(this, tenv);
 }
+Type* DictType::unify(Type *t, Tenv tenv) {
+    throw_err("type", "Unification of dictionary types is not currently supported");
+    // TODO: Implement unification of dictionary types
+    return NULL;
+}
 Type* IntType::unify(Type* t, Tenv tenv) {
     if (isType<RealType>(t)) {
         show_mgu_step(tenv, this, t, t);
