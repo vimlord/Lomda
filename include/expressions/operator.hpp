@@ -83,6 +83,7 @@ class CompareExp : public OperatorExp {
         Val op(Val, Val);
 
         Val derivativeOf(std::string, Env, Env);
+        Type* typeOf(Tenv);
         
         Exp clone() { return new CompareExp(left->clone(), right->clone(), operation); }
         std::string toString();

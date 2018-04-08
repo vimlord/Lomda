@@ -579,17 +579,13 @@ Val DivExp::op(Value *a, Value *b) {
 
 Val CompareExp::op(Value *a, Value *b) {  
 
-    if (val_is_number(a) && val_is_number(b)) {
+    if ((val_is_number(a) && val_is_number(b))) {
         auto A =
-            typeid(*a) == typeid(BoolVal)
-            ? ((BoolVal*) a)->get() :
             typeid(*a) == typeid(IntVal)
             ? ((IntVal*) a)->get() :
             ((RealVal*) a)->get();
 
         auto B =
-            typeid(*b) == typeid(BoolVal)
-            ? ((BoolVal*) b)->get() :
             typeid(*b) == typeid(IntVal)
             ? ((IntVal*) b)->get() :
             ((RealVal*) b)->get();
@@ -608,12 +604,43 @@ Val CompareExp::op(Value *a, Value *b) {
             case LEQ:
                 return new BoolVal(A <= B);
             default:
-                return NULL;
+                return new BoolVal(false);
         }
+    } else if (val_is_bool(a) && val_is_bool(b)) {
+        auto A = ((BoolVal*) a)->get();
+        auto B = ((BoolVal*) b)->get();
 
+        switch (operation) {
+            case EQ:
+                return new BoolVal(A == B);
+            case NEQ:
+                return new BoolVal(A != B);
+            default:
+                return new BoolVal(false);
+        }
     } else if (typeid(*a) == typeid(VoidVal) && typeid(*b) == typeid(VoidVal))
         return new BoolVal(operation == CompOp::EQ);
-    else
+    else if (val_is_string(a) && val_is_string(b)) {
+        string A = a->toString();
+        string B = b->toString();
+
+        switch (operation) {
+            case EQ:
+                return new BoolVal(A == B);
+            case NEQ:
+                return new BoolVal(A != B);
+            case GT:
+                return new BoolVal(A > B);
+            case LT:
+                return new BoolVal(A < B);
+            case GEQ:
+                return new BoolVal(A >= B);
+            case LEQ:
+                return new BoolVal(A <= B);
+            default:
+                return new BoolVal(false);
+        }
+    } else
         return new BoolVal(false);
 }
 

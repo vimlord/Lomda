@@ -470,6 +470,17 @@ Type* CastExp::typeOf(Tenv tenv) {
     show_proof_therefore(type_res_str(tenv, this, T));
     return T;
 }
+Type* CompareExp::typeOf(Tenv tenv) {
+    auto A = left->typeOf(tenv);
+    auto B = right->typeOf(tenv);
+
+    auto C = A->unify(B, tenv);
+    delete A;
+    delete B;
+
+    return C;
+
+}
 Type* DiffExp::typeOf(Tenv tenv) {
     auto A = left->typeOf(tenv);
     if (!A) {
