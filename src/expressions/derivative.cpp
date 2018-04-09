@@ -71,7 +71,7 @@ void resolveIdentity(Val val, List<int> *idx = NULL) {
     }
 }
 
-Val deriveConstVal(Val v, int c) {
+Val deriveConstVal(string id, Val v, int c) {
 
     if (typeid(*v) == typeid(StringVal) ||
         typeid(*v) == typeid(BoolVal))
@@ -84,7 +84,7 @@ Val deriveConstVal(Val v, int c) {
         Val res = new ListVal(lst);
 
         while (it->hasNext()) {
-            Val x = deriveConstVal(it->next(), c);
+            Val x = deriveConstVal(id, it->next(), c);
 
             if (!x) {
                 res->rem_ref();
@@ -106,7 +106,7 @@ Val deriveConstVal(Val v, int c) {
         while (vit->hasNext()) {
             auto k = vit->next();
             
-            vals->add(k, deriveConstVal(((DictVal*) v)->getVals()->get(k), c));
+            vals->add(k, deriveConstVal(id, ((DictVal*) v)->getVals()->get(k), c));
         }
 
         delete vit;
@@ -114,10 +114,10 @@ Val deriveConstVal(Val v, int c) {
         return res;
 
     } else if (typeid(*v) == typeid(TupleVal)) {
-        Val L = deriveConstVal(((TupleVal*) v)->getLeft(), c);
+        Val L = deriveConstVal(id, ((TupleVal*) v)->getLeft(), c);
         if (!L) return NULL;
 
-        Val R = deriveConstVal(((TupleVal*) v)->getRight(), c);
+        Val R = deriveConstVal(id, ((TupleVal*) v)->getRight(), c);
         if (!R) { L->rem_ref(); return NULL; }
 
         L->add_ref();
@@ -125,16 +125,36 @@ Val deriveConstVal(Val v, int c) {
 
         return new TupleVal(L, R);
 
-    } else
+    } else if (typeid(*v) == typeid(LambdaVal)) {
+        auto L = (LambdaVal*) v;
+
+        auto body = new DerivativeExp(L->getBody()->clone(), id);
+
+        auto xs = L->getArgs();
+        int i;
+        for (i = 0; xs[i] != ""; i++);
+
+        auto ids = new string[i+1];
+        ids[i] = "";
+        while (i--) ids[i] = xs[i];
+
+        auto env = L->getEnv();
+        if (env) env->add_ref();
+        else env = new EmptyEnv;
+
+        return new LambdaVal(ids, body, env);
+    } else if (typeid(*v) == typeid(IntVal) || typeid(*v) == typeid(RealVal))
         return new IntVal(c);
+    else
+        return NULL;
 }
 
 /**
  * Computes dy/dx ~= c
  */
-Val deriveConstVal(Val y, Val x, int c) {
+Val deriveConstVal(string id, Val y, Val x, int c) {
 
-    //return deriveConstVal(y, c);
+    //return deriveConstVal(id, y, c);
 
     if (typeid(*x) == typeid(StringVal) ||
         typeid(*x) == typeid(BoolVal))
@@ -150,7 +170,7 @@ Val deriveConstVal(Val y, Val x, int c) {
         // Build the subderivatives
         while (it->hasNext()) {
             Val u = it->next();
-            Val dy = deriveConstVal(y, u, 0);
+            Val dy = deriveConstVal(id, y, u, 0);
 
             if (!dy) {
                 res->rem_ref();
@@ -176,8 +196,15 @@ Val deriveConstVal(Val y, Val x, int c) {
 
         while (vit->hasNext()) {
             auto k = vit->next();
-            
-            vals->add(k, deriveConstVal(y, ((DictVal*) x)->getVals()->get(k), 0));
+
+            auto V = deriveConstVal(id, y, ((DictVal*) x)->getVals()->get(k), 0);
+            if (!V) {
+                delete vit;
+                delete res;
+                return NULL;
+            }
+
+            vals->add(k, V);
         }
         
         // GC
@@ -190,10 +217,10 @@ Val deriveConstVal(Val y, Val x, int c) {
         return res;
 
     } else if (typeid(*x) == typeid(TupleVal)) {
-        Val L = deriveConstVal(y, ((TupleVal*) x)->getLeft(), 0);
+        Val L = deriveConstVal(id, y, ((TupleVal*) x)->getLeft(), 0);
         if (!L) return NULL;
 
-        Val R = deriveConstVal(y, ((TupleVal*) x)->getRight(), 0);
+        Val R = deriveConstVal(id, y, ((TupleVal*) x)->getRight(), 0);
         if (!R) { L->rem_ref(); return NULL; }
 
         L->add_ref();
@@ -205,8 +232,10 @@ Val deriveConstVal(Val y, Val x, int c) {
 
         return res;
 
-    } else
-        return deriveConstVal(y, c);
+    } else if (typeid(*x) == typeid(IntVal) || typeid(*x) == typeid(RealVal))
+        return deriveConstVal(id, y, c);
+    else
+        return NULL;
 }
 
 Val AndExp::derivativeOf(string x, Env env, Env denv) {
@@ -225,6 +254,7 @@ Val ApplyExp::derivativeOf(string x, Env env, Env denv) {
     if (!o) return NULL;
     else if (typeid(*o) != typeid(LambdaVal)) {
         throw_type_err(op, "lambda");
+        o->rem_ref();
         return NULL;
     }
 
@@ -1037,10 +1067,10 @@ Val WhileExp::derivativeOf(string x, Env env, Env denv) {
 
 // d/dx c = 0
 Val IntExp::derivativeOf(string x, Env env, Env denv) {
-    return deriveConstVal(env->apply(x), 0);
+    return deriveConstVal(x, env->apply(x), 0);
 }
 Val RealExp::derivativeOf(string x, Env env, Env denv) {
-    return deriveConstVal(env->apply(x), 0);
+    return deriveConstVal(x, env->apply(x), 0);
 }
 
 

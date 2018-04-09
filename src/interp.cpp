@@ -236,7 +236,7 @@ Val DerivativeExp::evaluate(Env env) {
             int c = id == var ? 1 : 0;
             
             Val V = env->apply(var);
-            v = V ? deriveConstVal(v, V, c) : NULL;
+            v = V ? deriveConstVal(var, v, V, c) : NULL;
 
             if (v) {
                 // The value is of a differentiable type

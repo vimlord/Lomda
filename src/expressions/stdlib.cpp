@@ -30,7 +30,6 @@ Val evaluate_sin(Env env) {
     auto z = typeid(*v) == typeid(IntVal)
             ? ((IntVal*) v)->get()
             : ((RealVal*) v)->get();
-    v->rem_ref();
 
     return new RealVal(sin(z));
 }
@@ -47,13 +46,11 @@ Val differentiate_sin(string x, Env env, Env denv) {
     auto z = typeid(*v) == typeid(IntVal)
             ? ((IntVal*) v)->get()
             : ((RealVal*) v)->get();
-    v->rem_ref();
 
 
     auto dz = typeid(*dv) == typeid(IntVal)
             ? ((IntVal*) dv)->get()
             : ((RealVal*) dv)->get();
-    dv->rem_ref();
 
     return new RealVal(dz * cos(z));
 }
@@ -70,7 +67,6 @@ Val evaluate_cos(Env env) {
     auto z = typeid(*v) == typeid(IntVal)
             ? ((IntVal*) v)->get()
             : ((RealVal*) v)->get();
-    v->rem_ref();
 
     return new RealVal(sin(z));
 }
@@ -87,13 +83,11 @@ Val differentiate_cos(string x, Env env, Env denv) {
     auto z = typeid(*v) == typeid(IntVal)
             ? ((IntVal*) v)->get()
             : ((RealVal*) v)->get();
-    v->rem_ref();
 
 
     auto dz = typeid(*dv) == typeid(IntVal)
             ? ((IntVal*) dv)->get()
             : ((RealVal*) dv)->get();
-    dv->rem_ref();
 
     return new RealVal(dz * -sin(z));
 }
@@ -109,7 +103,6 @@ Val evaluate_log(Env env) {
     auto z = typeid(*v) == typeid(IntVal)
             ? ((IntVal*) v)->get()
             : ((RealVal*) v)->get();
-    v->rem_ref();
     
     return new RealVal(log(z));
 }
@@ -126,13 +119,11 @@ Val differentiate_log(string x, Env env, Env denv) {
     auto z = typeid(*v) == typeid(IntVal)
             ? ((IntVal*) v)->get()
             : ((RealVal*) v)->get();
-    v->rem_ref();
 
 
     auto dz = typeid(*dv) == typeid(IntVal)
             ? ((IntVal*) dv)->get()
             : ((RealVal*) dv)->get();
-    dv->rem_ref();
 
     return new RealVal(dz / z);
 }
@@ -148,7 +139,6 @@ Val evaluate_sqrt(Env env) {
     auto z = typeid(*v) == typeid(IntVal)
             ? ((IntVal*) v)->get()
             : ((RealVal*) v)->get();
-    v->rem_ref();
     
     return new RealVal(sqrt(z));
 }
@@ -165,13 +155,11 @@ Val differentiate_sqrt(string x, Env env, Env denv) {
     auto z = typeid(*v) == typeid(IntVal)
             ? ((IntVal*) v)->get()
             : ((RealVal*) v)->get();
-    v->rem_ref();
 
 
     auto dz = typeid(*dv) == typeid(IntVal)
             ? ((IntVal*) dv)->get()
             : ((RealVal*) dv)->get();
-    dv->rem_ref();
 
     return new RealVal(dz / (2 * sqrt(z)));
 }
@@ -184,20 +172,32 @@ void add_to_lib(DictVal *lib, string x, Val val) {
 
 DictVal* build_lib_math() {
 
-    DictVal *lib = new DictVal(
-        new LinkedList<string>,
-        new LinkedList<Val>
-    );
+    DictVal *lib = new DictVal;
 
-    Type *ZtoZ = new LambdaType(new RealType, new RealType);
+    Type *R = new RealType;
     
-    add_to_lib(lib, "sin", make_mono_fn("x", evaluate_sin, ZtoZ, differentiate_sin));
-    add_to_lib(lib, "cos", make_mono_fn("x", evaluate_cos, ZtoZ, differentiate_cos));
-    add_to_lib(lib, "log", make_mono_fn("x", evaluate_log, ZtoZ, differentiate_log));
-    add_to_lib(lib, "sqrt", make_mono_fn("x", evaluate_sqrt, ZtoZ, differentiate_sqrt));
+    add_to_lib(lib, "sin", make_mono_fn("x", evaluate_sin, R, differentiate_sin));
+    add_to_lib(lib, "cos", make_mono_fn("x", evaluate_cos, R, differentiate_cos));
+    add_to_lib(lib, "log", make_mono_fn("x", evaluate_log, R, differentiate_log));
+    add_to_lib(lib, "sqrt", make_mono_fn("x", evaluate_sqrt, R, differentiate_sqrt));
 
     return lib;
 
+}
+
+Type* type_stdlib(string name) {
+    if (name == "math") {
+        auto Ts = new Trie<Type*>;
+        auto D = new DictType(Ts);
+
+        Ts->add("sin", new LambdaType(new RealType, new RealType));
+        Ts->add("cos", new LambdaType(new RealType, new RealType));
+        Ts->add("log", new LambdaType(new RealType, new RealType));
+        Ts->add("sqrt", new LambdaType(new RealType, new RealType));
+
+        return D;
+    } else
+        return NULL;
 }
 
 Val load_stdlib(string name) {

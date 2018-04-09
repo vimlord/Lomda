@@ -25,7 +25,7 @@ inline bool is_keyword(string s) {
         || s == "insert" || s == "into" || s == "at" // insertion
         || s == "remove" || s == "from" // removal
         || s == "let" // let-exp
-        || s == "print" || s == "sin" || s == "cos" || s == "log" || s == "sqrt" // stdlib
+        || s == "print" // stdlib
         || s == "map" || s == "fold" || s == "into" || s == "from" // maps/folds
     ;
 }
@@ -570,7 +570,9 @@ ParsedPrgms parseAccessor(string str, bool ends) {
             s = s.substr(i);
 
             parsed_id id = parseId(s);
+
             if (id.len > 0) {
+
                 parsed_prgm p;
                 p.item = new DictAccessExp(lst.item->clone(), id.item);
                 p.len = lst.len + id.len;

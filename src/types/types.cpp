@@ -403,7 +403,9 @@ Type* ApplyExp::typeOf(Tenv tenv) {
             return ((LambdaType*) T)->getRight()->clone();
         }
 
-        auto env = ((LambdaType*) T)->getEnv()->clone();
+        auto env = ((LambdaType*) T)->getEnv();
+        if (env) env = env->clone();
+        else env = new TypeEnv;
 
         show_proof_step("We must consolidate " + T->toString() + " under " + tenv->toString() + ".");
         
@@ -854,43 +856,49 @@ Type* IfExp::typeOf(Tenv tenv) {
     return Y;
 }
 Type* ImportExp::typeOf(Tenv tenv) {
-    // Attempt to open the file
-    ifstream file;
-    file.open("./" + module + ".lom");
-    
-    // Ensure that the file exists
-    if (!file) {
-        throw_err("IO", "could not load module " + module);
-        return NULL;
-    }
-    
-    // Read the program from the input file
-    int i = 0;
-    string program = "";
-    do {
-        string s;
-        getline(file, s);
 
-        if (i++) program += " ";
-        program += s;
-    } while (file);
+    // First, attempt to chack for a stdlib
+    Type *T = type_stdlib(module);
 
-    throw_debug("module IO", "module " + module + " is defined by '" + program + "'\n");
-    file.close();
-    
-    Exp modexp = compile(program);
-
-    if (!modexp) {
-        show_proof_therefore(type_res_str(tenv,this,NULL));
-        return NULL;
-    }
-
-    Type *T = modexp->typeOf(tenv);
-    delete modexp;
-    
     if (!T) {
-        show_proof_therefore(type_res_str(tenv,this,NULL));
-        return NULL;
+        // Attempt to open the file
+        ifstream file;
+        file.open("./" + module + ".lom");
+        
+        // Ensure that the file exists
+        if (!file) {
+            throw_err("IO", "could not load module " + module);
+            return NULL;
+        }
+        
+        // Read the program from the input file
+        int i = 0;
+        string program = "";
+        do {
+            string s;
+            getline(file, s);
+
+            if (i++) program += " ";
+            program += s;
+        } while (file);
+
+        throw_debug("module IO", "module " + module + " is defined by '" + program + "'\n");
+        file.close();
+        
+        Exp modexp = compile(program);
+
+        if (!modexp) {
+            show_proof_therefore(type_res_str(tenv,this,NULL));
+            return NULL;
+        }
+
+        T = modexp->typeOf(tenv);
+        delete modexp;
+
+        if (!T) {
+            show_proof_therefore(type_res_str(tenv,this,NULL));
+            return NULL;
+        }
     }
     
     // Store the type
