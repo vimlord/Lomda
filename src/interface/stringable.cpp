@@ -34,11 +34,10 @@ string CastExp::toString() {
     return exp->toString() + " as " + type->toString();
 }
 string DerivativeExp::toString() {
-    string s = "d/d" + var; 
-    s += " " + (typeid(*func) == typeid(VarExp)
-        ? func->toString()
-        : "(" + func->toString() + ")"
-    );
+    if (typeid(*func) == typeid(VarExp))
+        return "d" + func->toString() + "/d" + var;
+
+    string s = "d/d" + var + " (" + func->toString() + ")";
     return s;
 }
 string DictVal::toString() {
