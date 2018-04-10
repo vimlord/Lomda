@@ -1273,6 +1273,34 @@ Val SetExp::evaluate(Env env) {
     return v;
 }
 
+Val StdMathExp::evaluate(Env env) {
+    Val v = exp->evaluate(env);
+    if (!v) return NULL;
+    else if (!val_is_number(v)) {
+        throw_err("type", "call to stdlib math functions do not take values not in R");
+        return NULL;
+    }
+
+    auto z = typeid(*v) == typeid(IntVal)
+        ? ((IntVal*) v)->get()
+        : ((RealVal*) v)->get();
+
+    switch (fn) {
+        case SIN:
+            return new RealVal(sin(z));
+        case COS:
+            return new RealVal(cos(z));
+        case LOG:
+            return new RealVal(log(z));
+        case SQRT:
+            return new RealVal(sqrt(z));
+        default:
+            throw_err("lomda", "the given math function is undefined");
+            return NULL;
+    }
+
+}
+
 Val TrueExp::evaluate(Env env) { return new BoolVal(true); }
 
 Val TupleExp::evaluate(Env env) {

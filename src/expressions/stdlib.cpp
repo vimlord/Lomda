@@ -8,160 +8,17 @@
 
 using namespace std;
 
-LambdaVal* make_fn(string *xs, Val (*f)(Env), Type *t, Val (*df)(string, Env, Env) = NULL) {
-    return new LambdaVal(xs, new ImplementExp(f, t, df));
+LambdaVal* make_fn(string *xs, std::string name, Val (*f)(Env), Type *t, Val (*df)(string, Env, Env) = NULL) {
+    auto I = new ImplementExp(f, t, df);
+    I->setName(name);
+    return new LambdaVal(xs, I);
 }
 
-LambdaVal* make_mono_fn(string x, Val (*f)(Env), Type *t, Val (*df)(string, Env, Env) = NULL) {
+LambdaVal* make_mono_fn(string x, std::string name, Val (*f)(Env), Type *t, Val (*df)(string, Env, Env) = NULL) {
     string *xs = new string[2];
     xs[0] = x;
     xs[1] = "";
-    return make_fn(xs, f, t, df);
-}
-
-Val evaluate_sin(Env env) {
-    Val v = env->apply("x");
-    
-    if (!val_is_number(v)) {
-        throw_err("type", "call to stdlib function math.sin does not take non-numerical values");
-        return NULL;
-    }
-    
-    auto z = typeid(*v) == typeid(IntVal)
-            ? ((IntVal*) v)->get()
-            : ((RealVal*) v)->get();
-
-    return new RealVal(sin(z));
-}
-Val differentiate_sin(string x, Env env, Env denv) {
-    Val v = env->apply("x");
-    
-    if (!val_is_number(v)) {
-        throw_err("type", "call to stdlib function math.sin does not take non-numerical values");
-        return NULL;
-    }
-
-    Val dv = denv->apply("x");
-
-    auto z = typeid(*v) == typeid(IntVal)
-            ? ((IntVal*) v)->get()
-            : ((RealVal*) v)->get();
-
-
-    auto dz = typeid(*dv) == typeid(IntVal)
-            ? ((IntVal*) dv)->get()
-            : ((RealVal*) dv)->get();
-
-    return new RealVal(dz * cos(z));
-}
-
-
-Val evaluate_cos(Env env) {
-    Val v = env->apply("x");
-    
-    if (!val_is_number(v)) {
-        throw_err("type", "call to stdlib function math.cos does not take non-numerical values");
-        return NULL;
-    }
-    
-    auto z = typeid(*v) == typeid(IntVal)
-            ? ((IntVal*) v)->get()
-            : ((RealVal*) v)->get();
-
-    return new RealVal(sin(z));
-}
-Val differentiate_cos(string x, Env env, Env denv) {
-    Val v = env->apply("x");
-    
-    if (!val_is_number(v)) {
-        throw_err("type", "call to stdlib function math.cos does not take non-numerical values");
-        return NULL;
-    }
-
-    Val dv = denv->apply("x");
-
-    auto z = typeid(*v) == typeid(IntVal)
-            ? ((IntVal*) v)->get()
-            : ((RealVal*) v)->get();
-
-
-    auto dz = typeid(*dv) == typeid(IntVal)
-            ? ((IntVal*) dv)->get()
-            : ((RealVal*) dv)->get();
-
-    return new RealVal(dz * -sin(z));
-}
-
-Val evaluate_log(Env env) {
-    Val v = env->apply("x");
-    
-    if (!val_is_number(v)) {
-        throw_err("type", "call to stdlib function math.log does not take non-numerical values");
-        return NULL;
-    }
-    
-    auto z = typeid(*v) == typeid(IntVal)
-            ? ((IntVal*) v)->get()
-            : ((RealVal*) v)->get();
-    
-    return new RealVal(log(z));
-}
-Val differentiate_log(string x, Env env, Env denv) {
-    Val v = env->apply("x");
-    
-    if (!val_is_number(v)) {
-        throw_err("type", "call to stdlib function math.log does not take non-numerical values");
-        return NULL;
-    }
-
-    Val dv = denv->apply("x");
-
-    auto z = typeid(*v) == typeid(IntVal)
-            ? ((IntVal*) v)->get()
-            : ((RealVal*) v)->get();
-
-
-    auto dz = typeid(*dv) == typeid(IntVal)
-            ? ((IntVal*) dv)->get()
-            : ((RealVal*) dv)->get();
-
-    return new RealVal(dz / z);
-}
-
-Val evaluate_sqrt(Env env) {
-    Val v = env->apply("x");
-    
-    if (!val_is_number(v)) {
-        throw_err("type", "call to stdlib function math.sqrt does not take non-numerical values");
-        return NULL;
-    }
-    
-    auto z = typeid(*v) == typeid(IntVal)
-            ? ((IntVal*) v)->get()
-            : ((RealVal*) v)->get();
-    
-    return new RealVal(sqrt(z));
-}
-Val differentiate_sqrt(string x, Env env, Env denv) {
-    Val v = env->apply("x");
-    
-    if (!val_is_number(v)) {
-        throw_err("type", "call to stdlib function math.sqrt does not take non-numerical values");
-        return NULL;
-    }
-
-    Val dv = denv->apply("x");
-
-    auto z = typeid(*v) == typeid(IntVal)
-            ? ((IntVal*) v)->get()
-            : ((RealVal*) v)->get();
-
-
-    auto dz = typeid(*dv) == typeid(IntVal)
-            ? ((IntVal*) dv)->get()
-            : ((RealVal*) dv)->get();
-
-    return new RealVal(dz / (2 * sqrt(z)));
+    return make_fn(xs, name, f, t, df);
 }
 
 
@@ -170,40 +27,11 @@ void add_to_lib(DictVal *lib, string x, Val val) {
     lib->getVals()->add(x, val);
 }
 
-DictVal* build_lib_math() {
-
-    DictVal *lib = new DictVal;
-
-    Type *R = new RealType;
-    
-    add_to_lib(lib, "sin", make_mono_fn("x", evaluate_sin, R, differentiate_sin));
-    add_to_lib(lib, "cos", make_mono_fn("x", evaluate_cos, R, differentiate_cos));
-    add_to_lib(lib, "log", make_mono_fn("x", evaluate_log, R, differentiate_log));
-    add_to_lib(lib, "sqrt", make_mono_fn("x", evaluate_sqrt, R, differentiate_sqrt));
-
-    return lib;
-
-}
-
 Type* type_stdlib(string name) {
-    if (name == "math") {
-        auto Ts = new Trie<Type*>;
-        auto D = new DictType(Ts);
-
-        Ts->add("sin", new LambdaType(new RealType, new RealType));
-        Ts->add("cos", new LambdaType(new RealType, new RealType));
-        Ts->add("log", new LambdaType(new RealType, new RealType));
-        Ts->add("sqrt", new LambdaType(new RealType, new RealType));
-
-        return D;
-    } else
-        return NULL;
+    return NULL;
 }
 
 Val load_stdlib(string name) {
-    if (name == "math")
-        return build_lib_math();
-    else
-        return NULL;
+    return NULL;
 }
 

@@ -1648,6 +1648,53 @@ ParsedPrgms parsePrimitive(string str, bool ends) {
         parsed_prgm b; b.len = i; b.item = new InputExp; res->add(0, b); return res;
     }
     
+    // Parse for math functions
+    int j = -1;
+    if ((i = parseLit(str, "sin")) >= 0) j = 0;
+    else if ((i = parseLit(str, "cos")) >= 0) j = 1;
+    else if ((i = parseLit(str, "log")) >= 0) j = 2;
+    else if ((i = parseLit(str, "sqrt")) >= 0) j = 3;
+    if (j >= 0) {
+        int len = i;
+        str = str.substr(i);
+
+        if ((i = parseLit(str, "(")) < 0) {
+            return res;
+        }
+
+        str = str.substr(i);
+        len += i;
+        
+        auto opts = parsePemdas(str, false);
+
+        while (!opts->isEmpty()) {
+            parsed_prgm p = opts->remove(0);
+            auto s = str.substr(p.len);
+            p.len += len;
+
+            i = parseLit(s, ")");
+            if (i >= 0 && (!ends || parseSpaces(s.substr(i)) == s.length() - i)) {
+                p.len += i;
+
+                StdMathExp::MathFn fn;
+                switch (j) {
+                    case 0: fn = StdMathExp::SIN; break;
+                    case 1: fn = StdMathExp::COS; break;
+                    case 2: fn = StdMathExp::LOG; break;
+                    case 3: fn = StdMathExp::SQRT; break;
+                }
+
+                p.item = new StdMathExp(fn, p.item);
+                res->add(0, p);
+            } else {
+                delete p.item;
+            }
+        }
+        return res;
+    }
+
+
+    
     // Parse for string literal
     i = parseLit(str, "\"");
     if (i > 0) {

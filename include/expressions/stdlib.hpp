@@ -22,12 +22,38 @@ class PrintExp : public Expression {
         int opt_var_usage(std::string x);
 };
 
+// An expression that wraps a number of math functions
+class StdMathExp : public Expression {
+    public:
+        enum MathFn {
+            SIN, COS, LOG, SQRT
+        };
+    private:
+        Exp exp;
+        MathFn fn;
+    public:
+        
+        StdMathExp(MathFn f, Exp x) : exp(x), fn(f) {}
+        ~StdMathExp() { delete exp; }
+
+        Val evaluate(Env);
+        Val derivativeOf(std::string, Env, Env);
+        Type* typeOf(Tenv);
+        
+        Exp clone() { return new StdMathExp(fn, exp->clone()); }
+        std::string toString();
+
+        Exp optimize() { exp = exp->optimize(); return this; }
+        int opt_var_usage(std::string x) { return exp->opt_var_usage(x); }
+};
+
 // An expression that calls a function
 class ImplementExp : public Expression {
     private:
         Val (*f)(Env); // The function
         Val (*df)(std::string, Env, Env); // The derivative of the function
         Type *type;
+        std::string name = "";
     public:
         ImplementExp(Val (*fn)(Env), Type *t, Val (*dfn)(std::string, Env, Env) = NULL) : f(fn), df(dfn), type(t) {}
 
@@ -36,7 +62,8 @@ class ImplementExp : public Expression {
         Val evaluate(Env env) { return f(env); }
         Val derivativeOf(std::string x, Env env, Env denv) { return df(x, env, denv); }
 
-        std::string toString() { return "<c-program>"; }
+        void setName(std::string n) { name = n; }
+        std::string toString() { return name.length() == 0 ? "<c-program>" : name; }
 };
 
 // Loads a standard library with a given name, if possible

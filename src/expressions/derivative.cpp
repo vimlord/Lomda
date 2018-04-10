@@ -978,6 +978,41 @@ Val MultExp::derivativeOf(string x, Env env, Env denv) {
     return c;
 }
 
+Val StdMathExp::derivativeOf(string x, Env env, Env denv) {
+    Val v = exp->evaluate(env);
+    if (!v) return NULL;
+    else if (!val_is_number(v)) {
+        throw_err("type", "call to stdlib math functions do not take values not in R");
+        return NULL;
+    }
+
+    Val dv = exp->derivativeOf(x, env, denv);
+    if (!dv) return NULL;
+
+    auto z = typeid(*v) == typeid(IntVal)
+        ? ((IntVal*) v)->get()
+        : ((RealVal*) v)->get();
+
+    auto dz = typeid(*dv) == typeid(IntVal)
+        ? ((IntVal*) dv)->get()
+        : ((RealVal*) dv)->get();
+
+    switch (fn) {
+        case SIN:
+            return new RealVal(dz*cos(z));
+        case COS:
+            return new RealVal(-dz*sin(z));
+        case LOG:
+            return new RealVal(dz/z);
+        case SQRT:
+            return new RealVal(dz/(2*sqrt(z)));
+        default:
+            throw_err("lomda", "the given math function is undefined");
+            return NULL;
+    }
+
+}
+
 // d/dx A+B = dA/dx + dB/dx
 Val SumExp::derivativeOf(string x, Env env, Env denv) {
     Val a = left->derivativeOf(x, env, denv);

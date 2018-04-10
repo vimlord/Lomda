@@ -1614,6 +1614,16 @@ Type* LetExp::typeOf(Tenv tenv) {
 
     return T;
 }
+Type* StdMathExp::typeOf(Tenv tenv) {
+    auto T = exp->typeOf(tenv);
+    auto R = new RealType;
+
+    auto U = T->unify(R, tenv);
+    delete T;
+    delete R;
+
+    return U;
+}
 // Typing rules that evaluate to type U + V
 Type* SumExp::typeOf(Tenv tenv) {
     auto A = left->typeOf(tenv);

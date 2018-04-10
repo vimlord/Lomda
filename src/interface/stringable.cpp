@@ -214,6 +214,29 @@ string SequenceExp::toString() {
 string SetExp::toString() {
     return tgt->toString() + " = " + exp->toString();
 }
+string StdMathExp::toString() {
+    string s;
+    switch (fn) {
+        case SIN:
+            s = "sin(";
+            break;
+        case COS:
+            s = "cos(";
+            break;
+        case LOG:
+            s = "log(";
+            break;
+        case SQRT:
+            s = "sqrt(";
+            break;
+        default:
+            s = "undefined";
+            return s;
+    }
+    
+    s += exp->toString() + ")";
+    return s;
+}
 string StringExp::toString() {
     return "\"" + val + "\"";
 }
