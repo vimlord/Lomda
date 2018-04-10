@@ -7,6 +7,7 @@
 
 #include <cstdlib>
 #include <cmath>
+#include "math.hpp"
 
 using namespace std;
 
@@ -981,35 +982,67 @@ Val MultExp::derivativeOf(string x, Env env, Env denv) {
 Val StdMathExp::derivativeOf(string x, Env env, Env denv) {
     Val v = exp->evaluate(env);
     if (!v) return NULL;
-    else if (!val_is_number(v)) {
-        throw_err("type", "call to stdlib math functions do not take values not in R");
-        return NULL;
-    }
+
+    bool isnum = val_is_number(v);
 
     Val dv = exp->derivativeOf(x, env, denv);
     if (!dv) return NULL;
+    
+    MultExp mult(NULL, NULL);
+    DivExp div(NULL, NULL);
+    Val y;
 
-    auto z = typeid(*v) == typeid(IntVal)
-        ? ((IntVal*) v)->get()
-        : ((RealVal*) v)->get();
-
-    auto dz = typeid(*dv) == typeid(IntVal)
-        ? ((IntVal*) dv)->get()
-        : ((RealVal*) dv)->get();
+    RealVal half(0.5);
+    IntVal two(2);
 
     switch (fn) {
         case SIN:
-            return new RealVal(dz*cos(z));
+            if (isnum) {
+                auto z = typeid(*v) == typeid(IntVal)
+                    ? ((IntVal*) v)->get()
+                    : ((RealVal*) v)->get();
+                auto dz = typeid(*dv) == typeid(IntVal)
+                    ? ((IntVal*) dv)->get()
+                    : ((RealVal*) dv)->get();
+                return new RealVal(dz*cos(z));
+            } else {
+                throw_err("type", "sin is undefined for inputs outside of R");
+                return NULL;
+            }
         case COS:
-            return new RealVal(-dz*sin(z));
+            if (isnum) {
+                auto z = typeid(*v) == typeid(IntVal)
+                    ? ((IntVal*) v)->get()
+                    : ((RealVal*) v)->get();
+                auto dz = typeid(*dv) == typeid(IntVal)
+                    ? ((IntVal*) dv)->get()
+                    : ((RealVal*) dv)->get();
+                return new RealVal(-dz*sin(z));
+            } else {
+                throw_err("type", "cos is undefined for inputs outside of R");
+                return NULL;
+            }
         case LOG:
-            return new RealVal(dz/z);
+            y = mult.op(dv, v);
+            v->rem_ref();
+            dv->rem_ref();
+            return y;
         case SQRT:
-            return new RealVal(dz/(2*sqrt(z)));
-        default:
-            throw_err("lomda", "the given math function is undefined");
-            return NULL;
+            y = pow(v, &half);
+            v->rem_ref();
+            if (!y) { dv->rem_ref(); return NULL; }
+
+            v = mult.op(&two, y);
+            y->rem_ref();
+
+            y = div.op(dv, v);
+            v->rem_ref();
+
+            return y;
     }
+
+    throw_err("lomda", "the given math function is undefined");
+    return NULL;
 
 }
 

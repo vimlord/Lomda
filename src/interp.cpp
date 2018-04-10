@@ -15,7 +15,10 @@
 
 #include <cstring>
 #include <cstdlib>
+
+// For math stuff
 #include <cmath>
+#include "math.hpp"
 
 #include <fstream>
 
@@ -1276,28 +1279,43 @@ Val SetExp::evaluate(Env env) {
 Val StdMathExp::evaluate(Env env) {
     Val v = exp->evaluate(env);
     if (!v) return NULL;
-    else if (!val_is_number(v)) {
-        throw_err("type", "call to stdlib math functions do not take values not in R");
-        return NULL;
-    }
 
-    auto z = typeid(*v) == typeid(IntVal)
-        ? ((IntVal*) v)->get()
-        : ((RealVal*) v)->get();
+    bool isnum = val_is_number(v);
 
     switch (fn) {
         case SIN:
-            return new RealVal(sin(z));
+            if (isnum) {
+                auto z = typeid(*v) == typeid(IntVal)
+                    ? ((IntVal*) v)->get()
+                    : ((RealVal*) v)->get();
+                return new RealVal(sin(z));
+            } else {
+                throw_err("type", "sin is undefined for inputs outside of R");
+                return NULL;
+            }
         case COS:
-            return new RealVal(cos(z));
+            if (isnum) {
+                auto z = typeid(*v) == typeid(IntVal)
+                    ? ((IntVal*) v)->get()
+                    : ((RealVal*) v)->get();
+                return new RealVal(cos(z));
+            } else {
+                throw_err("type", "cos is undefined for inputs outside of R");
+                return NULL;
+            }
         case LOG:
-            return new RealVal(log(z));
+            return log(v);
         case SQRT:
-            return new RealVal(sqrt(z));
-        default:
-            throw_err("lomda", "the given math function is undefined");
-            return NULL;
+            // sqrt is x^0.5
+            Val p = new RealVal(0.5);
+            Val y = pow(v, p);
+            p->rem_ref();
+            return y;
     }
+
+    // In case I do not add it
+    throw_err("lomda", "the given math function is undefined");
+    return NULL;
 
 }
 
