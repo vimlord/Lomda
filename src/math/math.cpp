@@ -63,6 +63,23 @@ int* is_matrix(Val v) {
     return size;
 }
 
+// For building representations of vectors and matrices
+float* extract_vector(ListVal *list) {
+    float *vec = new float[list->get()->size()];
+    for (int i = 0; i < list->get()->size(); i++) {
+        Val v = list->get()->get(i);
+        vec[i] = typeid(*v) == typeid(RealVal) ? ((RealVal*) v)->get() : ((IntVal*) v)->get();
+    }
+    return vec;
+}
+float** extract_matrix(ListVal *list) {
+    float **vec = new float*[list->get()->size()];
+    for (int i = 0; i < list->get()->size(); i++) {
+        vec[i] = extract_vector((ListVal*) list->get()->get(i));
+    }
+    return vec;
+}
+
 bool is_negligible_mtrx(ListVal *mtrx, double eps = 1e-4) {
     auto it = mtrx->get()->iterator();
     while (it->hasNext()) {
@@ -173,19 +190,82 @@ Val log(Val v) {
             delete[] dim;
             return NULL;
         }
-    
+
         // Initialize Xn = I
         auto I = new ListVal;
+        // We will also compute the norm
+        float norm = 0;
         for (int i = 0; i < dim[0]; i++) {
             auto row = new ListVal;
             I->get()->add(i, row);
-            for (int j = 0; j < dim[0]; j++)
+            for (int j = 0; j < dim[0]; j++) {
+                // Update the norm
+                Val x = ((ListVal*) ((ListVal*) v)->get()->get(i))->get()->get(j);
+                float f = typeid(*x) == typeid(RealVal) ? ((RealVal*) x)->get() : ((IntVal*) x)->get();
+                norm += f*f;
+
                 row->get()->add(j, new IntVal(i == j ? 1 : 0));
+            }
         }
 
-        MultExp mult(NULL, NULL);
         DivExp div(NULL, NULL);
         SumExp sum(NULL, NULL);
+
+        if (norm >= 1) {
+            // If the norm is too large, we must scale back our matrix to stay
+            // within the bounds of natural log taylor poly (|x| < 1)
+            //std::cout << "sqnorm is " << norm << "\n";
+
+            float a = norm;
+
+            //std::cout << "let a = " << a << "\n";
+
+            auto A = new ListVal;
+            for (int i = 0; i < dim[0]; i++) {
+                auto row = new ListVal;
+                A->get()->add(i, row);
+                for (int j = 0; j < dim[0]; j++) {
+                    // Update the norm
+                    Val x = ((ListVal*) ((ListVal*) v)->get()->get(i))->get()->get(j);
+                    float f = typeid(*x) == typeid(RealVal) ? ((RealVal*) x)->get() : ((IntVal*) x)->get();
+                    row->get()->add(j, new RealVal(f / a));
+                }
+            }
+
+            auto logA = log(A);
+            A->rem_ref();
+
+            if (!logA) {
+                delete[] dim;
+                I->rem_ref();
+                return NULL;
+            }
+
+            //std::cout << "log(A/a) = " << *logA << "\n";
+
+            // Scale I
+            float loga = log(a);
+            //std::cout << "log a = " << loga << "\n";
+            for (int i = 0; i < dim[0]; i++) {
+                ((ListVal*) ((ListVal*) I)->get()->get(i))->get()->get(i)->rem_ref();
+                ((ListVal*) ((ListVal*) I)->get()->get(i))->get()->set(i, new RealVal(loga));
+            }
+
+            delete[] dim;
+
+            //std::cout << "log(aI) = I log a = " << *I << "\n";
+
+            auto Y = sum.op(I, logA);
+
+            I->rem_ref();
+            logA->rem_ref();
+             
+            return Y;
+        }
+
+        delete[] dim;
+
+        MultExp mult(NULL, NULL);
         DiffExp diff(NULL, NULL);
         
         // 1-x
