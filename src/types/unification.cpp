@@ -162,14 +162,17 @@ Type* ListType::unify(Type* t, Tenv tenv) {
     } else if (isType<ListType>(t)) {
         auto A = type;
         auto B = ((ListType*) t)->type;
-        auto C = type->unify(((ListType*) t)->type, tenv);
+        auto C = A->unify(B, tenv);
 
-        if (C)
+        if (C) {
+            C = new ListType(C);
             show_proof_therefore("under " + tenv->toString() + ", " + toString() + " = " + t->toString() + " unifies to " + C->toString());
-        else
+        } else {
             show_proof_therefore("under " + tenv->toString() + ", " + toString() + " = " + t->toString() + " is not unifiable");
+            return NULL;
+        }
 
-        return C ? new ListType(C) : NULL;
+        return C;
     } else
         return t->unify(this, tenv);
 }
@@ -460,18 +463,29 @@ Type* SumType::unify(Type* t, Tenv tenv) {
             // There does not exist a unification
             return NULL;
 
-    } else if (isType<VarType>(T)) {
+    } else if (isType<VarType>(T) || isType<ListType>(T)) {
+        show_proof_step("We seek to unify " + toString() + " = " + T->toString() + " to a simpler form.");
+        
         Type *U = subst(tenv);
+        show_proof_step("The left side simplifies to " + U->toString());
+
         Type *X = T->unify(U, tenv);
+
+        if (X) {
+            show_proof_step("Hence, " + T->toString() + " = " + U->toString() + " reduces to " + X->toString());
+            show_proof_therefore("under " + tenv->toString() + ", " + T->toString() + ", " + toString() + " / " + X->toString());
+        }
+
         delete T;
         delete U;
         
         return X;
-
-    } else {
-        show_proof_step("We are unable to unify " + toString() + " = " + T->toString() + " under " + tenv->toString() + ".");
-        return NULL;
     }
+
+
+    show_proof_step("We are unable to unify " + toString() + " = " + T->toString() + " under " + tenv->toString() + ".");
+    delete T;
+    return NULL;
 }
 
 Type* MultType::unify(Type* t, Tenv tenv) {
@@ -518,10 +532,29 @@ Type* MultType::unify(Type* t, Tenv tenv) {
         delete U;
 
         return V;
+    } else if (isType<RealType>(T)) {
+        show_proof_step("We seek to unify " + toString() + " = " + T->toString() + " to the fundamental form.");
+        
+        auto U = subst(tenv);
+
+        show_proof_step("The left hand side simplifies to " + U->toString());
+        show_proof_step("Now, we unify " + T->toString() + " = " + U->toString());
+
+        auto V = T->unify(U, tenv);
+
+        if (!V)
+            show_proof_step("We are unable to unify " + toString() + " = " + T->toString() + " under " + tenv->toString() + ".");
+        else
+            show_proof_step("Hence, " + T->toString() + " = " + U->toString() + " reduces to " + V->toString());
+
+        delete T;
+        delete U;
+
+        return V;
     }
 
-    delete T;
     show_proof_step("We are unable to unify " + toString() + " = " + T->toString() + " under " + tenv->toString() + ".");
+    delete T;
     return NULL;
 }
 

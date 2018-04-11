@@ -187,7 +187,7 @@ Type* MultType::subst(Tenv tenv) {
             case 3:
                 return new ListType(T);
             case 2:
-                return a == b ? T : new ListType(T);
+                return a == b ? T : new ListType(new ListType(T));
             case 1:
                 return new ListType(T);
             default:
@@ -667,27 +667,33 @@ Type* ExponentExp::typeOf(Tenv tenv) {
      */
      
     Type *l = new SumType(new MultType(A->clone(), A->clone()), A);
-    auto L = l->subst(tenv);
+    auto L = A->unify(l, tenv);
     delete l;
 
     if (!L) {
         delete B;
+        show_proof_step("Base " + left->toString() + " cannot be typed properly in this context");
         show_proof_therefore(type_res_str(tenv, this, NULL));
         return NULL;
-    }
+    } else
+        show_proof_step("Base types to " + L->toString());
 
     Type *r = new SumType(new MultType(B->clone(), B->clone()), B);
-    auto R = r->subst(tenv);
+    auto R = B->unify(r, tenv);
     delete r;
 
     if (!R) {
         delete L;
+        show_proof_step("Base " + right->toString() + " cannot be typed properly in this context");
         show_proof_therefore(type_res_str(tenv, this, NULL));
         return NULL;
-    }
+    } else
+        show_proof_step("Exponent types to " + R->toString());
     
     MultType *M = new MultType(L, R);
+    show_proof_step("Hence, we define " + L->toString() + " ^ " + R->toString() + " as " + M->toString());
     auto Y = M->subst(tenv);
+    show_proof_step("Which simplifies to " + Y->toString());
     delete M;
 
     show_proof_therefore(type_res_str(tenv, this, Y));
