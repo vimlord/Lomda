@@ -316,22 +316,23 @@ Val MultExp::op(Value *a, Value *b) {
             for (Val A = a; typeid(*A) == typeid(ListVal); ordA++)
                 A = ((ListVal*) A)->get()->get(0);
 
-            if (ordA > 2) {
-                throw_err("runtime", "multiplication is not defined on tensors of rank " + to_string(ordA));
-                return NULL;
-            }
-
             for (Val B = b; typeid(*B) == typeid(ListVal); ordB++)
                 B = ((ListVal*) B)->get()->get(0);
-
-            if (ordB > 2) {
-                throw_err("runtime", "multiplication is not defined on tensors of rank " + to_string(ordB));
+            
+            // The restriction imposed is that multiplication restricts the
+            // domain such that at least one of the arguments must be bounded
+            // to the second order (matrices).
+            if (ordA > 2 && ordB > 2) {
+                throw_err("runtime", "multiplication is not defined on tensors of rank " + to_string(ordA) + " and " + to_string(ordB));
+                return NULL;
+            } else if (ordB > 2 && ordA > 2) {
+                throw_err("runtime", "multiplication is not defined on tensors of rank " + to_string(ordA) + " and " + to_string(ordB));
                 return NULL;
             }
 
             Val res = NULL;
             
-            if (ordA == 2) {
+            if (ordA > 1) {
                 auto lst = new ArrayList<Val>;
                 res = new ListVal(lst);
 
@@ -370,7 +371,7 @@ Val MultExp::op(Value *a, Value *b) {
                     delete it;
                 }
 
-            } else if (ordB == 2) {
+            } else if (ordB > 1) {
                 //std::cout << "1 by 2\n";
                 // List by matrix
                 auto ait = ((ListVal*) a)->get()->iterator();
