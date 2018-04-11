@@ -402,17 +402,76 @@ Val ExponentExp::derivativeOf(string x, Env env, Env denv) {
         return NULL;
     }
 
-    if (val_is_number(l) && val_is_number(r) && val_is_number(dl) && val_is_number(dr)) {
-        auto f = val_is_integer(l) ? ((IntVal*) l)->get() : ((RealVal*) l)->get();
-        auto g = val_is_integer(r) ? ((IntVal*) r)->get() : ((RealVal*) r)->get();
+    if (val_is_number(r)) {
 
-        auto df = val_is_integer(dl) ? ((IntVal*) dl)->get() : ((RealVal*) dl)->get();
-        auto dg = val_is_integer(dr) ? ((IntVal*) dr)->get() : ((RealVal*) dr)->get();
+        // Compute B = gf' + f log f g'
+        SumExp sum(NULL, NULL);
+        MultExp mult(NULL, NULL);
+        
+        // g f'
+        Val gf = mult.op(r, dl);
+        if (!gf) {
+            l->rem_ref();
+            r->rem_ref();
+            dl->rem_ref();
+            dr->rem_ref();
+            return NULL;
+        }
+        
+        // log f
+        Val logf = log(l);
+        if (!logf) {
+            gf->rem_ref();
+            l->rem_ref();
+            r->rem_ref();
+            dl->rem_ref();
+            dr->rem_ref();
+            return NULL;
+        }
+        
+        // f log f
+        Val flf = mult.op(l, logf);
+        logf->rem_ref();
+        
+        // f log(f) g'
+        Val flfg = mult.op(flf, dr);
+        flf->rem_ref();
 
-        auto z = pow(f, g-1) * (g * df + f * log(f) * dg);
+        Val B = sum.op(gf, flfg);
+        flfg->rem_ref();
+        gf->rem_ref();
+        if (!B) {
+            l->rem_ref();
+            r->rem_ref();
+            dl->rem_ref();
+            dr->rem_ref();
+            return NULL;
+        }
 
-        return new RealVal(z);
+        auto g = (val_is_integer(r) ? ((IntVal*) r)->get() : ((RealVal*) r)->get()) - 1;
+        RealVal R(g);
+
+        auto A = pow(l, &R);
+        l->rem_ref();
+        r->rem_ref();
+        dl->rem_ref();
+        dr->rem_ref();
+
+        if (!A) {
+            B->rem_ref();
+            return NULL;
+        }
+        
+        auto y = mult.op(A, B);
+        A->rem_ref();
+        B->rem_ref();
+
+        return y;
     } else {
+        l->rem_ref();
+        r->rem_ref();
+        dl->rem_ref();
+        dr->rem_ref();
         throw_err("calculus", "differentiation is not defined in exponentiation between "
                 + left->toString() + " and " + right->toString());
 

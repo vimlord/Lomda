@@ -345,6 +345,24 @@ Val pow(Val b, Val p) {
 
         if (n == 0) {
             // Return the identity
+            if (typeid(*b) == typeid(RealVal) || typeid(*b) == typeid(IntVal))
+                return new IntVal(1);
+
+            auto dim = is_matrix(b);
+            if (!dim) {
+                throw_err("runtime", "logarithm is not defined on " + b->toString());
+                return NULL;
+            } else if (dim[0] != dim[1]) {
+                throw_err("runtime", "logarithm is not defined on non-square matrix " + b->toString());
+                delete[] dim;
+                return NULL;
+            }
+
+            auto I = identity_matrix(dim[0]);
+            delete[] dim;
+
+            return I;
+
         } else if (n > 0) {
             Val v;
             
