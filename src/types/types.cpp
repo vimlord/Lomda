@@ -652,6 +652,47 @@ Type* DivExp::typeOf(Tenv tenv) {
     }
     return C;
 }
+// Typing of f^g
+Type* ExponentExp::typeOf(Tenv tenv) {
+    Type *A = left->typeOf(tenv);
+    if (!A) return NULL;
+
+    Type *B = right->typeOf(tenv);
+    if (!B) return NULL;
+    
+    /**
+     * Now, we must impose two restrictions:
+     * 1) log(f) must be typable
+     * 2) e^(g log f) must be typable
+     */
+     
+    Type *l = new SumType(new MultType(A->clone(), A->clone()), A);
+    auto L = l->subst(tenv);
+    delete l;
+
+    if (!L) {
+        delete B;
+        show_proof_therefore(type_res_str(tenv, this, NULL));
+        return NULL;
+    }
+
+    Type *r = new SumType(new MultType(B->clone(), B->clone()), B);
+    auto R = r->subst(tenv);
+    delete r;
+
+    if (!R) {
+        delete L;
+        show_proof_therefore(type_res_str(tenv, this, NULL));
+        return NULL;
+    }
+    
+    MultType *M = new MultType(L, R);
+    auto Y = M->subst(tenv);
+    delete M;
+
+    show_proof_therefore(type_res_str(tenv, this, Y));
+    return Y;
+}
 Type* FoldExp::typeOf(Tenv tenv) {
     /* Typing requires the following:
     list : [a]

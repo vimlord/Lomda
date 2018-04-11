@@ -95,6 +95,7 @@ class ExponentExp : public OperatorExp {
 
         Val op(Val, Val);
         Val derivativeOf(std::string, Env, Env);
+        Type* typeOf(Tenv);
 
         Exp clone() { return new ExponentExp(left->clone(), right->clone()); }
         std::string toString();
