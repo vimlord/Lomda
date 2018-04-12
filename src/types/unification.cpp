@@ -123,28 +123,11 @@ Type* LambdaType::unify(Type* t, Tenv tenv) {
         left = x->clone();
         right = y->clone();
         
-        // We must also unify the two environments
-        Tenv te;
-        if (env && other->env)
-            te = env->unify(other->env, tenv);
-        else if (env)
-            te = env->clone();
-        else if (other->env)
-            te = other->env->clone();
-        else
-            te = new TypeEnv;
+        auto T = new LambdaType(x, y);
         
-        auto T = te ? new LambdaType(x, y, te) : NULL;
-        
-        if (T) {
         show_proof_therefore("under " + tenv->toString() + ", "
                 + toString() + " = " + other->toString()
                 + " unifies to (" + x->toString() + " -> " + y->toString() + ")");
-        } else {
-        show_proof_therefore("under " + tenv->toString() + ", "
-                + toString() + " = " + other->toString()
-                + " is not unifiable.");
-        }
 
         return T;
 

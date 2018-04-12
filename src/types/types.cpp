@@ -334,7 +334,6 @@ Type* ApplyExp::typeOf(Tenv tenv) {
             // The function should type as a void -> t
             auto Y = tenv->make_tvar();
             auto F = new LambdaType(new VoidType, Y);
-            F->setEnv(tenv->clone());
             auto G = T->unify(F, tenv);
             delete T;
             delete F;
@@ -370,7 +369,6 @@ Type* ApplyExp::typeOf(Tenv tenv) {
             show_proof_step("We know that " + type_res_str(tenv, args[argc], xs[argc]) + ".");
             F = new LambdaType(xs[argc], F);
         }
-        ((LambdaType*) F)->setEnv(tenv->clone());
         
         // Unification of the function type
         auto S = T->unify(F, tenv);
@@ -403,17 +401,12 @@ Type* ApplyExp::typeOf(Tenv tenv) {
             return ((LambdaType*) T)->getRight()->clone();
         }
 
-        auto env = ((LambdaType*) T)->getEnv();
-        if (env) env = env->clone();
-        else env = new TypeEnv;
-
         show_proof_step("We must consolidate " + T->toString() + " under " + tenv->toString() + ".");
         
         for (int i = 0; args[i]; i++) {
             if (!isType<LambdaType>(T)) {
                 show_proof_therefore(type_res_str(tenv, this, NULL));
                 delete T;
-                delete env;
                 return NULL;
             }
             auto F = (LambdaType*) T;
@@ -424,21 +417,19 @@ Type* ApplyExp::typeOf(Tenv tenv) {
             if (!X) {
                 // The argument is untypable
                 delete T;
-                delete env;
                 show_proof_therefore(type_res_str(tenv, this, NULL));
                 return NULL;
             }
-            X = new LambdaType(X, env->make_tvar());
+            X = new LambdaType(X, tenv->make_tvar());
 
             // In the function tenv, we will unify the
             // argument types
-            show_proof_step("To type " + toString() + ", we must unify " + X->toString() + " = " + F->toString() + " under " + env->toString() + ".");
-            auto Z = X->unify(F, env);
+            show_proof_step("To type " + toString() + ", we must unify " + X->toString() + " = " + F->toString() + " under " + tenv->toString() + ".");
+            auto Z = X->unify(F, tenv);
             delete F;
             delete X;
             if (!Z) {
                 // Non-unifiable
-                delete env;
                 show_proof_therefore(type_res_str(tenv, this, NULL));
                 return NULL;
             }
@@ -447,8 +438,6 @@ Type* ApplyExp::typeOf(Tenv tenv) {
             T = ((LambdaType*) Z)->getRight()->clone();
             delete Z;
         }
-
-        delete env;
         
         show_proof_therefore(type_res_str(tenv, this, T)); // QED
 
@@ -1020,7 +1009,6 @@ Type* LambdaExp::typeOf(Tenv tenv) {
 
     if (argc == 0) {
         T = new LambdaType(new VoidType, T);
-        ((LambdaType*) T)->setEnv(tenv->clone());;
     } else {
         auto env = tenv->clone();
 
@@ -1035,8 +1023,6 @@ Type* LambdaExp::typeOf(Tenv tenv) {
         for (i = argc - 1; i >= 0; i--) {
             T = new LambdaType(tenv->get_tvar(Ts[i]->toString())->clone(), T);
         }
-
-        ((LambdaType*) T)->setEnv(env);
     }
 
 

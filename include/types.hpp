@@ -60,19 +60,13 @@ class PairType : public Type {
 
 // Composite primitive types
 class LambdaType : public PairType {
-    private:
-        Tenv env;
     public:
-        LambdaType(Type *a, Type *b, Tenv t = NULL)
-            : PairType(a,b), env(t) {}
-        ~LambdaType() { delete env; }
+        LambdaType(Type *a, Type *b)
+            : PairType(a,b) {}
 
-        Tenv getEnv() { return env; }
-        void setEnv(Tenv e) { env = e; }
-
-        Type* clone() { return new LambdaType(left->clone(), right->clone(), env ? env->clone() : NULL); }
+        Type* clone() { return new LambdaType(left->clone(), right->clone()); }
         Type* unify(Type*, Tenv);
-        Type* subst(Tenv tenv) { return new LambdaType(left->subst(tenv), right->subst(tenv), env ? env->clone() : NULL); }
+        Type* subst(Tenv tenv) { return new LambdaType(left->subst(tenv), right->subst(tenv)); }
 
         bool equals(Type*, Tenv);
         std::string toString();

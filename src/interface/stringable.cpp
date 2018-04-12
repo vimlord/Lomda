@@ -364,7 +364,7 @@ string TupleVal::toString() { return "(" + left->toString() + ", " + right->toSt
 
 
 std::string LambdaType::toString() {
-    return "(" + left->toString() + " -> " + right->toString() + (env ? (" | " + env->toString()) : "") + ")";
+    return "(" + left->toString() + " -> " + right->toString() + ")";
 }
 std::string ListType::toString() { return "[" + type->toString() + "]"; }
 std::string TupleType::toString() { return "(" + left->toString() + " * " + right->toString() + ")"; }
