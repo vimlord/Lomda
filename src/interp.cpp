@@ -1124,6 +1124,8 @@ Val PrintExp::evaluate(Env env) {
         v->rem_ref();
     }
 
+    std::cout << s << "\n";
+
     return new VoidVal;
 }
 
