@@ -11,7 +11,7 @@ using namespace std;
 
 
 EmptyEnv::EmptyEnv() {}
-ExtendEnv::ExtendEnv(string id, Value* val, Env env) {
+ExtendEnv::ExtendEnv(string id, Val val, Env env) {
     // Store the id to track
     this->id = id;
 

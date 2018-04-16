@@ -865,12 +865,13 @@ ParsedPrgms parseWhileExp(string str, bool ends) {
             parsed_prgm body = bodies->remove(0);
             string st = s.substr(body.len);
             
-            body.item = new WhileExp(cond.item, body.item);
+            body.item = new WhileExp(cond.item->clone(), body.item);
             body.len += length;
             
             res->add(0, body);
         }
-
+        delete bodies;
+        delete cond.item;
     }
 
     delete conditions;

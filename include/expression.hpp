@@ -297,7 +297,7 @@ class MapExp : public Expression {
     public:
         MapExp(Exp f, Exp l) : func(f), list(l) {}
         ~MapExp() { delete func; delete list; }
-        Exp clone() { return new MapExp(list->clone(), func->clone()); }
+        Exp clone() { return new MapExp(func->clone(), list->clone()); }
 
         Val evaluate(Env);
         Val derivativeOf(std::string, Env, Env);

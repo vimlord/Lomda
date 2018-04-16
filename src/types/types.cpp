@@ -457,7 +457,7 @@ Type* CastExp::typeOf(Tenv tenv) {
     }
     delete T;
 
-    T = new BoolType;
+    T = type->clone();
     show_proof_therefore(type_res_str(tenv, this, T));
     return T;
 }
@@ -469,6 +469,12 @@ Type* CompareExp::typeOf(Tenv tenv) {
     delete A;
     delete B;
 
+    if (C) {
+        delete C;
+        C = new BoolType;
+    }
+
+    show_proof_therefore(type_res_str(tenv, this, C));
     return C;
 
 }
@@ -1584,18 +1590,17 @@ Type* SetExp::typeOf(Tenv tenv) {
         return NULL;
     }
     auto E = exp->typeOf(tenv);
+    if (!E) {
+        show_proof_therefore(type_res_str(tenv, this, NULL));
+        delete T;
+        return NULL;
+    }
 
     show_proof_step("Typing requires assignment: " + T->toString() + " = " + E->toString());
 
-    Type *S = NULL;
-    
-    if (E) {
-        // The type of the expression is the unification of
-        // the two expressions
-        S = T->unify(E, tenv);
-        delete E;
-    }
-    
+    Type *S = T->unify(E, tenv);
+
+    delete E;
     delete T;
 
     if (S && typeid(*tgt) == typeid(VarExp)) {
@@ -1719,6 +1724,11 @@ Type* TupleAccessExp::typeOf(Tenv tenv) {
 Type* WhileExp::typeOf(Tenv tenv) {
     auto C = cond->typeOf(tenv);
     auto B = new BoolType;
+
+    if (!C) {
+        show_proof_therefore(type_res_str(tenv, this, NULL));
+        return NULL;
+    }
     
     // Type the conditional
     auto D = C->unify(B, tenv);

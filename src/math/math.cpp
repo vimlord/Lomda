@@ -405,6 +405,8 @@ Val pow(Val b, Val p) {
                 n >>= 1;
             }
 
+            b->rem_ref();
+
             return v;
 
         } else {

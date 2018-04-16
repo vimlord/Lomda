@@ -1082,7 +1082,7 @@ Val StdMathExp::derivativeOf(string x, Env env, Env denv) {
                 return NULL;
             }
         case LOG:
-            y = mult.op(dv, v);
+            y = div.op(dv, v);
             v->rem_ref();
             dv->rem_ref();
             return y;
