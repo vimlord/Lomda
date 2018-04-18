@@ -38,6 +38,8 @@ class StdMathExp : public Expression {
 
         Val evaluate(Env);
         Val derivativeOf(std::string, Env, Env);
+        Exp symb_diff(std::string);
+
         Type* typeOf(Tenv);
         
         Exp clone() { return new StdMathExp(fn, exp->clone()); }

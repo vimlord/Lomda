@@ -281,7 +281,7 @@ Val ApplyExp::derivativeOf(string x, Env env, Env denv) {
         // We must apply the ith argument to the derivative
         Exp comp = new MultExp(
             new ApplyExp(
-                new DerivativeExp(op->clone(), func->getArgs()[i]),
+                op->symb_diff(func->getArgs()[i]),
                 xs
             ),
             new DerivativeExp(args[i]->clone(), x)
@@ -301,11 +301,6 @@ Val ApplyExp::derivativeOf(string x, Env env, Env denv) {
     delete deriv;
 
     return v;
-}
-
-Val CompareExp::derivativeOf(string, Env, Env) {
-    throw_calc_err(this);
-    return NULL;
 }
 
 Val DictExp::derivativeOf(string x, Env env, Env denv) {
@@ -548,7 +543,7 @@ Val LambdaExp::derivativeOf(string x, Env env, Env denv) {
     while (argc--)
         ids[argc] = xs[argc];
 
-    return new LambdaVal(ids, new DerivativeExp(exp->clone(), x), env->clone());
+    return new LambdaVal(ids, exp->symb_diff(x), env->clone());
 }
 
 Val LetExp::derivativeOf(string x, Env env, Env denv) {

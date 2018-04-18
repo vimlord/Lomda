@@ -58,14 +58,12 @@ class DerivativeExp : public Expression {
         ~DerivativeExp() { delete func; }
 
         Val evaluate(Env);
+        Exp symb_diff(std::string);
+
         Type* typeOf(Tenv);
 
         bool postprocessor(Trie<bool> *vars) {
-            if (!vars->hasKey(var)) {
-                throw_err("", "cannot differentiate " + func->toString() + " over unbound variable " + var);
-                return NULL;
-            } else
-                return func->postprocessor(vars);
+            return func->postprocessor(vars);
         }
 
         Exp clone() { return new DerivativeExp(func->clone(), var); }

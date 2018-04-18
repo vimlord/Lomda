@@ -52,6 +52,7 @@ class DiffExp : public OperatorExp {
 
         Val op(Val, Val);
         Val derivativeOf(std::string, Env, Env);
+        Exp symb_diff(std::string);
         Type* typeOf(Tenv);
         
         Exp clone() { return new DiffExp(left->clone(), right->clone()); }
@@ -64,6 +65,8 @@ class DivExp : public OperatorExp {
 
         Val op(Val, Val);
         Val derivativeOf(std::string, Env, Env);
+        Exp symb_diff(std::string);
+
         Type* typeOf(Tenv);
         
         Exp clone() { return new DivExp(left->clone(), right->clone()); }
@@ -82,7 +85,6 @@ class CompareExp : public OperatorExp {
         }
         Val op(Val, Val);
 
-        Val derivativeOf(std::string, Env, Env);
         Type* typeOf(Tenv);
         
         Exp clone() { return new CompareExp(left->clone(), right->clone(), operation); }
@@ -108,6 +110,8 @@ class MultExp : public OperatorExp {
 
         Val op(Val, Val);
         Val derivativeOf(std::string, Env, Env);
+        Exp symb_diff(std::string);
+
         Type* typeOf(Tenv);
         
         Exp clone() { return new MultExp(left->clone(), right->clone()); }
@@ -121,6 +125,8 @@ class SumExp : public OperatorExp {
 
         Val op(Val, Val);
         Val derivativeOf(std::string, Env, Env);
+        Exp symb_diff(std::string);
+
         Type* typeOf(Tenv);
         
         Exp clone() { return new SumExp(left->clone(), right->clone()); }

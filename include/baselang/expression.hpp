@@ -54,6 +54,7 @@ class Expression : public Stringable {
             throw_err("calculus", "expression '" + toString() + "' is non-differentiable");
             return NULL;
         }
+        virtual Expression* symb_diff(std::string x);
 
         virtual bool postprocessor(Trie<bool> *vars = new Trie<bool>) { return true; };
         
