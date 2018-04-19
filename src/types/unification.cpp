@@ -122,8 +122,14 @@ Type* LambdaType::unify(Type* t, Tenv tenv) {
         delete right;
         left = x->clone();
         right = y->clone();
+
+        Type *T;
         
-        auto T = new LambdaType(x, y);
+        // We require that the identifiers match.
+        if (id == other->id || other->id == "" || id == "")
+            T = new LambdaType(id, x, y);
+        else
+            T = NULL;
         
         show_proof_therefore("under " + tenv->toString() + ", "
                 + toString() + " = " + other->toString()

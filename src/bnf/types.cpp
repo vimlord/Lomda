@@ -53,7 +53,7 @@ parsed_type parseType(std::string str, bool ends) {
                     s = s.substr(b.len);
 
                     if (type == 0)
-                        p.item = new LambdaType(a.item, b.item);
+                        p.item = new LambdaType("", a.item, b.item);
                     else
                         p.item = new TupleType(a.item, b.item);
 

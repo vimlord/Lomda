@@ -248,7 +248,53 @@ Type* DerivativeType::subst(Tenv tenv) {
         return L;
     } else if (isType<VarType>(L))
         return clone();
-    else
+    else if (isType<LambdaType>(L)) {
+        auto F = (LambdaType*) L;
+
+        // The input type remains the same
+        auto X = F->getLeft()->clone();
+
+        // Derive the output of the lambda wrt the input type of derivative
+        R = new DerivativeType(F->getRight()->clone(), R->clone());
+        auto Y = R->subst(tenv);
+        delete R;
+         
+        // Check the validity of the substitution generated.
+        if (!Y) return NULL;
+        
+        // d(x->y)/dz = x->(dy/dz)
+        return new LambdaType(F->getX(), X, Y);
+    } else if (isType<SumType>(L)) {
+        SumType *S = (SumType*) L;
+        auto T = new SumType(
+                new DerivativeType(S->getLeft()->clone(), R->clone()),
+                new DerivativeType(S->getRight()->clone(), R->clone())
+        );
+        auto U = T->subst(tenv);
+        delete T;
+        
+        return U;
+    } else if (isType<SumType>(L)) {
+        MultType *S = (MultType*) L;
+         
+        Type *d = new DerivativeType(S->getLeft()->clone(), R->clone());
+        auto dL = d->subst(tenv);
+        delete d;
+
+        d = new DerivativeType(S->getRight()->clone(), R->clone());
+        auto dR = d->subst(tenv);
+        delete d;
+
+        auto T = new SumType(
+            new MultType(L->clone(), dR),
+            new MultType(R->clone(), dL)
+        );
+
+        auto U = T->subst(tenv);
+        delete T;
+        
+        return U;
+    } else
         return NULL;
 }
 
@@ -259,8 +305,8 @@ Type* SumType::subst(Tenv tenv) {
     delete left; delete right;
     left = L; right = R;
     
-    // Unify if possible
     if (L->isConstant(tenv) && R->isConstant(tenv)) {
+        // We will unify if the two sides are constant
         auto S = L->unify(R, tenv);
         return S;
     } else
@@ -333,7 +379,7 @@ Type* ApplyExp::typeOf(Tenv tenv) {
         if (!args[0]) {
             // The function should type as a void -> t
             auto Y = tenv->make_tvar();
-            auto F = new LambdaType(new VoidType, Y);
+            auto F = new LambdaType("", new VoidType, Y);
             auto G = T->unify(F, tenv);
             delete T;
             delete F;
@@ -367,7 +413,7 @@ Type* ApplyExp::typeOf(Tenv tenv) {
         show_proof_step("We will use " + F->toString() + " to define the currently arbitrary return type of " + op->toString() + ", which takes " + to_string(argc) + " arguments.");
         while (argc--) {
             show_proof_step("We know that " + type_res_str(tenv, args[argc], xs[argc]) + ".");
-            F = new LambdaType(xs[argc], F);
+            F = new LambdaType("", xs[argc], F);
         }
         
         // Unification of the function type
@@ -420,7 +466,7 @@ Type* ApplyExp::typeOf(Tenv tenv) {
                 show_proof_therefore(type_res_str(tenv, this, NULL));
                 return NULL;
             }
-            X = new LambdaType(X, tenv->make_tvar());
+            X = new LambdaType("", X, tenv->make_tvar());
 
             // In the function tenv, we will unify the
             // argument types
@@ -512,17 +558,43 @@ C |- x : s    C |- M : t
    C |- d/dx M : dt/ds
 */
 Type* DerivativeExp::typeOf(Tenv tenv) {
-    auto X = tenv->apply(var);
-
     auto Y = func->typeOf(tenv);
 
     if (Y) {
+        Type *X;
+
+        if (!isType<LambdaType>(Y)) {
+            X = tenv->apply(var);
+        } else {
+            show_proof_step("We must extract type of arg " + var + " from " + Y->toString());
+            Type *F = Y;
+            while (typeid(*F) == typeid(LambdaType) && ((LambdaType*) F)->getX() != var)
+                F = ((LambdaType*) F)->getRight();
+
+            show_proof_step("Search reduces to subtype " + F->toString());
+
+            if (typeid(*F) == typeid(LambdaType)) {
+                X = ((LambdaType*) F)->getLeft()->clone();
+                show_proof_step("Thus, yields " + var + " : " + X->toString());
+            } else {
+                show_proof_therefore(type_res_str(tenv, this, NULL));
+                delete Y;
+                return NULL;
+            }
+        }
+
         auto S = new DerivativeType(Y, X);
+        
+        show_proof_step("Thus, " + type_res_str(tenv, this, S) + " if it simplifies");
+
         auto T = S->subst(tenv);
         delete S;
 
         show_proof_therefore(type_res_str(tenv, this, T));
         return T;
+    } else {
+        show_proof_therefore(type_res_str(tenv, this, NULL));
+        return NULL;
     }
 
 }
@@ -745,7 +817,7 @@ Type* FoldExp::typeOf(Tenv tenv) {
 
     // The function must be properly unifiable
     auto c = tenv->make_tvar();
-    Type *G = new LambdaType(b->clone(), new LambdaType(a, c->clone()));
+    Type *G = new LambdaType("", b->clone(), new LambdaType("", a, c->clone()));
     Type *H = F->unify(G, tenv);
     
     delete F;
@@ -1014,7 +1086,7 @@ Type* LambdaExp::typeOf(Tenv tenv) {
     }
 
     if (argc == 0) {
-        T = new LambdaType(new VoidType, T);
+        T = new LambdaType("", new VoidType, T);
     } else {
         auto env = tenv->clone();
 
@@ -1027,7 +1099,7 @@ Type* LambdaExp::typeOf(Tenv tenv) {
             tenv->set(it.first, it.second);
 
         for (i = argc - 1; i >= 0; i--) {
-            T = new LambdaType(tenv->get_tvar(Ts[i]->toString())->clone(), T);
+            T = new LambdaType(xs[i], tenv->get_tvar(Ts[i]->toString())->clone(), T);
         }
     }
 
@@ -1353,7 +1425,7 @@ Type* MapExp::typeOf(Tenv tenv) {
 
     // Next, we need to verify the functionness of F, and
     // go from there.
-    Type *t = new LambdaType(a->clone(), tenv->make_tvar());
+    Type *t = new LambdaType("", a->clone(), tenv->make_tvar());
     show_proof_step("We require that " + F->toString() + " and " + t->toString() + " unify under " + tenv->toString() + ".");
     Type *u = F->unify(t, tenv);
     delete t;
