@@ -59,7 +59,7 @@ class TypeEnv : public Stringable {
                 return 0;
             } else return 1;
         }
-
+        
         void register_tvar(Type *v) { mgu[v->toString()] = v; }
         Type* get_tvar(std::string v);
         void set_tvar(std::string v, Type *t);
@@ -70,6 +70,8 @@ class TypeEnv : public Stringable {
 
         TypeEnv* clone();
         std::string toString();
+
+        static void reset_tvars() { next_id = "a"; }
         
 };
 typedef TypeEnv* Tenv;

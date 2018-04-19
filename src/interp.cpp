@@ -40,7 +40,14 @@ Val run(string program) {
         if (USE_TYPES()) {
             // Use the type system.
             show_proof_step("We seek to find t such that {} ⊢ " + exp->toString() + " : t");
+
+            // For consistency, we need to reset the type variable names.
+            TypeEnv::reset_tvars();
+            
+            // Define a typing environment.
             Tenv tenv = new TypeEnv;
+
+            // Type the expression.
             Type* type = exp->typeOf(tenv);
 
             if (type) {
