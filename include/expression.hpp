@@ -407,6 +407,8 @@ class ThunkExp : public Expression {
 
         Val evaluate(Env env) { env->add_ref(); return new Thunk(exp->clone(), env); }
         Val derivativeOf(std::string x, Env e, Env d) { return exp->derivativeOf(x, e, d); }
+        Exp symb_diff(std::string x);
+
         Type* typeOf(Tenv tenv) { return exp->typeOf(tenv); }
 
         bool postprocessor(Trie<bool> *vars);

@@ -8,13 +8,14 @@
 using namespace std;
 
 Type* reduce_type(Type *t, Tenv tenv) {
-    while (tenv && isType<VarType>(t)) {
+    while (t && isType<VarType>(t)) {
         Type *v = tenv->get_tvar(t->toString());
         if (v->toString() == t->toString())
             return t;
         else
             t = v;
     }
+    return t;
 }
 
 template<class T>
@@ -26,8 +27,8 @@ Type* reduces_to_type(Type *t, Tenv tenv) {
         Type *b = reduces_to_type<T>(((PairType*) t)->getLeft(), tenv);
         if (b) return b;
         return NULL;
-    } else 
-        return isType<T>(t) ? t : NULL;
+    } else
+        return isType<VarType>(t) || isType<T>(t) ? t : NULL;
 }
 
 Type* DictType::clone() {
@@ -70,10 +71,14 @@ bool BoolType::equals(Type *t, Tenv tenv) {
     return reduces_to_type<BoolType>(t, tenv);
 }
 bool IntType::equals(Type *t, Tenv tenv) {
-    return reduces_to_type<IntType>(t, tenv);
+    return reduces_to_type<RealType>(t, tenv);
 }
 bool RealType::equals(Type *t, Tenv tenv) {
-    return reduces_to_type<RealType>(t, tenv);
+    auto r = reduces_to_type<RealType>(t, tenv);
+    auto z = reduces_to_type<IntType>(t, tenv);
+    auto v = reduces_to_type<VarType>(t, tenv);
+
+    return r && (!z || v);
 }
 bool StringType::equals(Type *t, Tenv tenv) {
     return reduces_to_type<StringType>(t, tenv);
@@ -87,9 +92,9 @@ bool LambdaType::equals(Type *t, Tenv tenv) {
         return false;
     else if (isType<VarType>(t))
         return true;
-    else if (isType<LambdaType>(t))
-        return left->equals(((LambdaType*) t)->left, tenv) && right->equals(((LambdaType*) t)->right, tenv);
-    else
+    else if (isType<LambdaType>(t)) {
+        return left->equals(((LambdaType*) t)->left, tenv) && ((LambdaType*) t)->right->equals(right, tenv);
+    } else
         return false;
 }
 bool ListType::equals(Type *t, Tenv tenv) {
@@ -466,14 +471,35 @@ Type* ApplyExp::typeOf(Tenv tenv) {
                 show_proof_therefore(type_res_str(tenv, this, NULL));
                 return NULL;
             }
+
+            show_proof_step("In order to permit the types, we require subsumption "
+                    + X->toString() + " <: " + F->getLeft()->toString() + " to hold under " + tenv->toString());
+
+            if (!X->equals(F->getLeft(), tenv)) {
+                show_proof_step("The subsumption condition fails");
+                show_proof_therefore(type_res_str(tenv, this, NULL));
+
+                // Garbage collection
+                delete F;
+                delete X;
+                return NULL;
+            }
+
             X = new LambdaType("", X, tenv->make_tvar());
 
             // In the function tenv, we will unify the
             // argument types
-            show_proof_step("To type " + toString() + ", we must unify " + X->toString() + " = " + F->toString() + " under " + tenv->toString() + ".");
-            auto Z = X->unify(F, tenv);
+            Type *Z;
+            show_proof_step("To type " + toString()
+                    + ", we must unify " + X->toString()
+                    + " = " + F->toString() + " under "
+                    + tenv->toString() + ".");
+            
+            // With the subsumption permitting, we attempt to unify the two sides.
+            Z = X->unify(F, tenv);
             delete F;
             delete X;
+
             if (!Z) {
                 // Non-unifiable
                 show_proof_therefore(type_res_str(tenv, this, NULL));

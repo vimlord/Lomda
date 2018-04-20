@@ -63,6 +63,12 @@ Exp StdMathExp::symb_diff(string x) {
     return NULL;
 }
 
+Exp ThunkExp::symb_diff(string x) {
+    auto E = exp->symb_diff(x);
+    if (!E) return NULL;
+    else return new ThunkExp(E);
+}
+
 Exp DerivativeExp::symb_diff(string x) {
     // Derive the sublayer.
     auto dy = func->symb_diff(var);
