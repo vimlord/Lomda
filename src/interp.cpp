@@ -558,7 +558,7 @@ bool static_typecheck(Val val, Type *type) {
     if (typeid(*val) == typeid(IntVal))
         return isType<IntType>(type) || isType<RealType>(type);
     else if (typeid(*val) == typeid(RealVal))
-        return isType<RealType>(type);
+        return isType<RealType>(type) && (!isType<IntType>(type) || isType<VarType>(type));
     else if (typeid(*val) == typeid(BoolVal))
         return isType<BoolType>(type);
     else if (typeid(*val) == typeid(StringVal))
