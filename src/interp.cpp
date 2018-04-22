@@ -1197,23 +1197,23 @@ Val SetExp::evaluate(Env env) {
                 lst->rem_ref();
             }
         
-        } else if (typeid(*u) == typeid(DictVal)) {
+        } else {
+            throw_err("type", "cannot perform list assignment to non-list");
+            u->rem_ref();
+            return NULL;
+        }
+
+    } else if (typeid(*tgt) == typeid(DictAccessExp)) {
+        auto acc = (DictAccessExp*) tgt;
+
+        Val u = acc->getList()->evaluate(env);
+        if (!u)
+            return NULL;
+        else if (typeid(*u) == typeid(DictVal)) {
             
             auto lst = (DictVal*) u;
 
-            Val index = acc->getIdx()->evaluate(env);
-            if (!index) {
-                u->rem_ref();
-                return NULL;
-            } else if (typeid(*index) != typeid(StringVal)) {
-                throw_type_err(acc->getIdx(), "string");
-                index->rem_ref();
-                u->rem_ref();
-                return NULL;
-            }
-
-            string idx = ((StringVal*) index)->get();
-            index->rem_ref();
+            auto idx = acc->getIdx();
 
             auto vals = lst->getVals();
             auto vt = vals->iterator();
@@ -1240,12 +1240,12 @@ Val SetExp::evaluate(Env env) {
             // On failure, new element
             if (!done)
                 vals->add(idx, v);
-           
         } else {
+            throw_err("type", "cannot perform dictionary assignment to non-dictionary");
             u->rem_ref();
             return NULL;
         }
-
+    
     } else if (typeid(*tgt) == typeid(VarExp)) {
         VarExp *var = (VarExp*) tgt;
         
