@@ -20,6 +20,22 @@ parsed_type parseType(std::string str, bool ends) {
     } else if ((i = parseLit(str, "Z")) > 0) {
         p.len = i;
         p.item = new IntType;
+    } else if ((i = parseLit(str, "[")) > 0) {
+        p = parseType(str.substr(i), false);
+        if (p.len > 0) {
+            p.len += i;
+            str = str.substr(p.len);
+
+            if ((i = parseLit(str, "]")) > 0) {
+                // Complete the type
+                p.item = new ListType(p.item);
+                p.len += i;
+            } else {
+                // Enact garbage collection.
+                delete p.item;
+                p.len = -1;
+            }
+        }
     } else if ((i = parseLit(str, "(")) > 0) {
         string s = str.substr(i);
         p.len = i;
