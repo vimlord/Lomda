@@ -1,0 +1,70 @@
+# Primitives
+2
+2
+"abc"
+abc
+
+# Boolean operators
+true and false
+false
+
+not false
+true
+
+# Simple function
+() -> 1
+λ.1 | {}
+
+# Lambda keyword functions
+lambda (x, y, z) x * y + z
+λx,y,z.x * y + z | {}
+
+# Let expression
+let x = 2; x + 3
+5
+
+# Function usage
+let f(x) = x*x; f(3)
+9
+
+# void -> Z case
+let f() = 1; f()
+1
+
+# Lists and item retrieval
+[1, 2, 3, 4][2]
+3
+
+# Dictionary with elements
+{x:1,y:2}
+{x : 1, y : 2}
+
+# Empty dictionary
+{}
+{}
+
+# Dictionary reassignment
+let A = {x:1, y:2}; A.x = A.y; A
+{x : 2, y : 2}
+
+
+# For loop
+let x = 0; for i in [1, 2, 3] x = x + i; x
+6
+
+# While loop
+let x = 0, i = 1; while i <= 3 { x = x + i; i = i + 1 }; x
+6
+
+
+# Casting
+"123" as Z
+123
+
+# Static type checking
+3.14 isa Z
+false
+
+[1, 2] isa [R]
+true
+
