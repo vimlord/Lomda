@@ -654,6 +654,53 @@ int SequenceExp::opt_var_usage(std::string x) {
     return use;
 }
 
+Exp StdMathExp::optimize() {
+    // Optimize the argument
+    e = e->optimize();
+
+    Exp res = this;
+    
+    // We will simplify certain interesting items
+    switch (fn) {
+        case LOG:
+            // log(exp(x)) = x
+            if (typeid(*e) == typeid(StdMathExp) && ((StdMathExp*) e)->fn == EXP) {
+                res = ((StdMathExp*) e)->e->clone();
+                delete this;
+            }
+            break;
+        case EXP: // exp(log(x)) = x
+            if (typeid(*e) == typeid(StdMathExp)) {
+                auto x = (StdMathExp*) e;
+                if (x->fn == LOG) {
+                    res = x->e->clone();
+                    delete this;
+                }
+            }
+            break;
+        case SQRT:
+            if (typeid(*e) == typeid(StdMathExp)) {
+                auto x = (StdMathExp*) e;
+                if (x->fn == EXP) {
+                    // sqrt(exp(x)) = exp(x/2)
+                    delete e;
+                    fn = EXP;
+                    e = new MultExp(new RealExp(0.5), e->clone());
+                    return res->optimize();
+                }
+            }
+            break;
+    }
+
+    return res;
+
+}
+
+Exp StdMathExp::opt_const_prop(opt_varexp_map &vs, opt_varexp_map &end) {
+    e = e->opt_const_prop(vs, end);
+    return this;
+}
+
 Exp VarExp::opt_const_prop(opt_varexp_map &vs, opt_varexp_map &end) {
     if (vs.count(id)) {
         // Because the value is known, we can simply return the

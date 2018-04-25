@@ -1654,6 +1654,7 @@ ParsedPrgms parsePrimitive(string str, bool ends) {
     else if ((i = parseLit(str, "cos")) >= 0) j = 1;
     else if ((i = parseLit(str, "log")) >= 0) j = 2;
     else if ((i = parseLit(str, "sqrt")) >= 0) j = 3;
+    else if ((i = parseLit(str, "exp")) >= 0) j = 4;
     if (j >= 0) {
         int len = i;
         str = str.substr(i);
@@ -1682,6 +1683,7 @@ ParsedPrgms parsePrimitive(string str, bool ends) {
                     case 1: fn = StdMathExp::COS; break;
                     case 2: fn = StdMathExp::LOG; break;
                     case 3: fn = StdMathExp::SQRT; break;
+                    case 4: fn = StdMathExp::EXP; break;
                 }
 
                 p.item = new StdMathExp(fn, p.item);

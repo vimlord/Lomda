@@ -1751,7 +1751,7 @@ Type* LetExp::typeOf(Tenv tenv) {
     return T;
 }
 Type* StdMathExp::typeOf(Tenv tenv) {
-    auto T = exp->typeOf(tenv);
+    auto T = e->typeOf(tenv);
     auto R = new RealType;
 
     auto U = T->unify(R, tenv);

@@ -1034,12 +1034,12 @@ Val MultExp::derivativeOf(string x, Env env, Env denv) {
 }
 
 Val StdMathExp::derivativeOf(string x, Env env, Env denv) {
-    Val v = exp->evaluate(env);
+    Val v = e->evaluate(env);
     if (!v) return NULL;
 
     bool isnum = val_is_number(v);
 
-    Val dv = exp->derivativeOf(x, env, denv);
+    Val dv = e->derivativeOf(x, env, denv);
     if (!dv) return NULL;
     
     MultExp mult(NULL, NULL);
@@ -1092,6 +1092,11 @@ Val StdMathExp::derivativeOf(string x, Env env, Env denv) {
             y = div.op(dv, v);
             v->rem_ref();
 
+            return y;
+        case EXP:
+            y - mult.op(v, dv);
+            v->rem_ref();
+            dv->rem_ref();
             return y;
     }
 

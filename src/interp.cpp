@@ -1285,7 +1285,7 @@ Val SetExp::evaluate(Env env) {
 }
 
 Val StdMathExp::evaluate(Env env) {
-    Val v = exp->evaluate(env);
+    Val v = e->evaluate(env);
     if (!v) return NULL;
 
     bool isnum = val_is_number(v);
@@ -1311,6 +1311,8 @@ Val StdMathExp::evaluate(Env env) {
                 throw_err("type", "cos is undefined for inputs outside of R");
                 return NULL;
             }
+        case EXP:
+            return exp(v);
         case LOG:
             return log(v);
         case SQRT:

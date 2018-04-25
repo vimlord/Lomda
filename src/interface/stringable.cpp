@@ -228,12 +228,14 @@ string StdMathExp::toString() {
         case SQRT:
             s = "sqrt(";
             break;
+        case EXP:
+            s = "exp(";
         default:
             s = "undefined";
             return s;
     }
     
-    s += exp->toString() + ")";
+    s += e->toString() + ")";
     return s;
 }
 string StringExp::toString() {

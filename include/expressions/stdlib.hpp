@@ -26,15 +26,15 @@ class PrintExp : public Expression {
 class StdMathExp : public Expression {
     public:
         enum MathFn {
-            SIN, COS, LOG, SQRT
+            SIN, COS, LOG, SQRT, EXP
         };
     private:
-        Exp exp;
+        Exp e;
         MathFn fn;
     public:
         
-        StdMathExp(MathFn f, Exp x) : exp(x), fn(f) {}
-        ~StdMathExp() { delete exp; }
+        StdMathExp(MathFn f, Exp x) : e(x), fn(f) {}
+        ~StdMathExp() { delete e; }
 
         Val evaluate(Env);
         Val derivativeOf(std::string, Env, Env);
@@ -42,11 +42,12 @@ class StdMathExp : public Expression {
 
         Type* typeOf(Tenv);
         
-        Exp clone() { return new StdMathExp(fn, exp->clone()); }
+        Exp clone() { return new StdMathExp(fn, e->clone()); }
         std::string toString();
 
-        Exp optimize() { exp = exp->optimize(); return this; }
-        int opt_var_usage(std::string x) { return exp->opt_var_usage(x); }
+        Exp optimize();
+        int opt_var_usage(std::string x) { return e->opt_var_usage(x); }
+        Exp opt_const_prop(opt_varexp_map&, opt_varexp_map&);
 };
 
 // An expression that calls a function

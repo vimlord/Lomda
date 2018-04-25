@@ -43,20 +43,22 @@ Exp DivExp::symb_diff(string x) {
 }
 
 Exp StdMathExp::symb_diff(string x) {
-    auto dx = exp->symb_diff(x);
+    auto dx = e->symb_diff(x);
     if (!dx) return NULL;
 
     Exp du = NULL;
 
     switch (fn) {
         case SIN:
-            return new MultExp(new StdMathExp(COS, exp->clone()), dx);
+            return new MultExp(new StdMathExp(COS, e->clone()), dx);
         case COS:
-            return new MultExp(new IntExp(-1), new StdMathExp(SIN, exp->clone()));
+            return new MultExp(new IntExp(-1), new StdMathExp(SIN, e->clone()));
         case LOG:
-            return new DivExp(dx, exp->clone());
+            return new DivExp(dx, e->clone());
         case SQRT:
-            return new DivExp(dx, new MultExp(new IntExp(2), new StdMathExp(SQRT, exp->clone())));
+            return new DivExp(dx, new MultExp(new IntExp(2), new StdMathExp(SQRT, e->clone())));
+        case EXP:
+            return new MultExp(e->clone(), dx);
     }
 
     delete dx;
