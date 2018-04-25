@@ -46,8 +46,6 @@ Exp StdMathExp::symb_diff(string x) {
     auto dx = e->symb_diff(x);
     if (!dx) return NULL;
 
-    Exp du = NULL;
-
     switch (fn) {
         case SIN:
             return new MultExp(new StdMathExp(COS, e->clone()), dx);
@@ -58,7 +56,7 @@ Exp StdMathExp::symb_diff(string x) {
         case SQRT:
             return new DivExp(dx, new MultExp(new IntExp(2), new StdMathExp(SQRT, e->clone())));
         case EXP:
-            return new MultExp(e->clone(), dx);
+            return new MultExp(clone(), dx);
     }
 
     delete dx;
