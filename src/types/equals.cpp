@@ -28,6 +28,13 @@ Type* reduces_to_type(Type *t, Tenv tenv) {
         return isType<VarType>(t) || isType<T>(t) ? t : NULL;
 }
 
+bool MultType::equals(Type *t, Tenv tenv) {
+    return left->equals(t, tenv) || right->equals(t, tenv);
+}
+bool SumType::equals(Type *t, Tenv tenv) {
+    return left->equals(t, tenv) || right->equals(t, tenv);
+}
+
 bool BoolType::equals(Type *t, Tenv tenv) {
     return reduces_to_type<BoolType>(t, tenv);
 }
