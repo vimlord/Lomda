@@ -7,29 +7,6 @@
 
 using namespace std;
 
-Type* reduce_type(Type *t, Tenv tenv) {
-    while (t && isType<VarType>(t)) {
-        Type *v = tenv->get_tvar(t->toString());
-        if (v->toString() == t->toString())
-            return t;
-        else
-            t = v;
-    }
-    return t;
-}
-
-template<class T>
-Type* reduces_to_type(Type *t, Tenv tenv) {
-    t = reduce_type(t, tenv);
-    if (isType<SumType>(t) || isType<MultType>(t)) {
-        Type *a = reduces_to_type<T>(((PairType*) t)->getLeft(), tenv);
-        if (a) return a;
-        Type *b = reduces_to_type<T>(((PairType*) t)->getLeft(), tenv);
-        if (b) return b;
-        return NULL;
-    } else
-        return isType<VarType>(t) || isType<T>(t) ? t : NULL;
-}
 
 Type* DictType::clone() {
     auto ts = new Trie<Type*>;
@@ -43,95 +20,7 @@ Type* DictType::clone() {
     return new DictType(ts);
 }
 
-bool DictType::equals(Type *t, Tenv tenv) {
-    t = reduces_to_type<DictType>(t, tenv);
-    if (!t) return false;
-    else if (isType<VarType>(t))
-        return true;
-    else if (isType<DictType>(t)) {
-        auto T = (DictType*) t;
-        auto it = types->iterator();
-        
-        // Equality checks the intersection of the dictionaries.
-        while (it->hasNext()) {
-            string k = it->next();
-            if (T->types->hasKey(k)) {
-                auto b = types->get(k)->equals(T->types->get(k), tenv);
-                if (!b) {
-                    delete it;
-                    return false;
-                }
-            }
-        }
-        return true;
-    } else
-        return false;
-}
-bool BoolType::equals(Type *t, Tenv tenv) {
-    return reduces_to_type<BoolType>(t, tenv);
-}
-bool IntType::equals(Type *t, Tenv tenv) {
-    return reduces_to_type<RealType>(t, tenv);
-}
-bool RealType::equals(Type *t, Tenv tenv) {
-    auto r = reduces_to_type<RealType>(t, tenv);
-    auto z = reduces_to_type<IntType>(t, tenv);
-    auto v = reduces_to_type<VarType>(t, tenv);
 
-    return r && (!z || v);
-}
-bool StringType::equals(Type *t, Tenv tenv) {
-    return reduces_to_type<StringType>(t, tenv);
-}
-bool VoidType::equals(Type *t, Tenv tenv) {
-    return reduces_to_type<VoidType>(t, tenv);
-}
-bool LambdaType::equals(Type *t, Tenv tenv) {
-    t = reduces_to_type<LambdaType>(t, tenv);
-    if (!t)
-        return false;
-    else if (isType<VarType>(t))
-        return true;
-    else if (isType<LambdaType>(t)) {
-        return left->equals(((LambdaType*) t)->left, tenv) && ((LambdaType*) t)->right->equals(right, tenv);
-    } else
-        return false;
-}
-bool ListType::equals(Type *t, Tenv tenv) {
-    t = reduces_to_type<ListType>(t, tenv);
-    if (!t)
-        return false;
-    else if (isType<VarType>(t))
-        return true;
-    else if (isType<ListType>(t))
-        return type->equals(((ListType*) t)->type, tenv);
-    else
-        return false;
-}
-bool MultType::equals(Type *t, Tenv tenv) {
-    return left->equals(t, tenv) || right->equals(t, tenv);
-}
-bool SumType::equals(Type *t, Tenv tenv) {
-    return left->equals(t, tenv) || right->equals(t, tenv);
-}
-bool TupleType::equals(Type *t, Tenv tenv) {
-    t = reduces_to_type<TupleType>(t, tenv);
-    if (!t)
-        return false;
-    else if (isType<VarType>(t))
-        return true;
-    else if (isType<TupleType>(t))
-        return left->equals(((TupleType*) t)->left, tenv) && right->equals(((TupleType*) t)->right, tenv);
-    else
-        return false;
-}
-bool VarType::equals(Type *t, Tenv tenv) {
-    Type *a = reduce_type(this, tenv);
-    Type *b = reduce_type(t, tenv);
-
-    return isType<VarType>(a)
-            || a->equals(b, tenv);
-}
 
 bool VarType::isConstant(Tenv tenv) {
     auto T = tenv->get_tvar(name);
@@ -313,7 +202,19 @@ Type* SumType::subst(Tenv tenv) {
     if (L->isConstant(tenv) && R->isConstant(tenv)) {
         // We will unify if the two sides are constant
         auto S = L->unify(R, tenv);
-        return S;
+
+        if (!S)
+            return NULL;
+
+        // Verify that the numeric invariant holds
+        auto T = S;
+        while (isType<ListType>(T))
+            T = ((ListType*) T)->subtype();
+
+        if (isType<RealType>(T))
+            return S;
+        else
+            return NULL;
     } else
         return clone();
 }
@@ -550,34 +451,6 @@ Type* CompareExp::typeOf(Tenv tenv) {
     return C;
 
 }
-Type* DiffExp::typeOf(Tenv tenv) {
-    auto A = left->typeOf(tenv);
-    if (!A) {
-        show_proof_therefore(type_res_str(tenv, this, NULL));
-        return NULL;
-    }
-
-    auto B = right->typeOf(tenv);
-    if (!B) {
-        show_proof_therefore(type_res_str(tenv, this, NULL));
-        delete A;
-        return NULL;
-    }
-    
-    // We must unify the two types
-    Type *C;
-    if (A->isConstant(tenv) && B->isConstant(tenv)) {
-        C = A->unify(B, tenv);
-        delete A; delete B;
-        return C;
-    } else {
-        C = new SumType(A, B);
-    }
-
-    show_proof_therefore(type_res_str(tenv, this, C));
-
-    return C;
-}
 /*
 C |- x : s    C |- M : t
 ------------------------
@@ -671,127 +544,8 @@ Type* DictAccessExp::typeOf(Tenv tenv) {
 
     return T;
 }
-Type* DivExp::typeOf(Tenv tenv) {
-    auto A = left->typeOf(tenv);
-    if (!A) {
-        show_proof_therefore(type_res_str(tenv, this, NULL));
-        return NULL;
-    }
 
-    auto B = right->typeOf(tenv);
-    if (!B) {
-        show_proof_therefore(type_res_str(tenv, this, NULL));
-        delete A;
-        return NULL;
-    }
-    
-    // We must unify the two types
-    Type *C;
-    if (A->isConstant(tenv) && B->isConstant(tenv)) {
-        
-        int a = 0;
-        int b = 0;
 
-        while (isType<ListType>(A)) {
-            a++;
-            auto C = A;
-            A = ((ListType*) C)->subtype()->clone();
-            delete C;
-        }
-        while (isType<ListType>(B)) {
-            b++;
-            auto C = B;
-            B = ((ListType*) C)->subtype()->clone();
-            delete C;
-        }
-
-        if (a > 2 || b > 2) {
-            // Do not go beyond 2nd order.
-            delete A;
-            delete B;
-            show_proof_therefore(type_res_str(tenv, this, NULL));
-            return NULL;
-        }
-
-        auto C = A->unify(B, tenv);
-        delete A;
-        delete B;
-        if (!C) {
-            show_proof_therefore(type_res_str(tenv, this, NULL));
-            return NULL;
-        } else if (!isType<RealType>(C) || !isType<IntType>(C)) {
-            // The components must be numerical.
-            delete C;
-            show_proof_therefore(type_res_str(tenv, this, NULL));
-            return NULL;
-        }
-
-        switch (a+b) {
-            case 4:
-                C = new ListType(new ListType(C));
-            case 3:
-                C = new ListType(C);
-            case 2:
-                C = a == b ? C : new ListType(C);
-            case 1:
-                C = new ListType(C);
-        }
-
-        show_proof_therefore(type_res_str(tenv, this, C));
-        return C;
-    } else {
-        C = new MultType(A, B);
-        show_proof_therefore(type_res_str(tenv, this, C));
-    }
-    return C;
-}
-// Typing of f^g
-Type* ExponentExp::typeOf(Tenv tenv) {
-    Type *A = left->typeOf(tenv);
-    if (!A) return NULL;
-
-    Type *B = right->typeOf(tenv);
-    if (!B) return NULL;
-    
-    /**
-     * Now, we must impose two restrictions:
-     * 1) log(f) must be typable
-     * 2) e^(g log f) must be typable
-     */
-     
-    Type *l = new SumType(new MultType(A->clone(), A->clone()), A);
-    auto L = A->unify(l, tenv);
-    delete l;
-
-    if (!L) {
-        delete B;
-        show_proof_step("Base " + left->toString() + " cannot be typed properly in this context");
-        show_proof_therefore(type_res_str(tenv, this, NULL));
-        return NULL;
-    } else
-        show_proof_step("Base types to " + L->toString());
-
-    Type *r = new SumType(new MultType(B->clone(), B->clone()), B);
-    auto R = B->unify(r, tenv);
-    delete r;
-
-    if (!R) {
-        delete L;
-        show_proof_step("Base " + right->toString() + " cannot be typed properly in this context");
-        show_proof_therefore(type_res_str(tenv, this, NULL));
-        return NULL;
-    } else
-        show_proof_step("Exponent types to " + R->toString());
-    
-    MultType *M = new MultType(L, R);
-    show_proof_step("Hence, we define " + L->toString() + " ^ " + R->toString() + " as " + M->toString());
-    auto Y = M->subst(tenv);
-    show_proof_step("Which simplifies to " + Y->toString());
-    delete M;
-
-    show_proof_therefore(type_res_str(tenv, this, Y));
-    return Y;
-}
 Type* FoldExp::typeOf(Tenv tenv) {
     /* Typing requires the following:
     list : [a]
@@ -1478,91 +1232,7 @@ Type* MapExp::typeOf(Tenv tenv) {
 
     return L;
 }
-Type* MultExp::typeOf(Tenv tenv) {
-    auto A = left->typeOf(tenv);
-    if (!A) {
-        show_proof_therefore(type_res_str(tenv, this, NULL));
-        return NULL;
-    }
 
-    auto B = right->typeOf(tenv);
-    if (!B) {
-        show_proof_therefore(type_res_str(tenv, this, NULL));
-        delete A;
-        return NULL;
-    }
-    
-    // We must unify the two types
-    Type *C;
-    if (A->isConstant(tenv) && B->isConstant(tenv)) {
-        
-        int a = 0;
-        int b = 0;
-
-        while (isType<ListType>(A)) {
-            a++;
-            auto C = A;
-            A = ((ListType*) A)->subtype()->clone();
-            delete C;
-        }
-        while (isType<ListType>(B)) {
-            b++;
-            auto C = B;
-            B = ((ListType*) B)->subtype()->clone();
-            delete C;
-        }
-
-        if (a > 2 || b > 2) {
-            // Do not go beyond 2nd order.
-            show_proof_step("multiplication is not defined beyond order 2");
-            delete A;
-            delete B;
-            show_proof_therefore(type_res_str(tenv, this, NULL));
-            return NULL;
-        } else {
-            show_proof_step(
-                    "We know that " + left->toString() + " is order " + to_string(a)
-                    + " and " + right->toString() + " is order " + to_string(b) + ".");
-        }
-
-        auto C = A->unify(B, tenv);
-        delete A;
-        delete B;
-        if (!C) {
-            show_proof_therefore(type_res_str(tenv, this, NULL));
-            return NULL;
-        } else if (!isType<RealType>(C) && !isType<IntType>(C)) {
-            // The components must be numerical.
-            delete C;
-            show_proof_therefore(type_res_str(tenv, this, NULL));
-            return NULL;
-        }
-
-        show_proof_step("Hence, we can follow the order " + to_string(a+b) + " case with content type " + C->toString());
-
-        switch (a+b) {
-            case 4:
-                C = new ListType(new ListType(C));
-                break;
-            case 3:
-                C = new ListType(C);
-                break;
-            case 2:
-                C = a == b ? C : new ListType(C);
-                break;
-            case 1:
-                C = new ListType(C);
-                break;
-        }
-
-        show_proof_therefore(type_res_str(tenv, this, C));
-        return C;
-    } else {
-        C = new MultType(A, B);
-        show_proof_therefore(type_res_str(tenv, this, C));
-    }
-    return C;
-}
 Type* NormExp::typeOf(Tenv tenv) {
     auto T = exp->typeOf(tenv);
     if (!T) {
@@ -1696,7 +1366,9 @@ Type* SetExp::typeOf(Tenv tenv) {
 
     show_proof_step("Typing requires assignment: " + T->toString() + " = " + E->toString());
 
-    Type *S = T->unify(E, tenv);
+    Type *S = E->equals(T, tenv)
+        ? T->unify(E, tenv)
+        : NULL;
 
     delete E;
     delete T;
@@ -1759,34 +1431,6 @@ Type* StdMathExp::typeOf(Tenv tenv) {
     delete R;
 
     return U;
-}
-// Typing rules that evaluate to type U + V
-Type* SumExp::typeOf(Tenv tenv) {
-    auto A = left->typeOf(tenv);
-    if (!A) {
-        show_proof_therefore(type_res_str(tenv, this, NULL));
-        return NULL;
-    }
-
-    auto B = right->typeOf(tenv);
-    if (!B) {
-        show_proof_therefore(type_res_str(tenv, this, NULL));
-        delete A;
-        return NULL;
-    }
-    
-    // We must unify the two types
-    Type *C;
-    if (A->isConstant(tenv) && B->isConstant(tenv)) {
-        C = A->unify(B, tenv);
-        delete A; delete B;
-        show_proof_therefore(type_res_str(tenv, this, C));
-        return C;
-    } else {
-        C = new SumType(A, B);
-        show_proof_therefore(type_res_str(tenv, this, C));
-    }
-    return C;
 }
 Type* TupleAccessExp::typeOf(Tenv tenv) {
     auto T = exp->typeOf(tenv);
@@ -1853,45 +1497,3 @@ Type* WhileExp::typeOf(Tenv tenv) {
 }
 
 
-// Typing of primitives
-Type* VarExp::typeOf(Tenv tenv) {
-    auto T = tenv->apply(id);
-    show_proof_step("We recognize " + id + " as being defined by " + T->toString() + ".");
-    return T;
-}
-
-Type* IntExp::typeOf(Tenv tenv) {
-    show_proof_step(toString() + " : Z trivially");
-    return new IntType; }
-
-Type* RealExp::typeOf(Tenv tenv) {
-    show_proof_step(toString() + " : R trivially");
-    return new RealType; }
-
-Type* TrueExp::typeOf(Tenv tenv) {
-    show_proof_step(toString() + " : B trivially");
-    return new BoolType; }
-
-Type* FalseExp::typeOf(Tenv tenv) {
-    show_proof_step(toString() + " : B trivially");
-    return new BoolType; }
-
-Type* TupleExp::typeOf(Tenv tenv) {
-    auto L = left->typeOf(tenv);
-    if (!L) {
-        show_proof_therefore(type_res_str(tenv, this, NULL));
-        return NULL;
-    }
-
-    auto R = right->typeOf(tenv);
-    if (!R) {
-        delete L;
-        show_proof_therefore(type_res_str(tenv, this, NULL));
-        return NULL;
-    }
-
-    auto T = new TupleType(L, R);
-    show_proof_therefore(type_res_str(tenv, this, T));
-
-    return T;
-}
