@@ -84,7 +84,7 @@ Type* AndExp::typeOf(Tenv tenv) {
 Type* ApplyExp::typeOf(Tenv tenv) {
     show_proof_step("To type " + toString() + ", we must match the parameter type(s) of the function with its arguments.");
     auto T = op->typeOf(tenv);
-
+    
     auto Tmp = T->subst(tenv);
     delete T;
     T = Tmp;
@@ -102,14 +102,17 @@ Type* ApplyExp::typeOf(Tenv tenv) {
             auto G = T->unify(F, tenv);
             delete T;
             delete F;
-            delete G;
+            delete Y;
 
-            return Y;
+            return G;
         }
         
+        // Define the number of arguments in the function call.
         int argc;
         for (argc = 0; args[argc]; argc++);
-
+        
+        // We will define the types of the arguments in order to create a
+        // hypothesis about the type of the currently untyped function.
         Type **xs = new Type*[argc];
         for (int i = 0; args[i]; i++) {
             auto X = args[i]->typeOf(tenv);
@@ -124,6 +127,7 @@ Type* ApplyExp::typeOf(Tenv tenv) {
             }
         }
         
+        // We suppose that our function outputs something of some type Y
         auto Y = tenv->make_tvar();
         
         // Build the lambda type, starting from some arbitrary
@@ -135,7 +139,7 @@ Type* ApplyExp::typeOf(Tenv tenv) {
             F = new LambdaType("", xs[argc], F);
         }
         
-        // Unification of the function type
+        // Unification of the function type with our hypothesis
         auto S = T->unify(F, tenv);
         
         // GC
@@ -153,16 +157,16 @@ Type* ApplyExp::typeOf(Tenv tenv) {
 
     } else if (isType<LambdaType>(T)) {
         if (!args[0]) {
-            // Function take zero arguments
+            // We expect the function to take void and return whatever the
+            // right hand side yields.
             if (!isType<VoidType>(((LambdaType*) T)->getLeft())) {
                 show_proof_therefore(type_res_str(tenv, this, NULL));
                 delete T;
                 return NULL;
             }
             
-            show_proof_therefore(type_res_str(tenv, this, T));
-
-            // Otherwise, it's the type of the right hand side.
+            // Thus, our hypothesis should hold.
+            show_proof_therefore(type_res_str(tenv, this, ((LambdaType*) T)->getRight()));
             return ((LambdaType*) T)->getRight()->clone();
         }
 
@@ -170,6 +174,9 @@ Type* ApplyExp::typeOf(Tenv tenv) {
         
         for (int i = 0; args[i]; i++) {
             if (!isType<LambdaType>(T)) {
+                // If we apply too many arguments, then we cannot actually
+                // perform the application. Hence, we have detected an improper
+                // function call.
                 show_proof_therefore(type_res_str(tenv, this, NULL));
                 delete T;
                 return NULL;
@@ -178,7 +185,7 @@ Type* ApplyExp::typeOf(Tenv tenv) {
             
             // Type the argument
             auto X = args[i]->typeOf(tenv);
-
+            
             if (!X) {
                 // The argument is untypable
                 delete T;
@@ -188,7 +195,9 @@ Type* ApplyExp::typeOf(Tenv tenv) {
 
             show_proof_step("In order to permit the types, we require subsumption "
                     + X->toString() + " <: " + F->getLeft()->toString() + " to hold under " + tenv->toString());
-
+            
+            // Subsumption requires that our type X can be used in any way
+            // that the argument of F can be used (ex: Z as an R is okay)
             if (!X->equals(F->getLeft(), tenv)) {
                 show_proof_step("The subsumption condition fails");
                 show_proof_therefore(type_res_str(tenv, this, NULL));
@@ -198,31 +207,32 @@ Type* ApplyExp::typeOf(Tenv tenv) {
                 delete X;
                 return NULL;
             }
-
-            X = new LambdaType("", X, tenv->make_tvar());
-
+            
             // In the function tenv, we will unify the
             // argument types
             Type *Z;
             show_proof_step("To type " + toString()
                     + ", we must unify " + X->toString()
-                    + " = " + F->toString() + " under "
+                    + " = " + F->getLeft()->toString() + " under "
                     + tenv->toString() + ".");
             
-            // With the subsumption permitting, we attempt to unify the two sides.
-            Z = X->unify(F, tenv);
-            delete F;
+            // Because the subsumption holds, we can unify the two types.
+            Z = X->unify(F->getLeft(), tenv);
             delete X;
+            delete Z;
 
             if (!Z) {
                 // Non-unifiable
                 show_proof_therefore(type_res_str(tenv, this, NULL));
+                delete F;
                 return NULL;
             }
-                
-            // Continue
-            T = ((LambdaType*) Z)->getRight()->clone();
-            delete Z;
+            
+            // Thus, since X unifies w/ the argument of F as Z, the output
+            // is based on reduction to the right side of T. We also
+            // reduce it as far as possible.
+            T = F->getRight()->subst(tenv);
+            delete F;
         }
         
         show_proof_therefore(type_res_str(tenv, this, T)); // QED

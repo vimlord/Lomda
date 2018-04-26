@@ -6,6 +6,14 @@
 // Typing of primitives
 Type* VarExp::typeOf(Tenv tenv) {
     auto T = tenv->apply(id);
+    auto U = T->subst(tenv); // Attempt a reduction of the variable type
+
+    delete T;
+    T = U;
+
+    if (T) // Perform an update.
+        tenv->set(id, T->clone());
+
     show_proof_step("We recognize " + id + " as being defined by " + T->toString() + ".");
     return T;
 }
