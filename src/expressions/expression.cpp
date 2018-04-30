@@ -70,6 +70,13 @@ ApplyExp::~ApplyExp() {
     delete op;
 }
 
+DictExp::DictExp(std::initializer_list<std::pair<std::string, Exp>> es) : DictExp() {
+    for (auto it : es) {
+        keys->add(0, it.first);
+        vals->add(0, it.second);
+    }
+}
+
 IfExp::IfExp(Exp b, Exp t, Exp f) {
     cond = b;
     tExp = t;

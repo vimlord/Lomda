@@ -4,6 +4,9 @@
 #include "baselang/types.hpp"
 #include "value.hpp"
 
+#include <initializer_list>
+#include <utility>
+
 template<typename T>
 inline bool isType(const Type* t) {
     return t && dynamic_cast<const T*>(t) != nullptr;
@@ -183,6 +186,7 @@ class DictType : public Type {
     public:
         DictType(Trie<Type*> *ts = new Trie<Type*>)
         : types(ts) {}
+        DictType(std::initializer_list<std::pair<std::string, Type*>>);
         ~DictType() {
             auto it = types->iterator();
             while (it->hasNext()) delete types->get(it->next());

@@ -28,13 +28,9 @@ class DictVal : public Value {
             vals = new Trie<Val>;
         }
         DictVal(Trie<Val> *vs) : vals(vs) {}
-        DictVal(LinkedList<std::string> *ks, LinkedList<Val> *vs) {
-            while (!ks->isEmpty()) {
-                vals->add(ks->remove(0), vs->remove(0));
-            }
-            delete ks;
-            delete vs;
-        }
+        DictVal(LinkedList<std::string> *ks, LinkedList<Val> *vs);
+        DictVal(std::initializer_list<std::pair<std::string, Val>>);
+
         ~DictVal() {
             auto it = vals->iterator();
             while (it->hasNext()) vals->get(it->next())->rem_ref();

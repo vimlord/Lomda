@@ -32,6 +32,17 @@ int BoolVal::set(Val v) {
     } else return 1;
 }
 
+DictVal::DictVal(LinkedList<std::string> *ks, LinkedList<Val> *vs) {
+    while (!ks->isEmpty()) {
+        vals->add(ks->remove(0), vs->remove(0));
+    }
+    delete ks;
+    delete vs;
+}
+DictVal::DictVal(std::initializer_list<std::pair<std::string, Val>> es) : DictVal() {
+    for (auto it : es)
+        vals->add(it.first, it.second);
+}
 DictVal* DictVal::clone() {
     
     auto trie = new Trie<Val>;

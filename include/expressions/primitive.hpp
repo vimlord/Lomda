@@ -6,6 +6,9 @@
 
 #include "types.hpp"
 
+#include <initializer_list>
+#include <utility>
+
 // Dictionary generator
 class DictExp : public Expression {
     private:
@@ -14,6 +17,7 @@ class DictExp : public Expression {
     public:
         DictExp() : keys(new LinkedList<std::string>), vals(new LinkedList<Exp>) {}
         DictExp(LinkedList<std::string> *ks, LinkedList<Exp> *vs) : keys(ks), vals(vs) {}
+        DictExp(std::initializer_list<std::pair<std::string, Exp>>);
         
         ~DictExp() {
             delete keys;

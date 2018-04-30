@@ -7,6 +7,13 @@
 
 using namespace std;
 
+DictType::DictType(initializer_list<pair<string, Type*>> ts) {
+    types = new Trie<Type*>;
+
+    // Add each of the items
+    for (auto it : ts)
+        types->add(it.first, it.second);
+}
 
 Type* DictType::clone() {
     auto ts = new Trie<Type*>;
