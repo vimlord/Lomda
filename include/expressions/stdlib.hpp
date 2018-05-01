@@ -69,8 +69,5 @@ class ImplementExp : public Expression {
         std::string toString() { return name.length() == 0 ? "<c-program>" : name; }
 };
 
-// Loads a standard library with a given name, if possible
-Type* type_stdlib(std::string);
-Val load_stdlib(std::string);
 
 #endif

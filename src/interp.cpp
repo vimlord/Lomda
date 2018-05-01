@@ -13,6 +13,8 @@
 
 #include "expressions/derivative.hpp"
 
+#include "stdlib.hpp"
+
 #include <cstring>
 #include <cstdlib>
 

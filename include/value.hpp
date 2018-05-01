@@ -65,7 +65,7 @@ class LambdaVal : public Value {
         Expression *exp;
         Env env;
     public:
-        LambdaVal(std::string*, Expression*, Env = NULL);
+        LambdaVal(std::string*, Exp, Env = NULL);
         ~LambdaVal();
         std::string toString();
         Val apply(Value **xs, Env e = NULL);

@@ -5,6 +5,8 @@
 #include "bnf.hpp"
 #include <fstream>
 
+#include "stdlib.hpp"
+
 using namespace std;
 
 DictType::DictType(initializer_list<pair<string, Type*>> ts) {
