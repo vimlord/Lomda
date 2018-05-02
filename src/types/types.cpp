@@ -711,7 +711,7 @@ Type* LambdaExp::typeOf(Tenv tenv) {
             tenv->set(it.first, it.second);
 
         for (i = argc - 1; i >= 0; i--) {
-            T = new LambdaType(xs[i], tenv->get_tvar(Ts[i]->toString())->clone(), T);
+            T = new LambdaType(xs[i], tenv->get_tvar(Ts[i]->toString())->subst(tenv), T);
         }
     }
 

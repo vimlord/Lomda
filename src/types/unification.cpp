@@ -126,8 +126,10 @@ Type* LambdaType::unify(Type* t, Tenv tenv) {
         Type *T;
         
         // We require that the identifiers match.
-        if (id == other->id || other->id == "" || id == "")
+        if (id == other->id)
             T = new LambdaType(id, x, y);
+        else if (other->id == "" || id == "")
+            T = new LambdaType(id + other->id, x, y);
         else
             T = NULL;
         
