@@ -58,10 +58,18 @@ Val run(string program) {
                 delete type;
             } else {
                 show_proof_step("Reductio ad absurdum.");
-                std::cout << *tenv << " ⊢ " << *exp << " is untypable\n";
+                
+                auto s = tenv->toString() + " ⊢ " + exp->toString() + " is untypable";
+                if (USE_TYPES() > 1)
+                    throw_err("type", s);
+                else
+                    std::cout << s << "\n";
             }
 
             delete tenv;
+
+            if (!type && USE_TYPES() > 1)
+                return NULL;
         }
 
         // If optimization is requested, grant it.

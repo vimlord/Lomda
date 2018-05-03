@@ -82,14 +82,17 @@ int main(int argc, char *argv[]) {
     int i;
     for (i = 1; argv[i]; i++) {
         if (!strcmp(argv[i], "--use-types"))
-            set_use_types(true);
+            set_use_types(WERROR() ? 2 : 1);
         else if (!strcmp(argv[i], "--version")) {
             print_version(); return 0;
         } else if (!strcmp(argv[i], "-v") || !strcmp(argv[i], "--verbose")) {
             set_verbosity(true);
-        } else if (!strcmp(argv[i], "--werror"))
+        } else if (!strcmp(argv[i], "--werror")) {
             set_werror(true);
-        else if (!strcmp(argv[i], "-O") || !strcmp(argv[i], "--optimize")) {
+            // If we treat warnings as errors, then we will require typing to pass
+            if (USE_TYPES())
+                set_use_types(2);
+        } else if (!strcmp(argv[i], "-O") || !strcmp(argv[i], "--optimize")) {
             set_optimize(true);
         } else if (!strcmp(argv[i], "-t")) {
             // Run the lang tests

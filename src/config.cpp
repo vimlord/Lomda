@@ -12,7 +12,7 @@ bool optimize = false;
 bool OPTIMIZE() { return optimize; }
 void set_optimize(bool b) { optimize = b; }
 
-bool typesys = false;
-bool USE_TYPES() { return typesys; }
-void set_use_types(bool b) { typesys = b; }
+int typesys = 0;
+int USE_TYPES() { return typesys; }
+void set_use_types(int b) { typesys = b; }
 

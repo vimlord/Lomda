@@ -11,7 +11,7 @@ void set_verbosity(bool b);
 bool OPTIMIZE();
 void set_optimize(bool b);
 
-bool USE_TYPES();
-void set_use_types(bool b);
+int USE_TYPES();
+void set_use_types(int b);
 
 #endif
