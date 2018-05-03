@@ -29,6 +29,42 @@ Type* DictType::clone() {
     return new DictType(ts);
 }
 
+bool DictType::depends_on_tvar(string x, Tenv tenv) {
+    auto it = types->iterator();
+    
+    while (it->hasNext()) {
+        // Check each of the types involved to authenticate
+        string k = it->next();
+        auto t = types->get(k);
+        if (t->depends_on_tvar(x, tenv)) {
+            // One of the subtypes has a dependency
+            delete it;
+            return true;
+        }
+    }
+    
+    // No type matches
+    delete it;
+    return false;
+}
+
+bool VarType::depends_on_tvar(string x, Tenv tenv) {
+    // If the names match, there is a loop
+    if (name == x)
+        return true;
+    
+    Type *T = this;
+    while (isType<VarType>(T)) {
+        auto S = tenv->get_tvar(x);
+        if (S->toString() == x)
+            return true;
+        else
+            T = S;
+    }
+
+    return T->depends_on_tvar(x, tenv);
+}
+
 bool VarType::isConstant(Tenv tenv) {
     auto T = tenv->get_tvar(name);
     if (isType<VarType>(T)) {

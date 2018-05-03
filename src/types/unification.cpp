@@ -223,6 +223,13 @@ Type* TupleType::unify(Type* t, Tenv tenv) {
     }
 }
 Type* VarType::unify(Type* t, Tenv tenv) {
+    if (t->depends_on_tvar(name, tenv)) {
+        show_proof_step("Type " + t->toString() + " is already defined by " + name);
+        show_proof_therefore("unification implies that " + name + " is a recursive type");
+        show_proof_therefore("under " + tenv->toString() + ", " + name + " = " + t->toString() + " is not unifiable");
+        return NULL;
+    }
+
     // First, we simplify as far as we can go.
     // Be super careful that the variable isn't itself
     Type *A;
@@ -283,7 +290,8 @@ Type* VarType::unify(Type* t, Tenv tenv) {
         tenv->set_tvar(name, x->clone());
 
         return x;
-    } else {
+    } else { 
+        
         // Simplify the other side
         auto S = t->subst(tenv);
 

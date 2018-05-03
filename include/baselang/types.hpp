@@ -30,7 +30,7 @@ class Type : public Stringable {
         virtual bool isConstant(Tenv) { return true; }
 
         virtual bool equals(Type*, Tenv) { return false; }
-
+        virtual bool depends_on_tvar(std::string, Tenv) { return false; }
 };
 
 class TypeEnv : public Stringable {

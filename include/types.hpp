@@ -59,6 +59,7 @@ class PairType : public Type {
         Type* getRight() { return right; }
 
         bool isConstant(Tenv t) { return left->isConstant(t) && right->isConstant(t); }
+        virtual bool depends_on_tvar(std::string x, Tenv tenv) { return left->depends_on_tvar(x, tenv) || right->depends_on_tvar(x, tenv); }
 };
 
 // Composite primitive types
@@ -93,6 +94,8 @@ class ListType : public Type {
 
         bool equals(Type*, Tenv);
         std::string toString();
+
+        bool depends_on_tvar(std::string x, Tenv tenv) { return type->depends_on_tvar(x, tenv); }
 };
 class TupleType : public PairType {
     public:
@@ -197,8 +200,12 @@ class DictType : public Type {
 
         Type* clone();
         Type* unify(Type*, Tenv);
+
         bool equals(Type*, Tenv);
+        bool depends_on_tvar(std::string, Tenv);
+
         std::string toString();
+
 };
 
 // Special types for polymorphism
@@ -212,6 +219,8 @@ class VarType : public Type {
         Type* subst(Tenv tenv);
         bool isConstant(Tenv);
         bool equals(Type*, Tenv);
+        bool depends_on_tvar(std::string, Tenv);
+
         std::string toString() { return name; }
 };
 
