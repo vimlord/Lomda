@@ -539,17 +539,80 @@ Type* MultType::unify(Type* t, Tenv tenv) {
         show_proof_step("The left hand side simplifies to " + U->toString());
         show_proof_step("Now, we unify " + T->toString() + " = " + U->toString());
 
-        auto V = T->unify(U, tenv);
+        if (!isType<SumType>(U)) {
+            // Because we were able to generalize to a lesser form, we permit
+            // another operation to occur.
+            auto V = T->unify(U, tenv);
+            if (!V)
+                show_proof_step("We are unable to unify " + toString() + " = " + T->toString() + " under " + tenv->toString() + ".");
+            else
+                show_proof_step("Hence, " + T->toString() + " = " + U->toString() + " reduces to " + V->toString());
 
-        if (!V)
+            delete T;
+            delete U;
+
+            return V;
+        }
+        
+        SumType *S = (SumType*) U;
+
+        if (isType<RealType>(S->getLeft()) || isType<RealType>(S->getRight())) {
+            // Left must be numeric
+            U = T->unify(S->getLeft(), tenv);
+            if (!U) {
+                show_proof_step("We are unable to unify " + toString() + " = " + T->toString() + " under " + tenv->toString() + ".");
+                delete T;
+                delete S;
+                return NULL;
+            }
+            
+            // Right must be numeric
+            U = T->unify(S->getRight(), tenv);
+            if (!U) {
+                show_proof_step("We are unable to unify " + toString() + " = " + T->toString() + " under " + tenv->toString() + ".");
+                delete T;
+                delete S;
+                return NULL;
+            }
+            
+            // Thus, we know the type of our expression
+            delete S;
+            return T;
+        } else if (isType<ListType>(S->getLeft()) || isType<ListType>(S->getRight())) {
+            // We identify the outcome as a vector product. We must verify two conditions:
+            // 1) Both sides are lists
+            // 2) One of the lists are list of numbers (implies that both are lists of numbers)
+
+            U = S->getLeft()->unify(S->getRight(), tenv);
+            if (!U) {
+                show_proof_step("We are unable to unify " + toString() + " = " + T->toString() + " under " + tenv->toString() + ".");
+                delete T;
+                delete S;
+                return NULL;
+            }
+
+            ListType Lr(new RealType);
+            U = Lr.unify(S->getLeft(), tenv);
+            if (!U) {
+                show_proof_step("We are unable to unify " + toString() + " = " + T->toString() + " under " + tenv->toString() + ".");
+                delete T;
+                delete S;
+                return NULL;
+            }
+            
+            // Thus, we know our outcome
+            delete S;
+            return T;
+        } else if (isType<VarType>(S->getLeft()) && isType<VarType>(S->getRight())) {
+            // There is nothing else we can do
+            delete S;
+            return T;
+        } else {
             show_proof_step("We are unable to unify " + toString() + " = " + T->toString() + " under " + tenv->toString() + ".");
-        else
-            show_proof_step("Hence, " + T->toString() + " = " + U->toString() + " reduces to " + V->toString());
+            delete S;
+            return NULL;
+        }
 
-        delete T;
-        delete U;
-
-        return V;
     }
 
     show_proof_step("We are unable to unify " + toString() + " = " + T->toString() + " under " + tenv->toString() + ".");

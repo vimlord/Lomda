@@ -974,6 +974,43 @@ Val MapExp::derivativeOf(string x, Env env, Env denv) {
     }
 }
 
+Val ModulusExp::derivativeOf(string x, Env env, Env denv) {
+    Val a = left->derivativeOf(x, env, denv);
+    if (!a) return NULL;
+
+    Val b = right->derivativeOf(x, env, denv);
+    if (!b) {
+        a->rem_ref();
+        return NULL;
+    }
+     
+    DiffExp diff(NULL, NULL);
+    DivExp div(left->clone(), right->clone());
+    MultExp mult(NULL, NULL);
+    
+    Val aOb = div.evaluate(env);
+    if (val_is_real(aOb)) {
+        Val I = new IntVal((int) ((RealVal*) aOb)->get());
+        aOb->rem_ref();
+        aOb = I;
+    } else if (!val_is_integer(aOb)) {
+        aOb->rem_ref();
+        a->rem_ref();
+        b->rem_ref();
+        throw_err("type", "derivative of modulus is undefined on non-numbers");
+        return NULL;
+    }
+
+    Val baOb = mult.op(b, aOb);
+    Val c = diff.op(a, baOb);
+
+    baOb->rem_ref();
+    a->rem_ref();
+    b->rem_ref();
+
+    return c;
+}
+
 Val MultExp::derivativeOf(string x, Env env, Env denv) { 
     // Left hand derivative
     Val dl = left->derivativeOf(x, env, denv);

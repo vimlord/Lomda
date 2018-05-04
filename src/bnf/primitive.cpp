@@ -1352,7 +1352,26 @@ ParsedPrgms parseMultiplicative(string str, bool ends) {
                 res->add(0, prog);
             }
             delete subps;
-        } else if (!ends) {
+        } else if ((i = parseLit(s, "mod")) >= 0) {
+            // The operation is addition
+            s = s.substr(i);
+            len += i;
+
+            // Get all of the possible subresults
+            ParsedPrgms subps = parseMultiplicative(s, ends);
+            
+            // Then, add all of the possible outcomes
+            while (!subps->isEmpty()) {
+                parsed_prgm prog = subps->remove(0);
+                prog.item = new ModulusExp(exp, prog.item);
+                prog.len += len;
+
+                exp = exp->clone(); // For distinctiveness
+                
+                res->add(0, prog);
+            }
+            delete subps;
+        }else if (!ends) {
             res->add(0, p);
         } else {
             delete exp;

@@ -133,4 +133,19 @@ class SumExp : public OperatorExp {
         std::string toString();
 };
 
+// Expression for modulus
+class ModulusExp : public OperatorExp {
+    public:
+        using OperatorExp::OperatorExp;
+
+        Val op(Val, Val);
+        Val derivativeOf(std::string, Env, Env);
+        Exp symb_diff(std::string);
+
+        Type* typeOf(Tenv);
+        
+        Exp clone() { return new ModulusExp(left->clone(), right->clone()); }
+        std::string toString();
+};
+
 #endif

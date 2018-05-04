@@ -5,6 +5,8 @@
 #include "types.hpp"
 
 #include <string>
+#include <cmath>
+
 #include "math.hpp"
 
 using namespace std;
@@ -16,7 +18,7 @@ OperatorExp::~OperatorExp() {
 }
 
 // Expression for adding stuff
-Val AndExp::op(Value *a, Value *b) {
+Val AndExp::op(Val a, Val b) {
     
     if (!val_is_bool(a) || !val_is_bool(b)) {
         throw_err("runtime", "boolean operations are not defined on non-booleans (see: '" + toString() + "')");
@@ -33,7 +35,7 @@ Val AndExp::op(Value *a, Value *b) {
 }
 
 // Expression for adding stuff
-Val OrExp::op(Value *a, Value *b) {
+Val OrExp::op(Val a, Val b) {
     
     if (!val_is_bool(a) || !val_is_bool(b)) {
         throw_err("runtime", "boolean operations are not defined on non-booleans (see: '" + toString() + "')");
@@ -50,7 +52,7 @@ Val OrExp::op(Value *a, Value *b) {
 }
 
 // Expression for multiplying studd
-Val DiffExp::op(Value *a, Value *b) {
+Val DiffExp::op(Val a, Val b) {
     
     if (val_is_list(a)) {
         if (val_is_list(b)) {
@@ -69,7 +71,7 @@ Val DiffExp::op(Value *a, Value *b) {
             auto ait = A->iterator();
             auto bit = B->iterator();
             for (int i = 0; ait->hasNext(); i++) {
-                Value *c = op(ait->next(), bit->next());
+                Val c = op(ait->next(), bit->next());
                 if (!c) {
                     while (!C->isEmpty()) C->remove(0)->rem_ref();
                     return NULL;
@@ -154,7 +156,7 @@ bool mtrx_inv(float** mtrx, int n) {
 }
 
 // Expression for multiplying studd
-Val DivExp::op(Value *a, Value *b) {
+Val DivExp::op(Val a, Val b) {
 
     if (val_is_number(b)) {
         auto y = val_is_integer(b) ? ((IntVal*) b)->get() : ((RealVal*) b)->get();
@@ -230,7 +232,7 @@ Val DivExp::op(Value *a, Value *b) {
     }
 }
 
-Val CompareExp::op(Value *a, Value *b) {  
+Val CompareExp::op(Val a, Val b) {  
 
     if ((val_is_number(a) && val_is_number(b))) {
         auto A =
@@ -298,7 +300,7 @@ Val CompareExp::op(Value *a, Value *b) {
 }
 
 // Expression for multiplying studd
-Val MultExp::op(Value *a, Value *b) {
+Val MultExp::op(Val a, Val b) {
 
     if (typeid(*a) == typeid(ListVal)) {
         if (typeid(*b) == typeid(ListVal)) {
@@ -496,7 +498,7 @@ Val MultExp::op(Value *a, Value *b) {
 }
 
 // Expression for adding stuff
-Val SumExp::op(Value *a, Value *b) {
+Val SumExp::op(Val a, Val b) {
     
     if (val_is_list(a)) {
         if (val_is_list(b)) {
@@ -515,7 +517,7 @@ Val SumExp::op(Value *a, Value *b) {
             auto ait = A->iterator();
             auto bit = B->iterator();
             for (int i = 0; ait->hasNext(); i++) {
-                Value *c = op(ait->next(), bit->next());
+                Val c = op(ait->next(), bit->next());
                 if (!c) {
                     while (!C->isEmpty()) C->remove(0)->rem_ref();
                     return NULL;
@@ -552,3 +554,31 @@ Val SumExp::op(Value *a, Value *b) {
     }
 
 }
+
+Val ModulusExp::op(Val a, Val b) {
+    if (val_is_integer(a) && val_is_integer(b)) {
+        auto x = ((IntVal*) a)->get();
+        auto y = ((IntVal*) b)->get();
+
+        return new IntVal(x % y);
+
+    } else if (val_is_number(a) && val_is_number(b)) {
+
+        auto x = val_is_integer(a) ? ((IntVal*) a)->get() : ((RealVal*) a)->get();
+        auto y = val_is_integer(b) ? ((IntVal*) b)->get() : ((RealVal*) b)->get();
+
+        // Compute the result
+        auto z = fmod(x,y);
+        if (typeid(*a) == typeid(RealVal) || typeid(*b) == typeid(RealVal))
+            return new RealVal(z);
+        else
+            return new IntVal(z);
+
+    } else {
+        Stringable *l = left ? (Stringable*) left : (Stringable*) a;
+        Stringable *r = right ? (Stringable*) right : (Stringable*) b;
+        throw_err("runtime", "modulus is not defined between " + l->toString() + " and " + r->toString());
+        return NULL;
+    }
+}
+

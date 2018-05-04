@@ -178,7 +178,7 @@ Type* DerivativeType::subst(Tenv tenv) {
         delete T;
         
         return U;
-    } else if (isType<SumType>(L)) {
+    } else if (isType<MultType>(L)) {
         MultType *S = (MultType*) L;
          
         Type *d = new DerivativeType(S->getLeft()->clone(), R->clone());
@@ -251,10 +251,17 @@ Type* DivExp::typeOf(Tenv tenv) {
 // Typing of f^g
 Type* ExponentExp::typeOf(Tenv tenv) {
     Type *A = left->typeOf(tenv);
-    if (!A) return NULL;
+    if (!A) {
+        show_proof_therefore(type_res_str(tenv, this, NULL));
+        return NULL;
+    }
 
     Type *B = right->typeOf(tenv);
-    if (!B) return NULL;
+    if (!B) {
+        show_proof_therefore(type_res_str(tenv, this, NULL));
+        delete A;
+        return NULL;
+    }
     
     /**
      * Now, we must impose two restrictions:
@@ -311,6 +318,30 @@ Type* MultExp::typeOf(Tenv tenv) {
     }
     
     // We must unify the two types
+    Type *T = new MultType(A, B);
+    Type *C = T->subst(tenv);
+    delete T;
+
+    show_proof_therefore(type_res_str(tenv, this, C));
+    return C;
+}
+
+Type* ModulusExp::typeOf(Tenv tenv) {
+    auto A = left->typeOf(tenv);
+    if (!A) {
+        show_proof_therefore(type_res_str(tenv, this, NULL));
+        return NULL;
+    }
+
+    auto B = right->typeOf(tenv);
+    if (!B) {
+        show_proof_therefore(type_res_str(tenv, this, NULL));
+        delete A;
+        return NULL;
+    }
+
+    // Modulus is essentially a subcomponent of division. Hence, we treat it
+    // as such when evaluating the type.
     Type *T = new MultType(A, B);
     Type *C = T->subst(tenv);
     delete T;

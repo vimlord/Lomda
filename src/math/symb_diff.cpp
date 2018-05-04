@@ -24,6 +24,28 @@ Exp DiffExp::symb_diff(string x) {
     return new DiffExp(L, R);
 }
 
+Exp ModulusExp::symb_diff(string x) {
+    auto L = left->symb_diff(x);
+    if (!L) return NULL;
+    auto R = right->symb_diff(x);
+    if (!R) { delete L; return NULL; }
+
+    // d/dx A mod B = A' - B' floor(A/B)
+    return new DiffExp(
+        L,
+        new MultExp(
+            R,
+            new CastExp(
+                new IntType,
+                new DivExp(
+                    left->clone(),
+                    right->clone()
+                )
+            )
+        )
+    );
+}
+
 Exp MultExp::symb_diff(string x) {
     auto L = left->symb_diff(x);
     if (!L) return NULL;
