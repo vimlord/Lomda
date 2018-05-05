@@ -109,6 +109,7 @@ Type* DerivativeType::subst(Tenv tenv) {
     left = L; right = R;
 
     if (isType<ListType>(L)) {
+        // d/dt [s] = [ds/dt]
         R = new DerivativeType(((ListType*) L)->subtype()->clone(), R->clone());
         L = R->subst(tenv);
         delete R;
@@ -117,6 +118,7 @@ Type* DerivativeType::subst(Tenv tenv) {
         else return NULL;
         
     } else if (isType<RealType>(L) || isType<IntType>(L)) {
+        // Base case: dZ/dZ = dZ/dR = Z, dR/dZ = dR/dR = R
         if (isType<RealType>(R) || isType<IntType>(R))
             return L->clone();
         else if (isType<ListType>(R)) {
@@ -142,6 +144,7 @@ Type* DerivativeType::subst(Tenv tenv) {
 
         return R->clone();
     } else if (isType<TupleType>(L)) {
+        // d/dx (a * b) = (da/dx * db/dx)
         R = new TupleType(
             new DerivativeType(((TupleType*) L)->getLeft()->clone(), R->clone()),
             new DerivativeType(((TupleType*) L)->getRight()->clone(), R->clone()));
@@ -169,6 +172,8 @@ Type* DerivativeType::subst(Tenv tenv) {
         // d(x->y)/dz = x->(dy/dz)
         return new LambdaType(F->getX(), X, Y);
     } else if (isType<SumType>(L)) {
+        // d/dx a + b = da/dx + db/dx
+
         SumType *S = (SumType*) L;
         auto T = new SumType(
                 new DerivativeType(S->getLeft()->clone(), R->clone()),
@@ -179,16 +184,14 @@ Type* DerivativeType::subst(Tenv tenv) {
         
         return U;
     } else if (isType<MultType>(L)) {
+        // d/ds a*b = a*db/ds + b*da/ds
+
         MultType *S = (MultType*) L;
          
-        Type *d = new DerivativeType(S->getLeft()->clone(), R->clone());
-        auto dL = d->subst(tenv);
-        delete d;
-
-        d = new DerivativeType(S->getRight()->clone(), R->clone());
-        auto dR = d->subst(tenv);
-        delete d;
-
+        // Build both sides
+        auto dL= new DerivativeType(S->getLeft()->clone(), R->clone());
+        auto dR = new DerivativeType(S->getRight()->clone(), R->clone());
+        
         auto T = new SumType(
             new MultType(L->clone(), dR),
             new MultType(R->clone(), dL)
@@ -198,6 +201,38 @@ Type* DerivativeType::subst(Tenv tenv) {
         delete T;
         
         return U;
+    } else if (isType<DictType>(L)) {
+        auto D = (DictType*) L;
+
+        auto dD = new DictType;
+        
+        // d/dx {x1 : t1, ...} = {x1 : dt1/dx, ...}
+        auto it = D->getTypes()->iterator();
+        while (it->hasNext()) {
+            auto x = it->next();
+            auto t = D->getTypes()->get(x);
+            
+            // Build a most general type for the argument
+            auto dt = new DerivativeType(t->clone(), R->clone());
+            if (!dt) {
+                delete dD;
+                return NULL;
+            }
+            
+            // Reduce our guess
+            auto T = dt->subst(tenv);
+            delete dt;
+            if (!T) {
+                delete dD;
+                return NULL;
+            }
+            
+            // Add the discovered subtype to our end result
+            dD->getTypes()->add(x, dt);
+        }
+
+        return dD;
+
     } else
         return NULL;
 }
