@@ -46,9 +46,10 @@ void display_config() {
  *
  */
 int interpret() {
-    // Print relevant information
+    // Print relevant information (only print the config data if in verbose mode)
     print_version();
-    display_config();
+    if (VERBOSITY()) display_config();
+
     cout << "Enter a program and press <enter> to execute, or one of the following:\n";
     cout << "'exit' - exit the interpreter\n";
     cout << "'q/quit' - exit the interpreter\n";

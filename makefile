@@ -18,3 +18,7 @@ fclean: clean
 	rm -f $(EXEC)
 
 re: fclean all
+
+sure: all
+	./$(exec) -t
+
