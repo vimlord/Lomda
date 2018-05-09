@@ -20,5 +20,5 @@ fclean: clean
 re: fclean all
 
 sure: all
-	./$(exec) -t
+	./$(EXEC) -t
 
