@@ -2,7 +2,7 @@
 
 #include "expression.hpp"
 #include "value.hpp"
-#include "environment.hpp"
+#include "baselang/environment.hpp"
 
 #include "bnf.hpp"
 #include "config.hpp"
@@ -78,7 +78,7 @@ Val run(string program) {
             throw_debug("postprocessor", "program '" + program + "' optimized to '" + exp->toString() + "'");
         }
 
-        Env env = new EmptyEnv();
+        Env env = new Environment;
 
         throw_debug("init", "initial env Γ := " + env->toString());
 
@@ -218,20 +218,12 @@ Val CastExp::evaluate(Env env) {
 Val DerivativeExp::evaluate(Env env) {
 
     // Base case: we know of nothing
-    Env denv = new EmptyEnv;
-
-    // Perform initial loading
-    LinkedList<ExtendEnv*> env_frames;
-    Env tmp = env;
-    while (typeid(*tmp) == typeid(ExtendEnv)) {
-        env_frames.add(0, (ExtendEnv*) tmp);
-        tmp = tmp->subenvironment();
-    }
+    Env denv = new Environment;
     
-    while (!env_frames.isEmpty()) {
-        ExtendEnv *ee = env_frames.remove(0);
-        Val v = ee->topVal();
-        string id = ee->topId();
+    // Compute the base case derivative for each variable.
+    for (auto x_v : env->get_store()) {
+        string id = x_v.first;
+        Val v = x_v.second;
         
         if (typeid(*v) == typeid(LambdaVal)) {
             LambdaVal *lv = (LambdaVal*) v;
@@ -248,7 +240,7 @@ Val DerivativeExp::evaluate(Env env) {
 
             // Lambda derivative: d/dx lambda (x) f(x) = lambda (x) d/dx f(x)
             // We will need the derivative for this
-            denv = new ExtendEnv(id, dv, denv);
+            denv->set(id, dv);
             dv->rem_ref(); // The derivative exists only within the environment
         } else {
             // Trivial derivative: d/dx c = 0, d/dx x = x
@@ -259,7 +251,7 @@ Val DerivativeExp::evaluate(Env env) {
 
             if (v) {
                 // The value is of a differentiable type
-                denv = new ExtendEnv(id, v, denv);
+                denv->set(id, v);
                 v->rem_ref(); // The derivative exists only within the environment
                 throw_debug("calc_init", "d/d" + var + " " + id + " = " + v->toString());
             }
@@ -400,12 +392,23 @@ Val ForExp::evaluate(Env env) {
         // Get the next item from the list
         Val x = it->next();
         
-        // Build an environment
-        env->add_ref();
-        Env e = new ExtendEnv(id, x, env);
+        // Temporarily store the old value
+        Val tmp = env->apply(id);
+        if (tmp) tmp->add_ref();
 
-        Val v = body->evaluate(e);  
-        e->rem_ref();
+        // We are going to modify the environment temporarily
+        env->set(id, x);
+        
+        // Under our modified context, we compute the value
+        Val v = body->evaluate(env);  
+
+        // Now, we reset. We either replace the value or remove it.
+        if (tmp) {
+            env->set(id, tmp);
+            tmp->rem_ref();
+        } else
+            env->rem(id);
+
 
         if (!v) {
             delete it;
@@ -537,14 +540,20 @@ Val ImportExp::evaluate(Env env) {
         throw_debug("module", "module " + module + " := " + mod->toString());
         
         // We will extend the environment with the newly found module
-        env->add_ref();
-        env = new ExtendEnv(name, mod, env);
+        Val tmp = env->apply(name);
+        if (tmp) tmp->add_ref();
+
+        env->set(name, mod);
         
         // Evaluate the subexpression.
         Val v = exp->evaluate(env);
 
         // Garbage collection
-        env->rem_ref();
+        env->rem(name);
+        if (tmp) {
+            env->set(name, tmp);
+            tmp->rem_ref();
+        }
 
         return v;
     } else {
@@ -627,21 +636,21 @@ Val LetExp::evaluate(Env env) {
     // So, I will track my lambdas for now
     LinkedList<LambdaVal*> lambdas;
 
-    env->add_ref();
-
     // Extend the environment
     for (int i = 0; i < argc; i++) {
         // Compute the expression
         Val v = exps[i]->evaluate(env);
+
         if (!v) {
-            // Garbage collection will happen here
-            env->rem_ref();
+            // Garbage collect and escape
+            while (i--)
+                env->rem(ids[i]);
             return NULL;
         }
 
         // Add it to the environment
         Val x = v->clone();
-        env = new ExtendEnv(ids[i], x, env);
+        env->set(ids[i], x);
         
         // Drop references
         v->rem_ref();
@@ -665,7 +674,9 @@ Val LetExp::evaluate(Env env) {
     Val y = body->evaluate(env);
 
     // Garbage collection
-    env->rem_ref();
+    while (argc--) {
+        env->rem(ids[argc]);
+    }
         
     // Return the result
     return y;

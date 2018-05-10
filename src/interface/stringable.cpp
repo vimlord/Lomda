@@ -2,7 +2,7 @@
 
 #include "expression.hpp"
 #include "value.hpp"
-#include "environment.hpp"
+#include "baselang/environment.hpp"
 
 using namespace std;
 
@@ -86,7 +86,7 @@ string ExponentExp::toString() {
     return left->toString() + " ^ " + right->toString();
 }
 string FoldExp::toString() {
-    return "fold " + list->toString() + " into " + func->toString() + " at " + base->toString();
+    return "fold " + list->toString() + " into " + func->toString() + " from " + base->toString();
 }
 string ForExp::toString() {
     return "for " + id + " in " + set->toString() + " " + body->toString();
@@ -272,19 +272,26 @@ string WhileExp::toString() {
 
 /* ENVIRONMENTS */
 
-string EmptyEnv::toString() {
-    return "{}";
-}
-string ExtendEnv::toString() {
-    string s = "{" + id + " := ";
-    if (typeid(*ref) == typeid(LambdaVal))
-        s += "λ";
-    else s += ref->toString();
+string Environment::toString() {
+    string s = "{";
+    for (auto it : store) {
+        auto id = it.first;
+        auto ref = it.second;
 
-    if (typeid(*subenv) == typeid(EmptyEnv))
-        s += "}";
+        s += id += " := ";
+
+        if (typeid(*ref) == typeid(LambdaVal))
+            s += "λ";
+        else s += ref->toString();
+
+        s += ", ";
+    }
+
+
+    if (subenv)
+        return s + subenv->toString().substr(1);
     else
-        s += ", " + subenv->toString().substr(1);
+        return s.substr(0, s.length() - 2) + "}";
     
     return s;
 }
@@ -328,6 +335,9 @@ string DictExp::toString() {
         if (b) s += ", ";
         s += kt->next() + " : " + vt->next()->toString();
     }
+
+    delete kt;
+    delete vt;
 
     s += "}";
 

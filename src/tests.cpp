@@ -1,7 +1,7 @@
 #include "tests.hpp"
 
 #include "bnf.hpp"
-#include "environment.hpp"
+#include "baselang/environment.hpp"
 #include "interp.hpp"
 
 #include <iostream>
@@ -74,7 +74,10 @@ int test_interp_cases(string title) {
     for (auto it : interp_cases) {
         // Evaluate the test case
         Exp exp = it.first;
-        Env env = new EmptyEnv;
+
+        if (VERBOSITY()) std::cout << "Testing " << *exp << "\n";
+
+        Env env = new Environment;
         Val v = exp->evaluate(env);
         
         // Garbage collection

@@ -1,5 +1,5 @@
 #include "value.hpp"
-#include "environment.hpp"
+#include "baselang/environment.hpp"
 
 using namespace std;
 
@@ -112,7 +112,7 @@ int StringVal::set(Val v) {
 LambdaVal::LambdaVal(string *ids, Exp exp, Env env) {
     this->xs = ids;
     this->exp = exp;
-    this->env = env;
+    this->env = env ? env : new Environment;
 }
 int LambdaVal::set(Val v) {
     if (typeid(*v) == typeid(LambdaVal)) {
@@ -143,7 +143,7 @@ int LambdaVal::set(Val v) {
 LambdaVal::~LambdaVal() {
     delete[] xs;
     delete exp;
-    env->rem_ref();
+    if (env) env->rem_ref();
 }
 LambdaVal* LambdaVal::clone() {
     int argc;
@@ -158,22 +158,20 @@ LambdaVal* LambdaVal::clone() {
 }
 Val LambdaVal::apply(Val *argv, Env e) {
     Env E = e ? e : env;
-
-    // We will use a clone in order to preserve previously allocated memory blocks
-    if (E)
-        E->add_ref();
-    else
-        E = new EmptyEnv;
+    
+    E = new Environment(E);
 
     // Verify that the correct number of arguments have been provided
     for (int i = 0; argv[i] || xs[i] != ""; i++)
-        if ((!argv[i]) != (xs[i] == ""))
+        if ((!argv[i]) != (xs[i] == "")) {
             // If one of the lists ends before the other, the input is bad.
+            delete E;
             return NULL;
+        }
     
     // Create an environment for handling the processing
     for (int i = 0; argv[i]; i++)
-        E = new ExtendEnv(xs[i], argv[i], E);
+        E->set(xs[i], argv[i]);
 
     // Compute the result
     Val res = exp->evaluate(E);

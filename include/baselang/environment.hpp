@@ -11,15 +11,16 @@
 #include <iostream>
 #include <cstddef>
 
-typedef List<Value*> Store;
-
 // Interface for environments.
-template<class T>
 class Environment : public Stringable, public Reffable {
     protected:
+        Environment* subenv;
+
         // The majority of environments have subenvironments
-        Environment* subenv = NULL;
+        std::unordered_map<std::string, Val> store;
     public:
+        Environment(Environment *env = NULL);
+        ~Environment();
         /**
          * Attempts to apply a variable name to an expression.
          *
@@ -27,7 +28,7 @@ class Environment : public Stringable, public Reffable {
          *
          * @return The value of the given variable, or NULL if it was not found.
          */
-        virtual T* apply(std::string x) { return NULL; }
+        virtual Val apply(std::string x);
 
         /**
          * Reassigns the value of a variable.
@@ -37,7 +38,9 @@ class Environment : public Stringable, public Reffable {
          *
          * @return Zero if the value is successfully assigned, otherwise non-zero.
          */
-        virtual int set(std::string x, T* v) { return 1; }
+        int set(std::string, Val);
+        void rem(std::string);
+
         
         virtual void add_ref() {
             this->Reffable::add_ref();
@@ -49,17 +52,20 @@ class Environment : public Stringable, public Reffable {
             if (e) e->rem_ref();
         }
 
-        virtual Environment<T>* clone() = 0;
-        
+        Environment* clone();
+
         /**
          * Gathers the child environment of this environment.
          *
          * @return The child environment.
          */
-        Environment<T>* subenvironment() { return subenv; }
+        Environment* subenvironment() { return subenv; }
+        std::unordered_map<std::string, Val>& get_store() { return store; }
+
+        std::string toString();
 };
 
 // We will define Env as an environment of values
-typedef Environment<Value>* Env;
+typedef Environment* Env;
 
 #endif

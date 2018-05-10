@@ -1,5 +1,5 @@
 #include "expression.hpp"
-#include "environment.hpp"
+#include "baselang/environment.hpp"
 #include "expressions/derivative.hpp"
 
 #include "config.hpp"
@@ -141,7 +141,7 @@ Val deriveConstVal(string id, Val v, int c) {
 
         auto env = L->getEnv();
         if (env) env->add_ref();
-        else env = new EmptyEnv;
+        else env = new Environment;
 
         return new LambdaVal(ids, body, env);
     } else if (typeid(*v) == typeid(IntVal) || typeid(*v) == typeid(RealVal))
@@ -502,11 +502,29 @@ Val ForExp::derivativeOf(string x, Env env, Env denv) {
         Val v = it->next();
         Val dv = dit->next();
         
-        // Build an environment
-        Env e = new ExtendEnv(id, v, env);
-        Env de = new ExtendEnv(id, dv, denv);
+        Val t = env->apply(id);
+        Val dt = denv->apply(id);
+        if (t) t->add_ref();
+        if (dt) dt->add_ref();
         
-        v = body->derivativeOf(x, e, de);
+        // Adjust the environment
+        env->set(id, v);
+        denv->set(id, dv);
+        
+        // Evaluate
+        v = body->derivativeOf(x, env, denv);
+
+        // Reset
+        env->rem(id);
+        denv->rem(id);
+
+        if (t) {
+            env->set(id, t);
+            t->rem_ref();
+        } if (dt) {
+            denv->set(id, dt);
+            dt->rem_ref();
+        }
 
         if (!v) {
             delete it, dit;
@@ -537,7 +555,8 @@ Val IfExp::derivativeOf(string x, Env env, Env denv) {
 Val LambdaExp::derivativeOf(string x, Env env, Env denv) {
     int argc;
     for (argc = 0; xs[argc] != ""; argc++);
-
+    
+    // Copy the argument names into new memory
     string *ids = new string[argc+1];
     ids[argc] = "";
     while (argc--)
@@ -563,17 +582,15 @@ Val LetExp::derivativeOf(string x, Env env, Env denv) {
         if (!v || !dv) {
             // Garbage collection will happen here
             while (i--) {
-                env = env->subenvironment();
-                denv = denv->subenvironment();
+                env->rem(ids[i]);
+                denv->rem(ids[i]);
             }
             return NULL;
         }
         
-        // Add it to the environment
-        env = new ExtendEnv(ids[i], v->clone(), env);
-        
-        // Now, we will add the derivative to the environment
-        denv = new ExtendEnv(ids[i], dv, denv);
+        // Add it to the environments
+        env->set(ids[i], v->clone());
+        denv->set(ids[i], dv);
 
         // We permit all lambdas to have recursive behavior
         if (typeid(*v) == typeid(LambdaVal)) {
@@ -591,7 +608,10 @@ Val LetExp::derivativeOf(string x, Env env, Env denv) {
     Val y = body->derivativeOf(x, env, denv);
     
     // Garbage collection
-    // Not implemented yet
+    while (argc--) {
+        env->rem(ids[argc]);
+        denv->rem(ids[argc]);
+    }
         
     // Return the result
     return y;
@@ -754,6 +774,7 @@ Val FoldExp::derivativeOf(string x, Env env, Env denv) {
         fn->rem_ref();
         lst->rem_ref();
         dlst->rem_ref(); 
+        return NULL;
     }
     LambdaVal *df_a = (LambdaVal*) v;
 
@@ -764,6 +785,7 @@ Val FoldExp::derivativeOf(string x, Env env, Env denv) {
         lst->rem_ref();
         dlst->rem_ref(); 
         df_a->rem_ref();
+        return NULL;
     }
     LambdaVal *df_b = (LambdaVal*) v;
 
