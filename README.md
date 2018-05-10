@@ -8,10 +8,25 @@ On a Unix-based system, the source can be built using `make`. Simply run it in t
 
 ## Usage
 Lomda offers the ability to run either as a line-by-line interpreter or as an executor. The following are supported usages of the executable:
+
 ```
 $ ./lomda
 $ ./lomda source.lom
 ```
+
+Without a source file, Lomda will initialize the interpreter and prompt for a
+program or an exit command. The interpreter will look something like this:
+
+```
+$ ./lomda
+Lomda 0.1.0
+Compiled May  9 2018 @ 20:11:11
+Enter a program and press <enter> to execute, or one of the following:
+'exit' - exit the interpreter
+'q/quit' - exit the interpreter
+>
+```
+
 For more information, please consult the [wiki](https://github.com/themaddoctor1/Lomda/wiki).
 
 ## Docs
