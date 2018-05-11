@@ -63,6 +63,9 @@ int interpret() {
         // If it was not a blank string, hold onto it
         if (*buff) add_history(buff);
 
+        // Garbage collection has to be done manually.
+        free(buff);
+
         if (program == "exit" || program == "quit" || program == "q")
             // Terminate the program
             return 0;
@@ -70,9 +73,6 @@ int interpret() {
             // Evaluate the program
             execute(program);
         }
-        
-        // Garbage collection has to be done manually.
-        free(buff);
     }
 }
 
