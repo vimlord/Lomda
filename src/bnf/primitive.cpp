@@ -848,6 +848,8 @@ ParsedPrgms parseCastExp(string str, bool ends) {
 
     }
 
+    delete exps;
+
     return res;
 
 }
