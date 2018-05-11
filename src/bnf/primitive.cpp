@@ -1721,19 +1721,45 @@ ParsedPrgms parsePrimitive(string str, bool ends) {
     if (i > 0) {
         string s = str.substr(i);
 
+        string lit = "";
+
         // Find the closing quote
-        int j;
-        for (j = 0; s[j] && s[j] != '"'; j++);
+        int j = 0;
+        while (s[j] != '\0' && s[j] != '"' && s[j] != '\n') {
+            if (s[j] == '\\') {
+                // Escape character
+                j++;
+                switch (s[j]) {
+                    case 'n':
+                        lit += '\n';
+                        break;
+                    case 't':
+                        lit += '\t';
+                        break;
+                    case '"':
+                        lit += '"';
+                        break;
+                    case '\0':
+                        j--;
+                        break;
+                    default:
+                        lit += s[j];
+                }
+            } else
+                lit += s[j];
 
-        if (s[j]) {
-            string val = s.substr(0, j);
+            j++;
+        }
 
+        if (s[j] == '"') {
+            // The string terminates. Hence, we capture it.
             parsed_prgm p;
             p.len = i + j + 1;
-            p.item = new StringExp(val);
+            p.item = new StringExp(lit);
 
             res->add(0, p);
         }
+
         return res;
     }
     
