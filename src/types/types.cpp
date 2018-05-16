@@ -2,7 +2,8 @@
 #include "expression.hpp"
 #include "proof.hpp"
 
-#include "bnf.hpp"
+#include "parser.hpp"
+
 #include <fstream>
 
 #include "stdlib.hpp"
@@ -647,7 +648,7 @@ Type* ImportExp::typeOf(Tenv tenv) {
         throw_debug("module IO", "module " + module + " is defined by '" + program + "'\n");
         file.close();
         
-        Exp modexp = compile(program);
+        Exp modexp = parse_program(program);
 
         if (!modexp) {
             show_proof_therefore(type_res_str(tenv,this,NULL));

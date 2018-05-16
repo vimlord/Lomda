@@ -1,6 +1,7 @@
 #include "tests.hpp"
 
-#include "bnf.hpp"
+#include "parser.hpp"
+
 #include "baselang/environment.hpp"
 #include "interp.hpp"
 
@@ -42,7 +43,7 @@ std::map<Exp,string> load_test_cases(string fname) {
         // Get the output line
         getline(file, y);
         
-        Exp exp = compile(x);
+        Exp exp = parse_program(x);
 
         if (exp) {
             // Verify the legality of the case
@@ -55,9 +56,11 @@ std::map<Exp,string> load_test_cases(string fname) {
                 cases[exp] = y;
             else
                 std::cout << "Test case " << i << " from '" << fname << "' will not be loaded (failed postprocessor)\n";
-        } else
+        } else {
             // Discard it.
             std::cout << "Test case " << i << " from '" << fname << "' will not be loaded (failed BNF parsing)\n";
+            std::cout << "Case: " << x << "\n";
+        }
     }
 
     file.close();

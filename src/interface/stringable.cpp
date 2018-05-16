@@ -233,6 +233,7 @@ string StdMathExp::toString() {
             break;
         case EXP:
             s = "exp(";
+            break;
         default:
             s = "undefined";
             return s;

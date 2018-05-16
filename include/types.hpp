@@ -69,6 +69,7 @@ class LambdaType : public PairType {
     public:
         LambdaType(std::string s, Type *a, Type *b)
             : PairType(a,b), id(s) {}
+        LambdaType(Type *a, Type *b) : LambdaType("", a, b) {}
 
         Type* clone() { return new LambdaType(id, left->clone(), right->clone()); }
         Type* unify(Type*, Tenv);

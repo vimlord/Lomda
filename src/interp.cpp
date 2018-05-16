@@ -4,7 +4,7 @@
 #include "value.hpp"
 #include "baselang/environment.hpp"
 
-#include "bnf.hpp"
+#include "parser.hpp"
 #include "config.hpp"
 
 #include "types.hpp"
@@ -27,10 +27,11 @@
 using namespace std;
 
 Val run(string program) {
-    Exp exp = compile(program);
-    
-    if (exp) {
-        
+    Exp exp = parse_program(program);//compile(program);
+
+
+    if (exp) { 
+
         throw_debug("postprocessor", "performing verification of '" + exp->toString() + "'");
         Trie<bool> *vardta = new Trie<bool>;
         bool valid = exp->postprocessor(vardta);
@@ -166,9 +167,19 @@ Val CastExp::evaluate(Env env) {
         else if (typeid(*val) == typeid(StringVal)) {
             // String parsing (use BNF parser source)
             string s = ((StringVal*) val)->get();
-            parsed_int p = parseInt(s);
-            if (p.len >= 0 && parseSpaces(s.substr(p.len)) + p.len == s.length())
-                res = new IntVal(p.item);
+
+            string::size_type Zlen = -1;
+            int Z;
+            try { Z = stoi(s, &Zlen, 10); }
+            catch (std::out_of_range oor) { Zlen = -1; }
+            catch (std::invalid_argument ia) { Zlen = -1; }
+            
+            if ((int) Zlen > 0)
+                res = new IntVal(Z);
+            else {
+                throw_err("cast", "cannot parse int from " + s);
+                return NULL;
+            }
         }
     } else if (isType<RealType>(type)) {
         // Type conversion to a float
@@ -181,9 +192,19 @@ Val CastExp::evaluate(Env env) {
         else if (typeid(*val) == typeid(StringVal)) {
             // String parsing
             string s = ((StringVal*) val)->get();
-            parsed_float p = parseFloat(s);
-            if (p.len >= 0 && parseSpaces(s.substr(p.len)) + p.len == s.length())
-                res = new RealVal(p.item);
+
+            string::size_type len = -1;
+            int R;
+            try { R = stol(s, &len); }
+            catch (std::out_of_range oor) { len = -1; }
+            catch (std::invalid_argument ia) { len = -1; }
+            
+            if ((int) len > 0)
+                res = new RealVal(R);
+            else {
+                throw_err("cast", "cannot parse R from " + s);
+                return NULL;
+            }
         }
     } else if (isType<BoolType>(type)) {
         // Type conversion to a boolean
@@ -196,11 +217,20 @@ Val CastExp::evaluate(Env env) {
         else if (typeid(*val) == typeid(StringVal)) {
             // String parsing
             string s = ((StringVal*) val)->get();
+            
             int i;
-            if ((i = parseLit(s, "true")) >= 0 && i + parseSpaces(s.substr(i)) == s.length())
+            for (i = 0; s[i] == ' ' || s[i] == '\n' || s[i] == '\t'; i++);
+
+            if (s.substr(i, 4) == "true"
+                    && s[4] != '_' && !(s[4] >= 'a' && s[4] <= 'z') && !(s[4] >= 'A' && s[4] <= 'Z')) {
                 res = new BoolVal(true);
-            else if ((i = parseLit(s, "false")) >= 0 && i + parseSpaces(s.substr(i)) == s.length())
+            } else if (s.substr(i, 5) == "false"
+                    && s[5] != '_' && !(s[5] >= 'a' && s[5] <= 'z') && !(s[5] >= 'A' && s[5] <= 'Z')) {
                 res = new BoolVal(false);
+            } else {
+                throw_err("cast", "cannot parse bool from " + s);
+                return NULL;
+            }
         }
     } else {
         throw_err("type", "type " + type->toString() + " is not a castable type");
