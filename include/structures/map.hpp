@@ -6,6 +6,8 @@
 template<typename K, typename V>
 class Map {
     public:
+        virtual ~Map() {}
+
         virtual V get(K) = 0;
         virtual V remove(K) = 0;
 

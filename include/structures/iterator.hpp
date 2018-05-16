@@ -13,6 +13,8 @@ class Iterable {
 template<typename V>
 class Iterator {
     public:
+        virtual ~Iterator() {}
+
         // Gets the current key
         virtual bool hasNext() = 0;
         virtual V next() = 0;

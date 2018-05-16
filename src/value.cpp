@@ -43,6 +43,12 @@ DictVal::DictVal(std::initializer_list<std::pair<std::string, Val>> es) : DictVa
     for (auto it : es)
         vals->add(it.first, it.second);
 }
+DictVal::~DictVal() {
+    auto it = vals->iterator();
+    while (it->hasNext()) vals->get(it->next())->rem_ref();
+    delete it;
+    delete vals;
+}
 DictVal* DictVal::clone() {
     
     auto trie = new Trie<Val>;

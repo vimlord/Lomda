@@ -52,6 +52,8 @@ string DictVal::toString() {
         s += k + " : " + v->toString();
     }
 
+    delete vt;
+
     s += "}";
 
     return s;

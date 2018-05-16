@@ -334,6 +334,8 @@ Val DictExp::evaluate(Env env) {
     while (kt->hasNext()) {
         Val v = vt->next()->evaluate(env);
         if (!v) {
+            delete kt;
+            delete vt;
             delete res;
             return NULL;
         }
@@ -342,6 +344,9 @@ Val DictExp::evaluate(Env env) {
 
         vs->add(k, v);
     }
+
+    delete kt;
+    delete vt;
 
     return res;
 

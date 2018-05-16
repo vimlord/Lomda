@@ -31,12 +31,7 @@ class DictVal : public Value {
         DictVal(LinkedList<std::string> *ks, LinkedList<Val> *vs);
         DictVal(std::initializer_list<std::pair<std::string, Val>>);
 
-        ~DictVal() {
-            auto it = vals->iterator();
-            while (it->hasNext()) vals->get(it->next())->rem_ref();
-            delete it;
-            delete vals;
-        }
+        ~DictVal();
 
         Trie<Val>* getVals() { return vals; }
 
