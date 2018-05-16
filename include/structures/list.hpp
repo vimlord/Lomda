@@ -9,6 +9,8 @@
 template<typename T>
 class List : public Map<int, T>, public Iterable<T> {
     public:
+        virtual ~List() {}
+
         virtual bool isEmpty() = 0;
 
         bool hasKey(int i) { return i >= 0 && i < this->size(); }

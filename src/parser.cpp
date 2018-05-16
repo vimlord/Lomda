@@ -447,20 +447,19 @@ result<Expression> parse_pemdas(string str, int order = 11) {
 
             // Build the argument list if possible.
             auto args = new ArrayList<Exp>;
+            base.value = new ListExp(args);
+
             int i = 0;
             for (auto it = argv.begin(); it != argv.end(); it++, i++) {
                 // Attempt to extract the item
                 string x = *it;
                 result<Expression> arg = parse_pemdas(x);
                 if (!arg.value || !is_all_whitespace(x.substr(arg.strlen))) {
-                    while (i--) delete args->remove(i);
                     base.reset();
                     return base;
                 } else
                     args->add(i, arg.value);
             }
-            
-            base.value = new ListExp(args);
 
         } else if ((len = starts_with(str, "{")) > 0) {
             len = index_of_char(str, '{');

@@ -98,9 +98,23 @@ LetExp::LetExp(string *vs, Exp *xs, Exp y, bool *r) {
     rec = r;
 }
 
+ListExp::ListExp() {
+    list = new ArrayList<Exp>;
+}
+
 ListExp::ListExp(Expression** exps) : ListExp::ListExp() {
     for (int i = 0; exps[i]; i++)
         list->add(i, exps[i]);
+}
+
+ListExp::~ListExp() {
+    auto it = list->iterator();
+    while (it->hasNext()) {
+        Exp e = it->next();
+        delete e;
+    }
+    delete it;
+    delete list;
 }
 
 OperatorExp::OperatorExp(Exp a, Exp b) {

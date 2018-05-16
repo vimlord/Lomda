@@ -106,14 +106,11 @@ class ListExp : public Expression {
     private:
         List<Exp> *list;
     public:
-        ListExp() : list(new LinkedList<Exp>) {}
-        ~ListExp() {
-            while (!list->isEmpty()) delete list->remove(0);
-            delete list;
-        }
+        ListExp();
+        ~ListExp();
 
         ListExp(Exp*);
-        ListExp(List<Exp>* l) : list(l) {}
+        ListExp(List<Exp>* l) { list = l; }
 
         Val evaluate(Env);
         Val derivativeOf(std::string, Env, Env);
