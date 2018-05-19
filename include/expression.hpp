@@ -8,6 +8,8 @@
 #include "expressions/list.hpp"
 #include "expressions/stdlib.hpp"
 
+#include <map>
+
 Exp reexpress(Val);
 
 // Calling functions; {a->b, a} -> b
@@ -170,6 +172,10 @@ class ImportExp : public Expression {
         std::string module;
         std::string name;
         Exp exp;
+    protected:
+        // We will maintain a cache of previously imported modules
+        // so that if a module is already loaded, it is not reloaded.
+        static std::map<std::string, Val> module_cache;
     public:
         // import m
         ImportExp(std::string m, Exp e) : ImportExp(m, m, e) {}
@@ -194,6 +200,8 @@ class ImportExp : public Expression {
 
         Val evaluate(Env);
         Type* typeOf(Tenv);
+
+        static void clear_cache();
 
         Exp clone() { return new ImportExp(module, name, exp->clone()); }
         std::string toString();
