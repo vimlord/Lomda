@@ -16,3 +16,8 @@ int typesys = 0;
 int USE_TYPES() { return typesys; }
 void set_use_types(int b) { typesys = b; }
 
+
+bool modcache = 0;
+bool USE_MODULE_CACHING() { return modcache; }
+void set_use_module_caching(bool b) { modcache = b; }
+
