@@ -576,7 +576,7 @@ Val ImportExp::evaluate(Env env) {
         throw_debug("module", "module " + module + " := " + mod->toString());
 
         // Store the module in the cache if need be
-        if (module_cache.find(module) == module_cache.end()) {
+        if (USE_MODULE_CACHING() && module_cache.find(module) == module_cache.end()) {
             throw_debug("module", "caching module " + module);
             module_cache[module] = mod;
         }
