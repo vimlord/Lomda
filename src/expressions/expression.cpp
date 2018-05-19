@@ -117,6 +117,16 @@ ListExp::~ListExp() {
     delete list;
 }
 
+std::map<std::string, Val> ImportExp::module_cache;
+void ImportExp::clear_cache() {
+    // Delete the stored module.
+    for (auto it : module_cache)
+        delete it.second;
+    
+    // Wipe the cache clean.
+    module_cache.clear();
+}
+
 OperatorExp::OperatorExp(Exp a, Exp b) {
     left = a;
     right = b;
