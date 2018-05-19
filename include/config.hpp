@@ -14,4 +14,7 @@ void set_optimize(bool b);
 int USE_TYPES();
 void set_use_types(int b);
 
+bool USE_MODULE_CACHING();
+void set_use_module_caching(bool b);
+
 #endif

@@ -1,4 +1,5 @@
 #include "interp.hpp"
+#include "expression.hpp"
 #include "config.hpp"
 
 #include "tests.hpp"
@@ -27,7 +28,7 @@ void execute(string program) {
 
 void print_version() {
     // Version number
-    cout << "Lomda 0.1.0\n";
+    cout << "Lomda v0.1.0\n";
 
     // Compilation time
     cout << "Compiled " << __DATE__ << " @ " << __TIME__ << "\n";
@@ -35,6 +36,7 @@ void print_version() {
 
 void display_config() {
     std::cout << "The following configuration is in use:\n";
+    std::cout << "mod cache: " << OPTIMIZE() << " (default: 0)\n";
     std::cout << "optimize:  " << OPTIMIZE() << " (default: 0)\n";
     std::cout << "use_types: " << USE_TYPES() << " (default: 0)\n";
     std::cout << "verbosity: " << VERBOSITY() << " (default: 0)\n";
@@ -74,6 +76,8 @@ int interpret() {
             execute(program);
         }
     }
+
+    return 0;
 }
 
 int main(int argc, char *argv[]) { 
@@ -84,6 +88,8 @@ int main(int argc, char *argv[]) {
     for (i = 1; argv[i]; i++) {
         if (!strcmp(argv[i], "--use-types"))
             set_use_types(WERROR() ? 2 : 1);
+        if (!strcmp(argv[i], "--use-module-caching"))
+            set_use_module_caching(true);
         else if (!strcmp(argv[i], "--version")) {
             print_version(); return 0;
         } else if (!strcmp(argv[i], "-v") || !strcmp(argv[i], "--verbose")) {
@@ -97,7 +103,9 @@ int main(int argc, char *argv[]) {
             set_optimize(true);
         } else if (!strcmp(argv[i], "-t")) {
             // Run the lang tests
-            return test();
+            int n = test();
+            ImportExp::clear_cache();
+            return n;
         } else {
             filename = argv[i];
             break;
@@ -106,40 +114,45 @@ int main(int argc, char *argv[]) {
 
     if (filename[0] == '\0')
         // Run the interpreter
-        return interpret();
+        interpret();
     else if (filename.length() < 5 || filename.substr(filename.length()-4) != ".lom") {
         // Files must be .lom files
         cerr << "\x1b[31m\x1b[1merror:\x1b[0m file '" << filename << "' does not have extension '.lom'\n";
         return 1;
+    } else {
+        // Attempt to open the file
+        ifstream file;
+        file.open(filename);
+        
+        // Ensure that the file exists
+        if (!file) {
+            cerr << "\x1b[31m\x1b[1merror:\x1b[0m could not load program from '" << argv[1] << "'\n";
+            return 1;
+        }
+        
+        // Read the program from the input file
+        i = 0;
+        string program = "";
+        do {
+            string s;
+            getline(file, s);
+
+            if (i++) program += " ";
+            program += s;
+        } while (file);
+
+        throw_debug("IO", "program: '" + program + "'\n");
+        file.close();
+
+        display_config();
+        
+        // Parse and execute the program.
+        execute(program);
     }
-
-    // Attempt to open the file
-    ifstream file;
-    file.open(filename);
     
-    // Ensure that the file exists
-    if (!file) {
-        cerr << "\x1b[31m\x1b[1merror:\x1b[0m could not load program from '" << argv[1] << "'\n";
-        return 1;
-    }
+    // Clear the cache
+    ImportExp::clear_cache();
     
-    // Read the program from the input file
-    i = 0;
-    string program = "";
-    do {
-        string s;
-        getline(file, s);
-
-        if (i++) program += " ";
-        program += s;
-    } while (file);
-
-    throw_debug("IO", "program: '" + program + "'\n");
-    file.close();
-
-    display_config();
-    
-    // Parse and execute the program.
-    execute(program);
+    return 0;
 }
 

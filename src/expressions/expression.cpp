@@ -121,7 +121,7 @@ std::map<std::string, Val> ImportExp::module_cache;
 void ImportExp::clear_cache() {
     // Delete the stored module.
     for (auto it : module_cache)
-        delete it.second;
+        it.second->rem_ref();
     
     // Wipe the cache clean.
     module_cache.clear();
