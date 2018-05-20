@@ -1609,6 +1609,95 @@ Exp parse_sequence(string str, list<string> future) {
         
         // Thus, we finalize our expression.
         return new LetExp(vs, xs, body, rs);
+
+    } else if ((i = starts_with(str, "from")) > 0) {
+        if (future.size() == 0) {
+            throw_err("parser", "import statement must be followed by a valid sequence:\n\t" + str.substr(0, 16));
+            return NULL;
+        }
+
+        str = str.substr(i);
+
+        // Extract the module name
+        string module = extract_identifier(str);
+        if (module == "") {
+            if (str.find('\n') > 0)
+                str = str.substr(0, str.find('\n'));
+            throw_err("parser", "import expects identifier for module, thus the following name is invalid:\n\t" + str.substr(0, 32));
+            return NULL;
+        }
+        str = str.substr(module.length());
+        
+        // Parse the import keyword
+        if ((i = starts_with(str, "import")) < 0) {
+            if (str.find('\n') >= 0)
+                str = str.substr(0, str.find('\n'));
+            throw_err("parser", "import-from statement missing import keyword; see:\n\t" + str.substr(0, 16));
+            return NULL;
+        }
+
+        str = str.substr(i);
+
+        list<string> ids = extract_statements(str, ',', false);
+
+        for (i = 0; i < ids.size(); i++) {
+            // Get the next value to check
+            auto id = ids.front();
+            ids.pop_front();
+            
+            // Reduce the string from the front
+            int j;
+            for (j = 0; id[j] == ' ' || id[j] == '\n' || id[j] == '\t'; j++);
+            id = id.substr(j);
+            
+            // Reduce the string from the back
+            for (j = id.length() - 1; j >= 0 && (id[j] == ' ' || id[j] == '\n' || id[j] == '\t'); j--);
+            if (j < 0) {
+                if (str.find('\n') >= 0)
+                    str = str.substr(0, str.find('\n'));
+                throw_err("parser", "import-from statement expects proper list of identifiers; see:\n\t" + str.substr(0, 16));
+                return NULL;
+            } else
+                id = id.substr(0, j+1);
+            
+            if (is_identifier(id))
+                // The string is legal
+                ids.push_back(id);
+            else {
+                if (str.find('\n') >= 0)
+                    str = str.substr(0, str.find('\n'));
+                throw_err("parser", "import-from statement expects proper list of identifiers, but " + id + " is not an identifier; see:\n\t" + str.substr(0, 16));
+                return NULL;
+            }
+        }
+        
+        // Proceed to the next step
+        str = future.front();
+        future.pop_front();
+        auto body = parse_sequence(str, future);
+        
+        // Error check
+        if (!body)
+            return NULL;
+
+        // Now, we build a final result.
+        string *xs = store_in_list<string>(ids, "");
+
+        Exp *ys = new Exp[ids.size()+1];
+
+        ys[ids.size()] = NULL;
+        for (int i = ids.size()-1; i >= 0; i--) {
+            // Our expression will import the module and then grab the value.
+            // I may come back to this and implement an expression specifically
+            // for this functionality, as this is inefficient even with caching.
+            ys[i] = new ImportExp(module, new DictAccessExp(new VarExp(module), ids.back()));
+
+            // Clean the item out of the list.
+            ids.pop_back();
+        }
+
+        return new LetExp(xs, ys, body);
+
     } else if ((i = starts_with(str, "import")) > 0) {
         // The import must be followed by something that uses the import
         if (future.size() == 0) {
@@ -1667,9 +1756,8 @@ Exp parse_sequence(string str, list<string> future) {
         future.pop_front();
         auto body = parse_sequence(str, future);
 
-        if (!body) {
+        if (!body)
             return NULL;
-        }
 
         while (names.size()) {
             // Apply another import
