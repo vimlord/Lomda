@@ -1610,45 +1610,76 @@ Exp parse_sequence(string str, list<string> future) {
         // Thus, we finalize our expression.
         return new LetExp(vs, xs, body, rs);
     } else if ((i = starts_with(str, "import")) > 0) {
-
-        string module = extract_identifier(str.substr(i));
-        if (module == "") {
-            if (str.find('\n') > 0)
-                str = str.substr(0, str.find('\n'));
-            throw_err("parser", "import expects identifier for module, thus the following name is invalid:\n\t" + str.substr(0, 32));
+        // The import must be followed by something that uses the import
+        if (future.size() == 0) {
+            throw_err("parser", "import statement must be followed by a valid sequence:\n\t" + str.substr(0, 16));
             return NULL;
         }
-        str = str.substr(i + module.length());
-        
-        string name;
-        if ((i = starts_with(str, "as")) > 0) {
-            str = str.substr(i);
-            name = extract_identifier(str);
 
+        str = str.substr(i);
+
+        list<string> modules;
+        list<string> names;
+        
+        while (true) {
+            string module = extract_identifier(str);
             if (module == "") {
                 if (str.find('\n') > 0)
                     str = str.substr(0, str.find('\n'));
-                throw_err("parser", "import expects identifier for name, thus the following name is invalid:\n\t" + str.substr(0, 32));
+                throw_err("parser", "import expects identifier for module, thus the following name is invalid:\n\t" + str.substr(0, 32));
                 return NULL;
             }
+            str = str.substr(module.length());
+            
+            string name;
+            if ((i = starts_with(str, "as")) > 0) {
+                str = str.substr(i);
+                name = extract_identifier(str);
 
-            str = str.substr(name.length());
-        } else
-            name = module;
+                if (module == "") {
+                    if (str.find('\n') > 0)
+                        str = str.substr(0, str.find('\n'));
+                    throw_err("parser", "import expects identifier for name, thus the following name is invalid:\n\t" + str.substr(0, 32));
+                    return NULL;
+                }
 
-        if (!is_all_whitespace(str)) {
-            throw_err("parser", "import of module " + module + " as " + name + " is followed by extra symbols:\n\t" + str);
-            return NULL;
+                str = str.substr(name.length());
+            } else
+                name = module;
+
+            modules.push_back(module);
+            names.push_back(name);
+            
+            if ((i = starts_with(str, ",")) > 0) {
+                // Progress for the next iteration.
+                str = str.substr(i);
+            } else if (is_all_whitespace(str))
+                // There are no more modules to import.
+                break;
+            else {
+                // Module definition is followed by garbage.
+                throw_err("parser", "import of module " + module + " as " + name + " is followed by extra symbols:\n\t" + str);
+                return NULL;
+            }
         }
-
-        if (future.size() == 0)
-            return new ImportExp(module, name, NULL);
         
         str = future.front();
         future.pop_front();
         auto body = parse_sequence(str, future);
-        
-        return body ? new ImportExp(module, name, body) : NULL;
+
+        if (!body) {
+            return NULL;
+        }
+
+        while (names.size()) {
+            // Apply another import
+            body = new ImportExp(modules.back(), names.back(), body);
+            // Throw away the old values
+            modules.pop_back();
+            names.pop_back();
+        }
+
+        return body;
 
     }
     
