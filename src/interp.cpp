@@ -27,8 +27,7 @@
 using namespace std;
 
 Val run(string program) {
-    Exp exp = parse_program(program);//compile(program);
-
+    Exp exp = parse_program(program);
 
     if (exp) { 
 
@@ -537,11 +536,13 @@ Val IfExp::evaluate(Env env) {
 }
 
 Val ImportExp::evaluate(Env env) {
-
-    // First, we will attempt to load it from standard libraries
-    Val mod = load_stdlib(module);
-    
-    if (mod) {
+    Val mod;
+    if (module_cache.find(module) != module_cache.end()) {
+        // The module is currently stored in the cache
+        mod = module_cache[module];
+        throw_debug("module IO", "loaded " + module + " from cache");
+    } else if ((mod = load_stdlib(module))) {
+        // The module is a standard library
         throw_debug("module IO", "loaded stdlib " + module);
     } else {
         // Attempt to open the file
@@ -573,6 +574,12 @@ Val ImportExp::evaluate(Env env) {
 
     if (mod) {
         throw_debug("module", "module " + module + " := " + mod->toString());
+
+        // Store the module in the cache if need be
+        if (USE_MODULE_CACHING() && module_cache.find(module) == module_cache.end()) {
+            throw_debug("module", "caching module " + module);
+            module_cache[module] = mod;
+        }
         
         // We will extend the environment with the newly found module
         Val tmp = env->apply(name);
