@@ -313,7 +313,7 @@ result<Type> parse_type(string str) {
  * str   - The string to extract a PEMDAS operation from
  * order - The location in the hierarchy to search at
  */
-result<Expression> parse_pemdas(string str, int order = 11) {
+result<Expression> parse_pemdas(string str, int order = 12) {
 
     result<Expression> base;
     base.value = NULL;
