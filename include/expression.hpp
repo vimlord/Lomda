@@ -73,6 +73,46 @@ inline bool isExp(const Exp t) {
     return t && dynamic_cast<const T*>(t) != nullptr;
 }
 
+// Defines an expression that declares ADTs.
+class AdtDeclarationExp : public Expression {
+    private:
+        // The name of the ADT class to define.
+        std::string name;
+        // The name of each definition 
+        std::string *ids;
+        // The argument types to each kind
+        Type* **argss;
+        
+        Exp body;
+    public:
+        AdtDeclarationExp(std::string nm, std::string* is, Type*** ass, Exp e)
+        : name(nm), ids(is), argss(ass), body(e) {}
+        
+        Val evaluate(Env);
+        Type* typeOf(Tenv);
+
+        bool postprocessor(Trie<bool>);
+
+        Exp clone();
+        std::string toString();
+};
+
+// Switch-case expression for extracting ADTs.
+class SwitchExp : public Expression {
+    private:
+        // The object to test
+        Exp adt;
+        
+        // The different categories
+        std::string *names;
+
+        // The given names
+        std::string **idss;
+        
+        // The expressions to evaluate on successful matching
+        Exp *bodies;
+};
+
 // Calling functions; {a->b, a} -> b
 class ApplyExp : public Expression {
     private:
