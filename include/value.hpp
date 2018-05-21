@@ -20,7 +20,9 @@ class AdtVal : public Value {
     public:
         AdtVal(std::string t, std::string k, Val *xs)
         : type(t), kind(k), args(xs) {}
-        ~AdtVal() { for (int i = 0; args[i]; i++) args[i]->rem_ref(); }
+        ~AdtVal();
+
+        int set(Val);
 
         // Getters
         std::string getType() { return type; }
