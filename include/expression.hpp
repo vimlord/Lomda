@@ -50,6 +50,20 @@ class SwitchExp : public Expression {
         
         // The expressions to evaluate on successful matching
         Exp *bodies;
+
+    public:
+        SwitchExp(Exp a, std::string *nms, std::string **xs, Exp *ys)
+        : adt(a), names(nms), idss(xs), bodies(ys) {}
+        ~SwitchExp();
+
+        Val evaluate(Env);
+        Type* typeOf(Tenv);
+
+        bool postprocessor(Trie<bool>);
+
+        Exp clone();
+        std::string toString();
+
 };
 
 // Calling functions; {a->b, a} -> b
