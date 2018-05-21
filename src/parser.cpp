@@ -2187,12 +2187,45 @@ Exp parse_sequence(string str, list<string> future) {
 
 }
 
+/**
+ * Given a raw program, remove comments from the code and return the
+ * undocumented result.
+ *
+ * @return The uncommented program on success or an empty string on failure.
+ */
+string preprocess_program(string str) {
+    for (int i = 0; i < str.length(); i++) {
+        if (str[i] == '"') {
+            int j = index_of_closure(str.substr(i), '"', '"');
+            if (j == -1) return "";
+            else i += j;
+        } else if (str[i] == '#') {
+            // Find the end of line or end of program
+            int j = i+1;
+            while (str[j] != '\n' && str[j]) j++;
+            // Perform trimming of the string
+            str = str.substr(0, i) + str.substr(j);
+            i--;
+        }
+    }
+    return str;
+}
+
 Exp parse_program(string str) {
+    str = preprocess_program(str);
+    if (is_all_whitespace(str)) {
+        throw_err("parser", "program does not contain any executable code");
+        return NULL;
+    }
+
     auto statements = extract_statements(str);
     
     // If statements cannot be extracted, we cannot build an expression.
-    if (statements.size() == 0)
+    if (statements.size() == 0) {
+        throw_err("parser", "could not extract a statement from the given program");
         return NULL;
+    } else
+        throw_debug("parser", "extracted " + to_string(statements.size()) + " lines from '" + str + "'");
 
     string first = statements.front();
     statements.pop_front();
