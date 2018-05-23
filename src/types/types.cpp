@@ -127,6 +127,17 @@ Type* AndExp::typeOf(Tenv tenv) {
 
     return B;
 }
+
+Type* AdtDeclarationExp::typeOf(Tenv tenv) {
+    // TODO: Implement
+    throw_err("programmer", "adt typing rules have not been implemented yet");
+    return NULL;
+}
+Type* SwitchExp::typeOf(Tenv tenv) {
+    // TODO: Implement
+    throw_err("programmer", "adt typing rules have not been implemented yet");
+    return NULL;
+}
 Type* ApplyExp::typeOf(Tenv tenv) {
     show_proof_step("To type " + toString() + ", we must match the parameter type(s) of the function with its arguments.");
     auto T = op->typeOf(tenv);

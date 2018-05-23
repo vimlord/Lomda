@@ -58,6 +58,70 @@ void throw_type_err(Exp exp, std::string type) {
     throw_err("type", "expression '" + exp->toString() + "' does not evaluate as " + type);
 }
 
+AdtDeclarationExp::~AdtDeclarationExp() {
+    for (int i = 0; argss[i]; i++) {
+        for (int j = 0; argss[i][j]; j++)
+            delete argss[i][j];
+        delete[] argss[i];
+    }
+    delete[] argss;
+    delete[] ids;
+
+    delete body;
+}
+Exp AdtDeclarationExp::clone() {
+    int i;
+    for (i = 0; argss[i]; i++);
+    
+    string *xs = new string[i+1];
+    Type* **ass = new Type**[i+1];
+    xs[i] = ""; ass[i] = NULL;
+
+    while (i--) {
+        xs[i] = ids[i];
+
+        int j; for (j = 0; argss[i][j]; j++);
+        ass[i] = new Type*[j+1];
+        ass[i][j] = NULL;
+        while (j--) ass[i][j] = argss[i][j]->clone();
+    }
+    
+    return new AdtDeclarationExp(name, xs, ass, body->clone());
+}
+
+
+SwitchExp::~SwitchExp() {
+    for (int i = 0; bodies[i]; i++) {
+        delete bodies[i];
+        delete[] idss[i];
+    }
+
+    delete[] bodies;
+    delete[] idss;
+    delete[] names;
+}
+Exp SwitchExp::clone() {
+    int i; for (i = 0; bodies[i]; i++);
+
+    auto bs = new Exp[i+1];
+    auto ns = new string[i+1];
+    auto iss = new string*[i+1];
+    bs[i] = NULL;
+    ns[i] = "";
+    iss[i] = NULL;
+    
+    while (i--) {
+        bs[i] = bodies[i]->clone();
+        ns[i] = names[i];
+
+        int j; for (j = 0; idss[i][j] != ""; j++);
+        iss[i] = new string[j+1];
+        iss[i][j] = "";
+        while (j--) iss[i][j] = idss[i][j];
+    }
+    
+    return new SwitchExp(adt->clone(), ns, iss, bs);
+}
 
 ApplyExp::ApplyExp(Exp f, Exp *xs) {
     op = f;
