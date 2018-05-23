@@ -92,6 +92,17 @@ Val run(string program) {
     }
 }
 
+Val AdtDeclarationExp::evaluate(Env env) {
+    // TODO: Implement the evaluation.
+    throw_err("programmer", "adt functionality has not been defined");
+    return NULL;
+}
+Val SwitchExp::evaluate(Env env) {
+    // TODO: Implement the evaluation.
+    throw_err("programmer", "adt functionality has not been defined");
+    return NULL;
+}
+
 Val ApplyExp::evaluate(Env env) {
     Val f = op->evaluate(env);
 

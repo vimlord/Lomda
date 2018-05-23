@@ -26,6 +26,7 @@ class AdtDeclarationExp : public Expression {
     public:
         AdtDeclarationExp(std::string nm, std::string* is, Type*** ass, Exp e)
         : name(nm), ids(is), argss(ass), body(e) {}
+        ~AdtDeclarationExp();
         
         Val evaluate(Env);
         Type* typeOf(Tenv);

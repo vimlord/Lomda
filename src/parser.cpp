@@ -1769,6 +1769,139 @@ Exp parse_sequence(string str, list<string> future) {
 
         return body;
 
+    } else if ((i = starts_with(str, "type")) > 0) {
+        if (future.size() == 0) {
+            if (str.find('\n') >= 0)
+                str = str.substr(0, str.find('\n'));
+
+            throw_err("parser", "adt definition must be followed by a valid sequence:\n\t" + str.substr(0, 16));
+
+            return NULL;
+        }
+
+        // Defining a new ADT
+        str = str.substr(i);
+        
+        // Extract the name of the type
+        string name = extract_identifier(str);
+        if (name == "") return NULL;
+        else str = str.substr(name.length());
+        
+        // Extract the equals sign
+        if ((i = starts_with(str, "=")) == -1)
+            return NULL;
+        else
+            str = str.substr(i);
+        
+        // Extract a feature set
+        list<string> states = extract_statements(str, '|', false);
+        
+        list<pair<string, list<Type*>>> defs;
+        
+        while (states.size()) {
+            // Extract the type statement
+            string state = states.front();
+
+            for (i = 0; state[i] == ' ' || state[i] == '\n' || state[i] == '\t'; i++);
+            state = state.substr(i);
+            
+            string id = extract_identifier(state);
+            if (id == "")
+                break;
+            else
+                state = state.substr(id.length());
+            
+            if ((i = starts_with(state, "(")) == -1)
+                break;
+            
+            // Find the opening of the arguments
+            i = index_of_char(state, '(');
+            if (i == -1) break;
+
+            state = state.substr(i);
+            
+            // Find closure.
+            int j = index_of_closure(state, '(', ')');
+            if (j == -1 || !is_all_whitespace(state.substr(j+1))) break;
+            else state = state.substr(i+1, j-1);
+
+            // Create a space for a definition
+            pair<string, list<Type*>> def;
+            def.first = id;
+            
+            if (!is_all_whitespace(state)) {
+                // Parse for arguments.
+                list<string> lsts = extract_statements(state, ',', false);
+                
+                // Go through each of the definitions
+                while (lsts.size()) {
+                    // Get the string identifying the type
+                    string t = lsts.front();
+                    
+                    // Parse the type, if possible.
+                    result<Type> type = parse_type(t);
+                    if (!type.value || !is_all_whitespace(t.substr(type.strlen))) {
+                        delete type.value;
+                        break;
+                    } else
+                        def.second.push_back(type.value);
+
+                    // Mark the item as properly handled.
+                    lsts.pop_front();
+                }
+                
+                // Apply the list
+                defs.push_back(def);
+                
+                // If any definitions remain, something went wrong.
+                if (lsts.size())
+                    break;
+
+            } else
+                // We only care to add the trivial type
+                defs.push_back(def);
+            
+            // Mark the statement as successfully done.
+            states.pop_front();
+        }
+
+        // Perform GC
+        if (states.size()) {
+            // For each item for each argument, perform GC
+            for (auto jt = defs.begin(); jt != defs.end(); jt++)
+                free_all_in_list<Type*>(jt->second);
+
+            return NULL;
+        }
+
+        // Proceed to the next step
+        str = future.front();
+        future.pop_front();
+        auto body = parse_sequence(str, future);
+        
+        // Error check
+        if (!body) {
+            // For each item for each argument, perform GC
+            for (auto jt = defs.begin(); jt != defs.end(); jt++)
+                free_all_in_list<Type*>(jt->second);
+
+            return NULL;
+        }
+
+        list<string> ids;
+        list<Type**> argss;
+
+        // Now, we can correctly evaluate.
+        for (auto it = defs.begin(); it != defs.end(); it++) {
+            ids.push_back(it->first);
+            argss.push_back(store_in_list<Type*>(it->second, NULL));
+        }
+        
+        // Build the end result.
+        return new AdtDeclarationExp(name,
+            store_in_list<string>(ids, ""),
+            store_in_list<Type**>(argss, NULL),
+            body);
     }
     
     // We may have a sequence. Parse the first section.
