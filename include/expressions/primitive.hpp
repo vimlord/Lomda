@@ -9,6 +9,33 @@
 #include <initializer_list>
 #include <utility>
 
+class AdtExp : public Expression {
+    private:
+        std::string name, kind;
+        Exp *args;
+    public:
+        AdtExp(std::string n, std::string k, Exp *xs)
+        : name(n), kind(k), args(xs) {}
+        ~AdtExp() {
+            for (int i = 0; args[i]; i++)
+                delete args[i];
+            delete[] args;
+        }
+
+        Val evaluate(Env);
+        Val derivativeOf(std::string, Env, Env);
+        Type* typeOf(Tenv);
+        
+        Exp clone();
+        std::string toString();
+
+        bool postprocessor(Trie<bool> *vars);
+
+        Exp optimize();
+        int opt_var_usage(std::string);
+        Exp opt_const_prop(opt_varexp_map&, opt_varexp_map&);
+};
+
 // Dictionary generator
 class DictExp : public Expression {
     private:
