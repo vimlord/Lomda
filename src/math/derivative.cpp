@@ -248,6 +248,17 @@ Val OrExp::derivativeOf(string x, Env env, Env denv) {
     return NULL;
 }
 
+Val AdtExp::derivativeOf(string x, Env env, Env denv) {
+    // TODO: Implement
+    throw_err("programmer", "adt differentiation has not been implemented yet");
+    return NULL;
+}
+Val SwitchExp::derivativeOf(string x, Env env, Env denv) {
+    // TODO: Implement
+    throw_err("programmer", "adt differentiation has not been implemented yet");
+    return NULL;
+}
+
 Val ApplyExp::derivativeOf(string x, Env env, Env denv) {
     // d/dx f(u1(x), u2(x), ...) = df/du1 * du1/dx + df/du2 * du2/dx + ...
 

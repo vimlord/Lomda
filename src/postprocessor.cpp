@@ -1,5 +1,23 @@
 #include "expression.hpp"
 
+bool AdtExp::postprocessor(Trie<bool> *vars) { return true; }
+bool AdtDeclarationExp::postprocessor(Trie<bool> *vars) {
+    if (vars->hasKey(name))
+        return false;
+    else
+        vars->add(name, true);
+
+    bool res = body->postprocessor(vars);
+
+    vars->remove(name);
+
+    return res;
+}
+bool SwitchExp::postprocessor(Trie<bool> *vars) {
+    // TODO: Postprocessing
+    return false;
+}
+
 bool ApplyExp::postprocessor(Trie<bool> *vars) {
     if (!op->postprocessor(vars)) return false;
 

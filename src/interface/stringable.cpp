@@ -12,6 +12,18 @@ std::ostream &operator<< (std::ostream &os, Stringable &obj) {
 }
 
 /* EXPRESSIONS */
+string AdtExp::toString() {
+    string str = name + "<" + kind + ">";
+    if (!args[0]) return str;
+    
+    str += "(";
+    for (int i = 0; args[i]; i++) {
+        if (i) str += ", ";
+        str += args[i]->toString();
+    }
+    
+    return str + ")";
+}
 string AdtDeclarationExp::toString() {
     string str = "type " + name + " = ";
 

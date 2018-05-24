@@ -128,6 +128,11 @@ Type* AndExp::typeOf(Tenv tenv) {
     return B;
 }
 
+Type* AdtExp::typeOf(Tenv tenv) {
+    // TODO: Implement
+    throw_err("programmer", "adt typing rules have not been implemented yet");
+    return NULL;
+}
 Type* AdtDeclarationExp::typeOf(Tenv tenv) {
     // TODO: Implement
     throw_err("programmer", "adt typing rules have not been implemented yet");
