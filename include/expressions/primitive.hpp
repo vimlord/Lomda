@@ -30,10 +30,6 @@ class AdtExp : public Expression {
         std::string toString();
 
         bool postprocessor(Trie<bool> *vars);
-
-        Exp optimize();
-        int opt_var_usage(std::string);
-        Exp opt_const_prop(opt_varexp_map&, opt_varexp_map&);
 };
 
 // Dictionary generator

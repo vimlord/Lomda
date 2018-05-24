@@ -91,11 +91,68 @@ Val run(string program) {
         return NULL;
     }
 }
-
+Val AdtExp::evaluate(Env env) {
+    // Determine the argument count.
+    int argc;
+    for (argc = 0; args[argc]; argc++);
+    
+    // Build an argument list
+    Val *xs = new Val[argc+1];
+    xs[argc] = NULL;
+    for (int i = 0; i < argc; i++) {
+        // Evaluate the argument
+        xs[i] = args[i]->evaluate(env);
+        if (!xs[i]) {
+            // Evaluation failed, hence we must return.
+            while (i--)
+                xs[i]->rem_ref();
+            return NULL;
+        }
+    }
+    
+    return new AdtVal(name, kind, xs);
+}
 Val AdtDeclarationExp::evaluate(Env env) {
-    // TODO: Implement the evaluation.
-    throw_err("programmer", "adt functionality has not been defined");
-    return NULL;
+    auto subtypes = new Trie<Val>;
+    
+    auto adt = new DictVal(subtypes);
+
+    for (int i = 0; argss[i]; i++) {
+        auto kind = ids[i];
+        int j;
+        for (j = 0; argss[i][j]; j++);
+        
+        // Generate a list of arguments for the constructor.
+        auto xs = new string[j+1];
+
+        // Generate a list of arguments for the backend factory.
+        auto zs = new Exp[j+1];
+
+        xs[j] = "";
+        zs[j] = NULL;
+        while (j--) {
+            xs[j] = "arg" + to_string(j);
+            zs[j] = new VarExp(xs[j]);
+        }
+        
+        // Add the declaration
+        subtypes->add(kind, new LambdaVal(xs, new AdtExp(name, kind, zs)));
+    }
+    
+    // Store the dictionary. This holds all of the constructors.
+    env->set(name, adt);
+    adt->rem_ref();
+
+    // Display the env if necessary
+    throw_debug("env", "original env Γ extended to env Γ' := " + env->toString());
+    
+    // Now, we can evaluate.
+    Val res = body->evaluate(env);
+    
+    // Now, we remove the item.
+    env->rem(name);
+
+    return res;
 }
 Val SwitchExp::evaluate(Env env) {
     // TODO: Implement the evaluation.
