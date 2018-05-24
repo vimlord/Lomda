@@ -58,6 +58,18 @@ void throw_type_err(Exp exp, std::string type) {
     throw_err("type", "expression '" + exp->toString() + "' does not evaluate as " + type);
 }
 
+Exp AdtExp::clone() {
+    int i;
+    for (i = 0; args[i]; i++);
+
+    Exp *xs = new Exp[i+1];
+    xs[i] = NULL;
+    while (i--) xs[i] = args[i]->clone();
+
+    return new AdtExp(name, kind, xs);
+
+}
+
 AdtDeclarationExp::~AdtDeclarationExp() {
     for (int i = 0; argss[i]; i++) {
         for (int j = 0; argss[i][j]; j++)

@@ -31,7 +31,7 @@ class AdtDeclarationExp : public Expression {
         Val evaluate(Env);
         Type* typeOf(Tenv);
 
-        bool postprocessor(Trie<bool>);
+        bool postprocessor(Trie<bool>*);
 
         Exp clone();
         std::string toString();
@@ -58,9 +58,10 @@ class SwitchExp : public Expression {
         ~SwitchExp();
 
         Val evaluate(Env);
+        Val derivativeOf(std::string, Env, Env);
         Type* typeOf(Tenv);
 
-        bool postprocessor(Trie<bool>);
+        bool postprocessor(Trie<bool>*);
 
         Exp clone();
         std::string toString();
