@@ -58,11 +58,34 @@ Type* DictType::clone() {
     auto tt = types->iterator();
     while (tt->hasNext()) {
         string k = tt->next();
-        ts->add(k, types->get(k));
+        ts->add(k, types->get(k)->clone());
     }
     delete tt;
     
     return new DictType(ts);
+}
+Type* DictType::subst(Tenv tenv) {
+    auto ts = new Trie<Type*>;
+    auto T = new DictType(ts);
+
+    auto tt = types->iterator();
+    while (tt->hasNext()) {
+        // Compute the subtype
+        string k = tt->next();
+        auto t = types->get(k)->subst(tenv);
+        if (t)
+            // Substitute if possible
+            ts->add(k, t);
+        else {
+            // The type is broken, thus illegal.
+            delete T;
+            T = NULL;
+            break;
+        }
+    }
+    delete tt;
+    
+    return T;
 }
 
 bool DictType::depends_on_tvar(string x, Tenv tenv) {
