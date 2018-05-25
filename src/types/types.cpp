@@ -60,6 +60,7 @@ Type* DictType::clone() {
         string k = tt->next();
         ts->add(k, types->get(k));
     }
+    delete tt;
     
     return new DictType(ts);
 }
@@ -492,10 +493,14 @@ Type* DictExp::typeOf(Tenv tenv) {
         if (!t) {
             show_proof_therefore(type_res_str(tenv, this, NULL));
             delete T;
+            delete kt;
+            delete vt;
             return NULL;
         } else
             trie->add(k, t);
     }
+    delete kt;
+    delete vt;
 
     show_proof_therefore(type_res_str(tenv, this, T));
     return T;
