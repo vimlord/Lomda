@@ -202,6 +202,7 @@ class DictType : public Type {
 
         Type* clone();
         Type* unify(Type*, Tenv);
+        Type* subst(Tenv);
 
         bool equals(Type*, Tenv);
         bool depends_on_tvar(std::string, Tenv);
