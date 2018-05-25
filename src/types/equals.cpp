@@ -28,6 +28,21 @@ Type* reduces_to_type(Type *t, Tenv tenv) {
         return isType<VarType>(t) || isType<T>(t) ? t : NULL;
 }
 
+bool AlgebraicDataType::equals(Type *t, Tenv tenv) {
+    t = reduces_to_type<AlgebraicDataType>(t, tenv);
+    if (!t) return false;
+    else if (isType<VarType>(t))
+        return true;
+    else if (isType<AlgebraicDataType>(t)) {
+        // Checking against the type names should be the only
+        // necessary test. If more is needed, there is a lot
+        // more data to check against.
+        auto T = (AlgebraicDataType*) t;
+        return T->name == name;
+    } else
+        return false;
+}
+
 bool MultType::equals(Type *t, Tenv tenv) {
     return left->equals(t, tenv) || right->equals(t, tenv);
 }

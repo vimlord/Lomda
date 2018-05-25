@@ -220,8 +220,8 @@ class DictType : public Type {
     private:
         Trie<Type*> *types;
     public:
-        DictType(Trie<Type*> *ts = new Trie<Type*>)
-        : types(ts) {}
+        DictType() { types = new Trie<Type*>; }
+        DictType(Trie<Type*> *ts) : types(ts) {}
         DictType(std::initializer_list<std::pair<std::string, Type*>>);
         ~DictType() {
             auto it = types->iterator();
