@@ -4,6 +4,11 @@
 
 using namespace std;
 
+Type* AlgebraicDataType::unify(Type* t, Tenv tenv) {
+    // TODO: Unification rule
+    return NULL;
+}
+
 // Unification rules for fundamental type
 Type* BoolType::unify(Type* t, Tenv tenv) {
     if (isType<BoolType>(t)) {
