@@ -226,6 +226,7 @@ class DictType : public Type {
         ~DictType() {
             auto it = types->iterator();
             while (it->hasNext()) delete types->get(it->next());
+            delete it;
             delete types;
         }
 

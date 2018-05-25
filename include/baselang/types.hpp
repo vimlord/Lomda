@@ -11,6 +11,8 @@ typedef TypeEnv* Tenv;
 
 class Type : public Stringable {
     public:
+        virtual ~Type() {}
+
         virtual Type* clone() = 0;
 
         /**
