@@ -42,7 +42,7 @@ Type* AlgebraicDataType::clone() {
 }
 // The type is constant, therefore cannot be reduced any further.
 bool AlgebraicDataType::depends_on_tvar(string, Tenv) { return false; }
-Type* AlgebraicDataType::subst(Tenv tenv) {}
+Type* AlgebraicDataType::subst(Tenv tenv) { return clone(); }
 
 DictType::DictType(initializer_list<pair<string, Type*>> ts) {
     types = new Trie<Type*>;
