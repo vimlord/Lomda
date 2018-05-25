@@ -88,7 +88,7 @@ int main(int argc, char *argv[]) {
     for (i = 1; argv[i]; i++) {
         if (!strcmp(argv[i], "--use-types"))
             set_use_types(WERROR() ? 2 : 1);
-        if (!strcmp(argv[i], "--use-module-caching"))
+        else if (!strcmp(argv[i], "--use-module-caching"))
             set_use_module_caching(true);
         else if (!strcmp(argv[i], "--version")) {
             print_version(); return 0;
