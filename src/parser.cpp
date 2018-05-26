@@ -106,6 +106,19 @@ int index_of_closure(string str, char a, char b) {
     return -1;
 }
 
+/**
+ * Trims whitespace from the outer edges of a string
+ */
+string trim_whitespace(string str) {
+    int i;
+    for (i = 0; str[i] == ' ' || str[i] == '\n' || str[i] == '\t'; i++);
+
+    int j;
+    for (j = str.length(); j > i && str[j-1] == ' ' || str[j-1] == '\n' || str[j-1] == '\t'; j--);
+    
+    return str.substr(i, j-i);
+}
+
 int index_of_char(string str, char c) {
     for (int i = 0; i < str.length(); i++) {
         if (str[i] == c)
@@ -1451,6 +1464,113 @@ Exp parse_statement(string str) {
             Y = new DerivativeExp(Y, x);
 
         return Y;
+
+    } else if ((i = starts_with(str, "switch")) > 0) {
+        str = str.substr(i);
+        
+        // Extract an ADT
+        result<Expression> adt = parse_pemdas(str, 1); // Identification is limited to low level definitions
+        if (!adt.value) return NULL;
+        else str = str.substr(adt.strlen);
+
+        if ((i = starts_with(str, "in")) == -1) {
+            throw_err("parser", "switch statement missing in keyword; see:\n\t" + str.substr(0, 16));
+            delete adt.value;
+            return NULL;
+        } else
+            str = str.substr(i);
+        
+        // Extract a statement list
+        list<string> states = extract_statements(str, '|', false);
+        
+        // Build argument sets
+        list<string> names;
+        list<string*> idss;
+        list<Exp> bodies;
+
+        while (states.size()) {
+            // Parse the front
+            string state = states.front();
+            
+            state = trim_whitespace(state);
+            
+            // Parse the name and then trim following whitespace
+            string name = extract_identifier(state);
+            if (name == "") break;
+            else state = trim_whitespace(state.substr(name.length()));
+            
+            // Record the kind.
+            names.push_back(name);
+            
+            if (state[0] != '(') break;
+            
+            // Extract arguments
+            int j = index_of_closure(state, '(', ')');
+            if (j == -1) break;
+            string argstr = state.substr(1, j-1);
+            state = state.substr(j+1);
+            
+            if (!is_all_whitespace(argstr)) {
+                // Parse through the arguments; they should all be identifiers.
+                list<string> args = extract_statements(argstr, ',', false);
+                string *ids = new string[args.size()+1];
+                ids[args.size()] = "";
+                for (i = 0; args.size(); i++) {
+                    // Pull out and scrape the string down
+                    string id = trim_whitespace(args.front());
+                    
+                    // Check to see that the entire string is an identifier.
+                    if (id.length() == 0 || extract_identifier(id) != id) break;
+                    else ids[i] = id;
+
+                    args.pop_front();
+                }
+                
+                // Proper or not, add to the list of arguments.
+                idss.push_back(ids);
+                
+                // If some items were not processed, parsing failed.
+                if (args.size()) break;
+            } else {
+                // Establish the empty case
+                string *ids = new string[1];
+                ids[0] = "";
+                idss.push_back(ids);
+            }
+
+            // Make sure the arrow can be parsed.
+            if ((i = starts_with(state, "->")) < 0) break;
+            else state = state.substr(i);
+            
+            // Parse the body.
+            result<Expression> body = parse_body(state, true);
+            if (!body.value) break;
+            else bodies.push_back(body.value);
+
+            // Mark as complete
+            states.pop_front();
+        }
+
+        if (states.size()) {
+            throw_err("parser", "switch bodies could not be parsed");
+            // The evaluation failed
+            delete adt.value;
+            while (bodies.size()) { delete bodies.front(); bodies.pop_front(); }
+            while (idss.size()) { delete[] idss.front(); idss.pop_front(); }
+            return NULL;
+        }
+
+        std::cout << "names:  " << names.size() << "\n";
+        std::cout << "idss:   " << idss.size() << "\n";
+        std::cout << "bodies: " << bodies.size() << "\n";
+
+        return new SwitchExp(
+                adt.value,
+                store_in_list<string>(names, ""),
+                store_in_list<string*>(idss, NULL),
+                store_in_list<Exp>(bodies, NULL)
+        );
+
 
     } else {
         // End case is that we parse for a pemdas expression.
