@@ -155,9 +155,60 @@ Val AdtDeclarationExp::evaluate(Env env) {
     return res;
 }
 Val SwitchExp::evaluate(Env env) {
-    // TODO: Implement the evaluation.
-    throw_err("programmer", "adt functionality has not been defined");
-    return NULL;
+    
+    Val val = adt->evaluate(env);
+    if (!val) return NULL;
+    else if (typeid(*val) != typeid(AdtVal)) {
+        throw_type_err(adt, "ADT");
+        val->rem_ref();
+        return NULL;
+    }
+
+    auto A = (AdtVal*) val;
+    
+    // Count the number of arguments
+    int xs;
+    for (xs = 0; A->getArgs()[xs]; xs++);
+    
+    string name = A->getKind();
+    string *ids = NULL;
+    int i;
+    for (i = 0; !ids && idss[i]; i++) {
+        if (names[i] == name) {
+            // Compute the argument counts
+            int zs;
+            for (zs = 0; idss[i][zs] != ""; zs++);
+            
+            // Check if a match was found
+            if (xs == zs) {
+                ids = idss[i];
+                break;
+            }
+        }
+    }
+    
+    // Check that the ADT was compatible.
+    if (!ids) {
+        throw_err("type", "adt " + A->toString() + " is incompatible with the switch statement; see:\n\t" + toString());
+        val->rem_ref();
+        return NULL;
+    }
+    
+    // Grab the correct body
+    Exp body = bodies[i];
+
+    // Now, we will extend the environment
+    for (i = 0; i < xs; i++)
+        env->set(ids[i], A->getArgs()[i]);
+
+    Val res = body->evaluate(env);
+    
+    // Perform garbage collection
+    for (i = 0; i < xs; i++)
+        env->rem(ids[i]);
+    val->rem_ref();
+
+    return res;
 }
 
 Val ApplyExp::evaluate(Env env) {
