@@ -871,6 +871,7 @@ Val DictAccessExp::evaluate(Env env) {
         return NULL;
     else if (typeid(*f) != typeid(DictVal)) {
         throw_type_err(list, "dict, list, or string");
+        f->rem_ref();
         return NULL;
     } else {
         DictVal *d = (DictVal*) f;
@@ -879,7 +880,6 @@ Val DictAccessExp::evaluate(Env env) {
         if (d->getVals()->hasKey(idx)) {
             v = d->getVals()->get(idx);
             v->add_ref();
-            return v;
         } else
             v = new VoidVal;
 

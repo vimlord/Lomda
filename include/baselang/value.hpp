@@ -6,8 +6,10 @@
 
 class Value : public Stringable, public Reffable {
     public:
+        virtual ~Value() {}
+
         virtual Value* clone() = 0;
-        virtual int set(Value*) = 0;
+        virtual int set(Value*) { return 1; };
 };
 typedef Value* Val;
 
