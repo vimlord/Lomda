@@ -60,6 +60,8 @@ class AlgebraicDataType : public Type {
     public:
         AlgebraicDataType(std::string nm, std::string *ks, Type ***vs)
         : name(nm), kinds(ks), argss(vs) {}
+        AlgebraicDataType(std::string nm)
+        : name(nm), kinds(NULL), argss(NULL) {}
         ~AlgebraicDataType();
         
         // Getters
