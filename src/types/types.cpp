@@ -12,30 +12,41 @@ using namespace std;
 
 AlgebraicDataType::~AlgebraicDataType() {
     delete[] kinds;
-
-    for (int i = 0; argss[i]; i++) {
-        for (int j = 0; argss[i][j]; j++)
-            delete argss[i][j];
-        delete[] argss[i];
+    
+    if (argss) {
+        for (int i = 0; argss[i]; i++) {
+            for (int j = 0; argss[i][j]; j++)
+                delete argss[i][j];
+            delete[] argss[i];
+        }
+        delete[] argss;
     }
-    delete[] argss;
 }
 bool AlgebraicDataType::isConstant(Tenv tenv) { return true; }
 Type* AlgebraicDataType::clone() {
     int i;
     for (i = 0; argss[i]; i++);
     
-    string *xs = new string[i+1];
-    Type* **ass = new Type**[i+1];
-    xs[i] = ""; ass[i] = NULL;
+    string *xs;
+    Type ***ass;
+    
+    if (argss) {
+        xs = new string[i+1];
+        ass = new Type**[i+1];
 
-    while (i--) {
-        xs[i] = kinds[i];
+        xs[i] = ""; ass[i] = NULL;
 
-        int j; for (j = 0; argss[i][j]; j++);
-        ass[i] = new Type*[j+1];
-        ass[i][j] = NULL;
-        while (j--) ass[i][j] = argss[i][j]->clone();
+        while (i--) {
+            xs[i] = kinds[i];
+
+            int j; for (j = 0; argss[i][j]; j++);
+            ass[i] = new Type*[j+1];
+            ass[i][j] = NULL;
+            while (j--) ass[i][j] = argss[i][j]->clone();
+        }
+    } else {
+        xs = NULL;
+        ass = NULL;
     }
     
     return new AlgebraicDataType(name, xs, ass); 
