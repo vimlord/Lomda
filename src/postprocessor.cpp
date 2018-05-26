@@ -14,8 +14,30 @@ bool AdtDeclarationExp::postprocessor(Trie<bool> *vars) {
     return res;
 }
 bool SwitchExp::postprocessor(Trie<bool> *vars) {
-    // TODO: Postprocessing
-    return false;
+    // Process the ADT
+    if (!adt->postprocessor(vars)) return false;
+    
+    // Process each of the branches
+    for (int i = 0; bodies[i]; i++) {
+        // Verify that the arguments are unclaimed.
+        for (int j = 0; idss[i][j] != ""; j++)
+            if (vars->hasKey(idss[i][j])) {
+                while (j--) vars->remove(idss[i][j]);
+                return false;
+            } else
+                vars->add(idss[i][j], true);
+        
+        // In this scope, we can check the body.
+        auto res = bodies[i]->postprocessor(vars);
+        
+        // Reset the variable set
+        for (int j = 0; idss[i][j] != ""; j++)
+            vars->remove(idss[i][j]);
+        
+        if (!res) return false;
+    }
+
+    return true;
 }
 
 bool ApplyExp::postprocessor(Trie<bool> *vars) {
