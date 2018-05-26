@@ -1560,10 +1560,6 @@ Exp parse_statement(string str) {
             return NULL;
         }
 
-        std::cout << "names:  " << names.size() << "\n";
-        std::cout << "idss:   " << idss.size() << "\n";
-        std::cout << "bodies: " << bodies.size() << "\n";
-
         return new SwitchExp(
                 adt.value,
                 store_in_list<string>(names, ""),
