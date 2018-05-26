@@ -2,9 +2,19 @@
 
 bool AdtExp::postprocessor(Trie<bool> *vars) { return true; }
 bool AdtDeclarationExp::postprocessor(Trie<bool> *vars) {
-    if (vars->hasKey(name))
+    // We forbid repetition of kind names.
+    for (int i = 0; argss[i]; i++)
+        for (int j = i+1; argss[j]; j++)
+            if (ids[i] == ids[j]) {
+                throw_err("", "repetition of adt case " + ids[i] + " is not permitted");
+                return NULL;
+            }
+    
+    // We also forbid redefinitions of variables.
+    if (vars->hasKey(name)) {
+        throw_err("", "definition of ADT " + name + " conflicts with variable using that name");
         return false;
-    else
+    } else
         vars->add(name, true);
 
     bool res = body->postprocessor(vars);
@@ -19,9 +29,17 @@ bool SwitchExp::postprocessor(Trie<bool> *vars) {
     
     // Process each of the branches
     for (int i = 0; bodies[i]; i++) {
+        // Verify that there are no repeats
+        for (int j = i+1; bodies[j]; j++)
+            if (names[i] == names[j]) {
+                throw_err("", "repetition of adt case " + names[i] + " is not permitted");
+                return false;
+            }
+
         // Verify that the arguments are unclaimed.
         for (int j = 0; idss[i][j] != ""; j++)
             if (vars->hasKey(idss[i][j])) {
+                throw_err("", "redefinition of variable " + idss[i][j] + " is not permitted");
                 while (j--) vars->remove(idss[i][j]);
                 return false;
             } else
