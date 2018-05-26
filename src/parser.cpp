@@ -250,7 +250,53 @@ result<Type> parse_type(string str) {
         res.value = new StringType;
     else if ((i = starts_with(str, "V")) > 0)
         res.value = new VoidType;
-    else if ((i = starts_with(str, "(")) > 0) {
+    else if ((i = starts_with(str, "ADT")) > 0) {
+        int j;
+
+        // The opening brace
+        if ((j = starts_with(str.substr(i), "<")) == -1) {
+            for (i = 0; str[i] == ' ' || str[i] == '\n' || str[i] == '\t'; i++);
+            str = str.substr(i);
+            if (str.find('\n') > 0)
+                str = str.substr(0, str.find('\n'));
+            throw_err("parser", "closing less-than sign expected, but not found; see:\n\t" + str.substr(0, 16));
+
+            // No type could be found
+            return res;
+        } else
+            i += j;
+        
+        // The name of the ADT
+        string id = extract_identifier(str.substr(i));
+        if (id == "") {
+            for (i = 0; str[i] == ' ' || str[i] == '\n' || str[i] == '\t'; i++);
+            str = str.substr(i);
+            if (str.find('\n') > 0)
+                str = str.substr(0, str.find('\n'));
+            throw_err("parser", "expected identifier, but not found; see:\n\t" + str.substr(0, 16));
+
+            // No type could be found
+            return res;
+        } else
+            i += id.length();
+        
+        // The closing brace
+        if ((j = starts_with(str.substr(i), ">")) == -1) {
+            for (i = 0; str[i] == ' ' || str[i] == '\n' || str[i] == '\t'; i++);
+            str = str.substr(i);
+            if (str.find('\n') > 0)
+                str = str.substr(0, str.find('\n'));
+            throw_err("parser", "closing greater-than sign expected, but not found; see:\n\t" + str.substr(0, 16));
+
+            // No type could be found
+            return res;
+        } else {
+            // We can now define the type
+            i += j;
+            res.value = new AlgebraicDataType(id);
+        }
+
+    } else if ((i = starts_with(str, "(")) > 0) {
         // Encapsulate a type in parentheses.
         i = index_of_char(str, '(');
         int j = index_of_closure(str.substr(i), '(', ')');
