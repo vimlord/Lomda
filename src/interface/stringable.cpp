@@ -284,6 +284,7 @@ string StringExp::toString() {
 string SwitchExp::toString() {
     string str = "switch " + adt->toString() + " in ";
     for (int i = 0; names[i] != ""; i++) {
+        if (i) str += " | ";
         str += names[i] + "(";
         for (int j = 0; idss[i][j] != ""; j++) {
             if (j) str += ", ";
