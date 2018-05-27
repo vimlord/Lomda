@@ -365,6 +365,51 @@ Val CastExp::evaluate(Env env) {
 
 Val DerivativeExp::evaluate(Env env) {
 
+    Exp symb = func->symb_diff(var);
+    if (symb && typeid(*symb) != typeid(DerivativeExp)) {
+        throw_debug("calc_init", toString() + " = " + symb->toString());
+        // Put off the evaluation until a later time.
+        Val v = symb->evaluate(env);
+        delete symb;
+        return v;
+    } else
+        delete symb;
+
+    if (!env->apply(var)) {
+        // The differentiation MUST be over a lambda
+        Val v = func->evaluate(env);
+        if (!v) return NULL;
+        else if (typeid(*v) != typeid(LambdaVal)) {
+            throw_type_err(func, "lambda");
+            v->rem_ref();
+            return NULL;
+        } else {
+            // We can compute the derivative.
+            auto f = (LambdaVal*) v;
+            
+            // Argument count
+            int argc;
+            for (argc = 0; f->getArgs()[argc] != ""; argc++);
+
+            // Argument list
+            string *ids = new string[argc+1];
+            ids[argc] = "";
+            while (argc--) ids[argc] = f->getArgs()[argc];
+            
+            // Environment
+            env = f->getEnv();
+            env->add_ref();
+            
+            // Body
+            auto exp = f->getBody()->symb_diff(var);
+
+            v->rem_ref();
+            
+            // Build the final result
+            return new LambdaVal(ids, exp, env);
+        }
+    }
+
     // Base case: we know of nothing
     Env denv = new Environment;
     
@@ -394,8 +439,8 @@ Val DerivativeExp::evaluate(Env env) {
             // Trivial derivative: d/dx c = 0, d/dx x = x
             int c = id == var ? 1 : 0;
             
-            Val V = env->apply(var);
-            v = V ? deriveConstVal(var, v, V, c) : NULL;
+            Val X = env->apply(var);
+            v = X ? deriveConstVal(var, v, X, c) : NULL;
 
             if (v) {
                 // The value is of a differentiable type
