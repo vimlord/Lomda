@@ -62,11 +62,13 @@ Type* MultType::subst(Tenv tenv) {
 }
 
 Type* SumType::subst(Tenv tenv) {
-    // Simplify both sides
+    // Reduce the left
     auto L = left->subst(tenv);
+    if (!L) return NULL;
+    
+    // Reduce the right
     auto R = right->subst(tenv);
-    delete left; delete right;
-    left = L; right = R;
+    if (!R) { delete L; return NULL; }
     
     // We can make certain reductions where necessary
     if (isType<ListType>(L) || isType<ListType>(R)) {
@@ -103,12 +105,25 @@ Type* SumType::subst(Tenv tenv) {
 }
 
 Type* DerivativeType::subst(Tenv tenv) {
+    // Reduce the left
     auto L = left->subst(tenv);
+    if (!L) return NULL;
+    
+    // Reduce the right
     auto R = right->subst(tenv);
+    if (!R) { delete L; return NULL; }
+
     delete left; delete right;
     left = L; right = R;
 
-    if (isType<ListType>(L)) {
+    if (isType<AlgebraicDataType>(L)) {
+        // We require that the derivative be of the same type.
+        R = unify(L, tenv);
+        delete R;
+        
+        return R ?  L->clone() : NULL;
+        
+    } else if (isType<ListType>(L)) {
         // d/dt [s] = [ds/dt]
         R = new DerivativeType(((ListType*) L)->subtype()->clone(), R->clone());
         L = R->subst(tenv);
