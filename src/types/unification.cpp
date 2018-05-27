@@ -14,28 +14,37 @@ Type* AlgebraicDataType::unify(Type* t, Tenv tenv) {
             show_mgu_step(tenv, this, t, NULL);
             return NULL;
         }
+        
+        // Result type
+        Type *T;
+        
+        if (argss && A->argss) {
+            int i;
+            for (i = 0; argss[i]; i++) {
+                if (kinds[i] != A->kinds[i]) break;
 
-        int i;
-        for (i = 0; argss[i]; i++) {
-            if (kinds[i] != A->kinds[i]) break;
-
-            int j;
-            for (j = 0; argss[i][j] && A->argss[i][j]; j++) {
-                auto X = argss[i][j]->unify(A->argss[i][j], tenv);
-                if (!X) break;
+                int j;
+                for (j = 0; argss[i][j] && A->argss[i][j]; j++) {
+                    auto X = argss[i][j]->unify(A->argss[i][j], tenv);
+                    if (!X) break;
+                    
+                    // Splice the new information in
+                    argss[i][j] = X;
+                    A->argss[i][j] = X->clone();
+                }
                 
-                // Splice the new information in
-                argss[i][j] = X;
-                A->argss[i][j] = X->clone();
+                // This arg list could not be unified.
+                if (argss[i][j] || A->argss[i][j]) break;
             }
             
-            // This arg list could not be unified.
-            if (argss[i][j] || A->argss[i][j]) break;
-        }
-        
-        // Generate the final type.
-        Type *T = (argss[i] || A->argss[i]) ? NULL : clone();
-        
+            // Generate the final type.
+            T = (argss[i] || A->argss[i]) ? NULL : clone();
+            
+        } else if (argss)
+            T = clone();
+        else
+            T = A->clone();
+
         show_mgu_step(tenv, this, t, T);
         return T;
 
