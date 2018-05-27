@@ -248,10 +248,30 @@ Val OrExp::derivativeOf(string x, Env env, Env denv) {
     return NULL;
 }
 
+/**
+ * Performs automatic differentiation of an ADT.
+ * Requires that the derivative type be equivalent (for now).
+ */
 Val AdtExp::derivativeOf(string x, Env env, Env denv) {
-    // TODO: Implement
-    throw_err("programmer", "adt differentiation has not been implemented yet");
-    return NULL;
+    // Determine the argument count.
+    int argc;
+    for (argc = 0; args[argc]; argc++);
+    
+    // Build an argument list
+    Val *xs = new Val[argc+1];
+    xs[argc] = NULL;
+    for (int i = 0; i < argc; i++) {
+        // The item will be the derivative of that item.
+        xs[i] = args[i]->derivativeOf(x, env, denv);
+        if (!xs[i]) {
+            // Evaluation failed, hence we must return.
+            while (i--)
+                xs[i]->rem_ref();
+            return NULL;
+        }
+    }
+    
+    return new AdtVal(name, kind, xs);
 }
 Val SwitchExp::derivativeOf(string x, Env env, Env denv) {
     // TODO: Implement
@@ -305,6 +325,7 @@ Val ApplyExp::derivativeOf(string x, Env env, Env denv) {
         }
     }
     
+    throw_debug("calculus", "d/d" + x + " " + toString() + " = " + deriv->toString());
     Val v = deriv->evaluate(env);
 
     o->rem_ref();
