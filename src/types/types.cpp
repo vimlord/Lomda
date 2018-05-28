@@ -360,12 +360,12 @@ Type* DerivativeExp::typeOf(Tenv tenv) {
         } else {
             show_proof_step("We must extract type of arg " + var + " from " + Y->toString());
             Type *F = Y;
-            while (typeid(*F) == typeid(LambdaType) && ((LambdaType*) F)->getX() != var)
+            while (isType<LambdaType>(F) && ((LambdaType*) F)->getX() != var)
                 F = ((LambdaType*) F)->getRight();
 
             show_proof_step("Search reduces to subtype " + F->toString());
 
-            if (typeid(*F) == typeid(LambdaType)) {
+            if (isType<LambdaType>(F)) {
                 X = ((LambdaType*) F)->getLeft()->clone();
                 show_proof_step("Thus, yields " + var + " : " + X->toString());
             } else {
@@ -1270,7 +1270,7 @@ Type* SetExp::typeOf(Tenv tenv) {
     delete E;
     delete T;
 
-    if (S && typeid(*tgt) == typeid(VarExp)) {
+    if (S && isExp<VarExp>(tgt)) {
         show_proof_step(tgt->toString() + " is a variable, hence we generalize its type to " + S->toString());
         tenv->set(tgt->toString(), S->clone());
     }

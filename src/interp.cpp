@@ -102,7 +102,7 @@ Val ApplyExp::evaluate(Env env) {
         f = unpack_thunk(f);
     
     // Type check the function
-    if (typeid(*f) != typeid(LambdaVal)) {
+    if (!isVal<LambdaVal>(f)) {
         throw_type_err(op, "lambda");
         return NULL;
     }
@@ -157,13 +157,13 @@ Val CastExp::evaluate(Env env) {
         res = new StringVal(val->toString());
     else if (isType<IntType>(type)) {
         // Type conversion to an integer
-        if (typeid(*val) == typeid(IntVal))
+        if (isVal<IntVal>(val))
             return val;
-        else if (typeid(*val) == typeid(RealVal))
+        else if (isVal<RealVal>(val))
             res = new IntVal(((RealVal*) val)->get());
-        else if (typeid(*val) == typeid(BoolVal))
+        else if (isVal<BoolVal>(val))
             res = new IntVal(((BoolVal*) val)->get());
-        else if (typeid(*val) == typeid(StringVal)) {
+        else if (isVal<StringVal>(val)) {
             // String parsing (use BNF parser source)
             string s = ((StringVal*) val)->get();
 
@@ -182,13 +182,13 @@ Val CastExp::evaluate(Env env) {
         }
     } else if (isType<RealType>(type)) {
         // Type conversion to a float
-        if (typeid(*val) == typeid(IntVal))
+        if (isVal<IntVal>(val))
             res = new RealVal(((IntVal*) val)->get());
-        else if (typeid(*val) == typeid(RealVal))
+        else if (isVal<RealVal>(val))
             return val;
-        else if (typeid(*val) == typeid(BoolVal))
+        else if (isVal<BoolVal>(val))
             res = new RealVal(((BoolVal*) val)->get());
-        else if (typeid(*val) == typeid(StringVal)) {
+        else if (isVal<StringVal>(val)) {
             // String parsing
             string s = ((StringVal*) val)->get();
 
@@ -207,13 +207,13 @@ Val CastExp::evaluate(Env env) {
         }
     } else if (isType<BoolType>(type)) {
         // Type conversion to a boolean
-        if (typeid(*val) == typeid(IntVal))
+        if (isVal<IntVal>(val))
             res = new BoolVal(((IntVal*) val)->get());
-        else if (typeid(*val) == typeid(RealVal))
+        else if (isVal<RealVal>(val))
             res = new BoolVal(((RealVal*) val)->get());
-        else if (typeid(*val) == typeid(BoolVal))
+        else if (isVal<BoolVal>(val))
             return val;
-        else if (typeid(*val) == typeid(StringVal)) {
+        else if (isVal<StringVal>(val)) {
             // String parsing
             string s = ((StringVal*) val)->get();
             
@@ -254,7 +254,7 @@ Val DerivativeExp::evaluate(Env env) {
         string id = x_v.first;
         Val v = x_v.second;
         
-        if (typeid(*v) == typeid(LambdaVal)) {
+        if (isVal<LambdaVal>(v)) {
             LambdaVal *lv = (LambdaVal*) v;
             int i;
             for (i = 0; lv->getArgs()[i] != ""; i++);
@@ -358,7 +358,7 @@ Val FoldExp::evaluate(Env env) {
     lst = unpack_thunk(lst);
 
     if (!lst) return NULL;
-    else if (typeid(*lst) != typeid(ListVal)) {
+    else if (!isVal<ListVal>(lst)) {
         lst->rem_ref();
         throw_type_err(list, "list");
         return NULL;
@@ -368,7 +368,7 @@ Val FoldExp::evaluate(Env env) {
     f = unpack_thunk(f);
 
     if (!f) return NULL;
-    else if (typeid(*f) != typeid(LambdaVal)) {
+    else if (!isVal<LambdaVal>(f)) {
         throw_type_err(func, "lambda");
         lst->rem_ref();
         return NULL;
@@ -413,7 +413,7 @@ Val ForExp::evaluate(Env env) {
     listExp = unpack_thunk(listExp);
 
     if (!listExp) return NULL;
-    else if (typeid(*listExp) != typeid(ListVal)) {
+    else if (!isVal<ListVal>(listExp)) {
         throw_type_err(set, "list");
         return NULL;
     }
@@ -518,7 +518,7 @@ Val IfExp::evaluate(Env env) {
     b = unpack_thunk(b);
     
     if (!b) return NULL;
-    else if (typeid(*b) != typeid(BoolVal)) {
+    else if (!isVal<BoolVal>(b)) {
         throw_type_err(cond, "boolean");
         return NULL;
     }
@@ -616,20 +616,20 @@ Val IntExp::evaluate(Env env) {
 }
 
 bool static_typecheck(Val val, Type *type) {
-    if (typeid(*val) == typeid(IntVal))
+    if (isVal<IntVal>(val))
         return isType<IntType>(type) || isType<RealType>(type);
-    else if (typeid(*val) == typeid(RealVal))
+    else if (isVal<RealVal>(val))
         return isType<RealType>(type) && (!isType<IntType>(type) || isType<VarType>(type));
-    else if (typeid(*val) == typeid(BoolVal))
+    else if (isVal<BoolVal>(val))
         return isType<BoolType>(type);
-    else if (typeid(*val) == typeid(StringVal))
+    else if (isVal<StringVal>(val))
         return isType<StringType>(type);
-    else if (typeid(*val) == typeid(TupleVal)) {
+    else if (isVal<TupleVal>(val)) {
         // Type each side if it is a tuple.
         return isType<TupleType>(type) &&
             static_typecheck(((TupleVal*) val)->getLeft(), ((TupleType*) type)->getLeft())
         &&  static_typecheck(((TupleVal*) val)->getRight(), ((TupleType*) type)->getRight());
-    } else if (typeid(*val) == typeid(ListVal)) {
+    } else if (isVal<ListVal>(val)) {
         if (isType<ListType>(type)) {
             // We must check each element for correctness.
             auto T = ((ListType*) type)->subtype();
@@ -699,7 +699,7 @@ Val LetExp::evaluate(Env env) {
         x->rem_ref();
 
         // We permit lambdas that request recursion to have it.
-        if (rec && rec[i] && typeid(*x) == typeid(LambdaVal))
+        if (rec && rec[i] && isVal<LambdaVal>(x))
             lambdas.add(0, (LambdaVal*) x);
     }
     
@@ -756,7 +756,7 @@ Val ListAccessExp::evaluate(Env env) {
 
     if (!f)
         return NULL;
-    else if (typeid(*f) != typeid(ListVal)) {
+    else if (!isVal<ListVal>(f)) {
         throw_type_err(list, "list");
         return NULL;
     }
@@ -770,7 +770,7 @@ Val ListAccessExp::evaluate(Env env) {
     // The list
     List<Val> *vals = ((ListVal*) f)->get();
 
-    if (typeid(*index) != typeid(IntVal)) {
+    if (!isVal<IntVal>(index)) {
             throw_type_err(idx, "integer");
             f->rem_ref();
             return NULL;
@@ -801,7 +801,7 @@ Val DictAccessExp::evaluate(Env env) {
 
     if (!f)
         return NULL;
-    else if (typeid(*f) != typeid(DictVal)) {
+    else if (!isVal<DictVal>(f)) {
         throw_type_err(list, "dict, list, or string");
         return NULL;
     } else {
@@ -828,7 +828,7 @@ Val ListAddExp::evaluate(Env env) {
 
     if (!f)
         return NULL;
-    else if (typeid(*f) != typeid(ListVal)) {
+    else if (!isVal<ListVal>(f)) {
         throw_type_err(list, "list");
         return NULL;
     }
@@ -839,7 +839,7 @@ Val ListAddExp::evaluate(Env env) {
     index = unpack_thunk(index);
 
     if (!index) return NULL;
-    else if (typeid(*index) != typeid(IntVal)) {
+    else if (!isVal<IntVal>(index)) {
         throw_type_err(idx, "integer");
         return NULL;
     }
@@ -863,7 +863,7 @@ Val ListRemExp::evaluate(Env env) {
 
     if (!f)
         return NULL;
-    else if (typeid(*f) != typeid(ListVal)) {
+    else if (!isVal<ListVal>(f)) {
         throw_type_err(list, "list");
         return NULL;
     }
@@ -874,7 +874,7 @@ Val ListRemExp::evaluate(Env env) {
     index = unpack_thunk(index);
 
     if (!index) return NULL;
-    else if (typeid(*index) != typeid(IntVal)) {
+    else if (!isVal<IntVal>(index)) {
         throw_type_err(idx, "integer");
         return NULL;
     }
@@ -891,7 +891,7 @@ Val ListSliceExp::evaluate(Env env) {
 
     if (!lst)
         return NULL;
-    else if (typeid(*lst) != typeid(ListVal)) {
+    else if (!isVal<ListVal>(lst)) {
         throw_type_err(list, "list");
         lst->rem_ref(); // Garbage collection
         return NULL;
@@ -904,7 +904,7 @@ Val ListSliceExp::evaluate(Env env) {
         f = unpack_thunk(f);
 
         if (!f) return NULL;
-        else if (typeid(*f) != typeid(IntVal)) {
+        else if (!isVal<IntVal>(f)) {
             throw_type_err(from, "integer");
             lst->rem_ref(); // Garbage collection
             f->rem_ref();
@@ -924,7 +924,7 @@ Val ListSliceExp::evaluate(Env env) {
         t = unpack_thunk(t);
 
         if (!t) return NULL;
-        else if (typeid(*t) != typeid(IntVal)) {
+        else if (!isVal<IntVal>(t)) {
             throw_type_err(to, "integer");
             lst->rem_ref(); // Garbage collection
             t->rem_ref();
@@ -933,7 +933,7 @@ Val ListSliceExp::evaluate(Env env) {
 
         j = ((IntVal*) t)->get();
         t->rem_ref();
-    } else if (typeid(*lst) == typeid(ListVal))
+    } else if (isVal<ListVal>(lst))
         j = ((ListVal*) lst)->get()->size();
     else
         j = lst->toString().length();
@@ -975,21 +975,21 @@ Val MagnitudeExp::evaluate(Env env) {
     Val res = NULL;
 
     if (!v) return NULL;
-    else if (typeid(*v) == typeid(IntVal)) {
+    else if (isVal<IntVal>(v)) {
         // Magnitude of number is its absolute value
         int val = ((IntVal*) v)->get();
         res = new IntVal(val > 0 ? val : -val);
-    } else if (typeid(*v) == typeid(RealVal)) {
+    } else if (isVal<RealVal>(v)) {
         // Magnitude of number is its absolute value
         float val = ((RealVal*) v)->get();
         res = new RealVal(val > 0 ? val : -val);
-    } else if (typeid(*v) == typeid(ListVal)) {
+    } else if (isVal<ListVal>(v)) {
         // Magnitude of list is its length
         int val = ((ListVal*) v)->get()->size();
         res = new IntVal(val);
-    } else if (typeid(*v) == typeid(StringVal)) {
+    } else if (isVal<StringVal>(v)) {
         res = new IntVal(v->toString().length());
-    } else if (typeid(*v) == typeid(BoolVal)) {
+    } else if (isVal<BoolVal>(v)) {
         res = new IntVal(((BoolVal*) v)->get() ? 1 : 0);
     }
     
@@ -1004,7 +1004,7 @@ Val MapExp::evaluate(Env env) {
     f = unpack_thunk(f);
     if (!f) return NULL;
     
-    if (typeid(*f) != typeid(LambdaVal)) {
+    if (!isVal<LambdaVal>(f)) {
         throw_type_err(func, "lambda");
         f->rem_ref();
         return NULL;
@@ -1028,7 +1028,7 @@ Val MapExp::evaluate(Env env) {
     // Get the arguments
     Exp map = fn->getBody();
 
-    if (typeid(*vs) == typeid(ListVal)) {
+    if (isVal<ListVal>(vs)) {
         // Given a list, map each element of the list
         ListVal *vals = (ListVal*) vs;
         ListVal *res = new ListVal();
@@ -1085,15 +1085,15 @@ Val MapExp::evaluate(Env env) {
 }
 
 Val sqnorm(Val v, Env env) {
-    if (typeid(*v) == typeid(IntVal)) {
+    if (isVal<IntVal>(v)) {
         // Magnitude of number is its absolute value
         int val = ((IntVal*) v)->get();
         return new IntVal(val * val);
-    } else if (typeid(*v) == typeid(RealVal)) {
+    } else if (isVal<RealVal>(v)) {
         // Magnitude of number is its absolute value
         int val = ((RealVal*) v)->get();
         return new RealVal(val * val);
-    } else if (typeid(*v) == typeid(ListVal)) {
+    } else if (isVal<ListVal>(v)) {
         // Magnitude of list is its length
         auto it = ((ListVal*) v)->get()->iterator();
 
@@ -1104,7 +1104,7 @@ Val sqnorm(Val v, Env env) {
 
             if (!v) return NULL;
 
-            auto x = typeid(*v) == typeid(IntVal)
+            auto x = isVal<IntVal>(v)
                     ? ((IntVal*) v)->get()
                     : ((RealVal*) v)->get();
             v->rem_ref();
@@ -1128,7 +1128,7 @@ Val NormExp::evaluate(Env env) {
     val->rem_ref();
     if (!v) return NULL;
 
-    auto x = typeid(*v) == typeid(IntVal)
+    auto x = isVal<IntVal>(v)
             ? ((IntVal*) v)->get()
             : ((RealVal*) v)->get();
 
@@ -1144,7 +1144,7 @@ Val NotExp::evaluate(Env env) {
     
     if (!v)
         return NULL;
-    else if (typeid(*v) != typeid(BoolVal)) {
+    else if (!isVal<BoolVal>(v)) {
         throw_type_err(exp, "boolean");
         v->rem_ref(); // Garbage
         return NULL;
@@ -1222,13 +1222,13 @@ Val SequenceExp::evaluate(Env env) {
 Val SetExp::evaluate(Env env) {
     Val v = NULL;
 
-    if (typeid(*tgt) == typeid(ListAccessExp)) {
+    if (isExp<ListAccessExp>(tgt)) {
         ListAccessExp *acc = (ListAccessExp*) tgt;
         
         Val u = acc->getList()->evaluate(env);
         if (!u) {
             return NULL;
-        } else if (typeid(*u) == typeid(ListVal)) { 
+        } else if (isVal<ListVal>(u)) { 
 
             ListVal *lst = (ListVal*) u;
 
@@ -1236,7 +1236,7 @@ Val SetExp::evaluate(Env env) {
             if (!index) {
                 u->rem_ref();
                 return NULL;
-            } else if (typeid(*index) != typeid(IntVal)) {
+            } else if (!isVal<IntVal>(index)) {
                 throw_type_err(acc->getIdx(), "integer");
                 index->rem_ref();
                 u->rem_ref();
@@ -1266,13 +1266,13 @@ Val SetExp::evaluate(Env env) {
             return NULL;
         }
 
-    } else if (typeid(*tgt) == typeid(DictAccessExp)) {
+    } else if (isExp<DictAccessExp>(tgt)) {
         auto acc = (DictAccessExp*) tgt;
 
         Val u = acc->getList()->evaluate(env);
         if (!u)
             return NULL;
-        else if (typeid(*u) == typeid(DictVal)) {
+        else if (isVal<DictVal>(u)) {
             
             auto lst = (DictVal*) u;
 
@@ -1309,7 +1309,7 @@ Val SetExp::evaluate(Env env) {
             return NULL;
         }
     
-    } else if (typeid(*tgt) == typeid(VarExp)) {
+    } else if (isExp<VarExp>(tgt)) {
         VarExp *var = (VarExp*) tgt;
         
         v = exp->evaluate(env);
@@ -1356,7 +1356,7 @@ Val StdMathExp::evaluate(Env env) {
     switch (fn) {
         case SIN:
             if (isnum) {
-                auto z = typeid(*v) == typeid(IntVal)
+                auto z = isVal<IntVal>(v)
                     ? ((IntVal*) v)->get()
                     : ((RealVal*) v)->get();
                 return new RealVal(sin(z));
@@ -1366,7 +1366,7 @@ Val StdMathExp::evaluate(Env env) {
             }
         case COS:
             if (isnum) {
-                auto z = typeid(*v) == typeid(IntVal)
+                auto z = isVal<IntVal>(v)
                     ? ((IntVal*) v)->get()
                     : ((RealVal*) v)->get();
                 return new RealVal(cos(z));
@@ -1408,7 +1408,7 @@ Val TupleAccessExp::evaluate(Env env) {
     Val val = exp->evaluate(env);
 
     if (!val) return NULL;
-    else if (typeid(*val) != typeid(TupleVal)) {
+    else if (!isVal<TupleVal>(val)) {
         throw_type_err(exp, "tuple");
         val->rem_ref();
         return NULL;
@@ -1445,7 +1445,7 @@ Val WhileExp::evaluate(Env env) {
         c = unpack_thunk(c);
 
         if (!c) return NULL;
-        else if (typeid(*c) != typeid(BoolVal)) {
+        else if (!isVal<BoolVal>(c)) {
             throw_type_err(cond, "boolean");
             return NULL;
         } else if (skip || ((BoolVal*) c)->get()) {

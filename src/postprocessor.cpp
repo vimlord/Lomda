@@ -70,7 +70,7 @@ bool LetExp::postprocessor(Trie<bool> *vars) {
     
     if (res) {
         res = body->postprocessor(vars);
-        if (!res && typeid(*body) != typeid(LetExp))
+        if (!res && !isExp<LetExp>(body))
             std::cout << "in expression '" + body->toString() + "'\n";
     }
 

@@ -18,7 +18,7 @@ void throw_calc_err(Exp exp) {
 void resolveIdentity(Val val, List<int> *idx = NULL) {
     if (!val) return;
 
-    if (typeid(*val) == typeid(ListVal)) {
+    if (isVal<ListVal>(val)) {
         if (!idx) idx = new LinkedList<int>;
 
         ListVal *lst = (ListVal*) val;
@@ -31,7 +31,7 @@ void resolveIdentity(Val val, List<int> *idx = NULL) {
         }
 
         if (idx->size() == 0) delete idx;
-    } else if (typeid(*val) == typeid(DictVal)) {
+    } else if (isVal<DictVal>(val)) {
         if (!idx) idx = new LinkedList<int>;
         
         DictVal *dct = (DictVal*) val;
@@ -45,7 +45,7 @@ void resolveIdentity(Val val, List<int> *idx = NULL) {
         }
 
         if (idx->size() == 0) delete idx;
-    } else if (typeid(*val) == typeid(TupleVal)) {
+    } else if (isVal<TupleVal>(val)) {
         if (!idx) idx = new LinkedList<int>;
 
         idx->add(0, 0);
@@ -67,18 +67,18 @@ void resolveIdentity(Val val, List<int> *idx = NULL) {
         for (; i < idx->size() && it->next() == jt->next(); i++);
 
         if (i == idx->size()) {
-            val->set(typeid(*val) == typeid(IntVal) ? (Val) new IntVal(1) : (Val) new RealVal(1));
+            val->set(isVal<IntVal>(val) ? (Val) new IntVal(1) : (Val) new RealVal(1));
         }
     }
 }
 
 Val deriveConstVal(string id, Val v, int c) {
 
-    if (typeid(*v) == typeid(StringVal) ||
-        typeid(*v) == typeid(BoolVal))
+    if (isVal<StringVal>(v) ||
+        isVal<BoolVal>(v))
         // Certain types are non-differentiable
         return NULL;
-    else if (typeid(*v) == typeid(ListVal)) {
+    else if (isVal<ListVal>(v)) {
         auto it = ((ListVal*) v)->get()->iterator();
 
         auto lst = new ArrayList<Val>;
@@ -97,7 +97,7 @@ Val deriveConstVal(string id, Val v, int c) {
         }
         delete it;
         return res; 
-    } else if (typeid(*v) == typeid(DictVal)) {
+    } else if (isVal<DictVal>(v)) {
         auto vit = ((DictVal*) v)->getVals()->iterator();
 
         auto vals = new Trie<Val>;
@@ -114,7 +114,7 @@ Val deriveConstVal(string id, Val v, int c) {
 
         return res;
 
-    } else if (typeid(*v) == typeid(TupleVal)) {
+    } else if (isVal<TupleVal>(v)) {
         Val L = deriveConstVal(id, ((TupleVal*) v)->getLeft(), c);
         if (!L) return NULL;
 
@@ -126,7 +126,7 @@ Val deriveConstVal(string id, Val v, int c) {
 
         return new TupleVal(L, R);
 
-    } else if (typeid(*v) == typeid(LambdaVal)) {
+    } else if (isVal<LambdaVal>(v)) {
         auto L = (LambdaVal*) v;
 
         auto body = new DerivativeExp(L->getBody()->clone(), id);
@@ -144,7 +144,7 @@ Val deriveConstVal(string id, Val v, int c) {
         else env = new Environment;
 
         return new LambdaVal(ids, body, env);
-    } else if (typeid(*v) == typeid(IntVal) || typeid(*v) == typeid(RealVal))
+    } else if (isVal<IntVal>(v) || isVal<RealVal>(v))
         return new IntVal(c);
     else
         return NULL;
@@ -157,11 +157,11 @@ Val deriveConstVal(string id, Val y, Val x, int c) {
 
     //return deriveConstVal(id, y, c);
 
-    if (typeid(*x) == typeid(StringVal) ||
-        typeid(*x) == typeid(BoolVal))
+    if (isVal<StringVal>(x) ||
+        isVal<BoolVal>(x))
         // Certain types are non-differentiable
         return NULL;
-    else if (typeid(*x) == typeid(ListVal)) {
+    else if (isVal<ListVal>(x)) {
         auto it = ((ListVal*) x)->get()->iterator();
         
         // Resulting derivative
@@ -188,7 +188,7 @@ Val deriveConstVal(string id, Val y, Val x, int c) {
         if (c == 1) resolveIdentity(res);
 
         return res;
-    } else if (typeid(*x) == typeid(DictVal)) {
+    } else if (isVal<DictVal>(x)) {
         auto vit = ((DictVal*) x)->getVals()->iterator();
 
         auto vals = new Trie<Val>;
@@ -217,7 +217,7 @@ Val deriveConstVal(string id, Val y, Val x, int c) {
 
         return res;
 
-    } else if (typeid(*x) == typeid(TupleVal)) {
+    } else if (isVal<TupleVal>(x)) {
         Val L = deriveConstVal(id, y, ((TupleVal*) x)->getLeft(), 0);
         if (!L) return NULL;
 
@@ -233,7 +233,7 @@ Val deriveConstVal(string id, Val y, Val x, int c) {
 
         return res;
 
-    } else if (typeid(*x) == typeid(IntVal) || typeid(*x) == typeid(RealVal))
+    } else if (isVal<IntVal>(x) || isVal<RealVal>(x))
         return deriveConstVal(id, y, c);
     else
         return NULL;
@@ -253,7 +253,7 @@ Val ApplyExp::derivativeOf(string x, Env env, Env denv) {
 
     Val o = op->evaluate(env);
     if (!o) return NULL;
-    else if (typeid(*o) != typeid(LambdaVal)) {
+    else if (!isVal<LambdaVal>(o)) {
         throw_type_err(op, "lambda");
         o->rem_ref();
         return NULL;
@@ -479,7 +479,7 @@ Val ForExp::derivativeOf(string x, Env env, Env denv) {
     // Evaluate the list
     Val listExp = set->evaluate(env);
     if (!listExp) return NULL;
-    else if (typeid(*listExp) != typeid(ListVal)) {
+    else if (!isVal<ListVal>(listExp)) {
         throw_type_err(set, "list");
         return NULL;
     }
@@ -542,7 +542,7 @@ Val ForExp::derivativeOf(string x, Env env, Env denv) {
 Val IfExp::derivativeOf(string x, Env env, Env denv) {
     Val b = cond->evaluate(env);
 
-    if (typeid(*b) != typeid(BoolVal)) {
+    if (!isVal<BoolVal>(b)) {
         return NULL;
     }
 
@@ -593,7 +593,7 @@ Val LetExp::derivativeOf(string x, Env env, Env denv) {
         denv->set(ids[i], dv);
 
         // We permit all lambdas to have recursive behavior
-        if (typeid(*v) == typeid(LambdaVal)) {
+        if (isVal<LambdaVal>(v)) {
             lambdas.add(0, (LambdaVal*) v);
         }
     }
@@ -643,7 +643,7 @@ Val ListExp::derivativeOf(string x, Env env, Env denv) {
 Val DictAccessExp::derivativeOf(string x, Env env, Env denv) {
     Val lst = list->derivativeOf(x, env, denv);
     if (!lst) return NULL;
-    else if (typeid(*lst) != typeid(DictVal)) {
+    else if (!isVal<DictVal>(lst)) {
         throw_type_err(list, "list");
         lst->rem_ref();
         return NULL;
@@ -666,7 +666,7 @@ Val DictAccessExp::derivativeOf(string x, Env env, Env denv) {
 Val ListAccessExp::derivativeOf(string x, Env env, Env denv) {
     Val lst = list->derivativeOf(x, env, denv);
     if (!lst) return NULL;
-    else if (typeid(*lst) != typeid(ListVal)) {
+    else if (!isVal<ListVal>(lst)) {
         throw_type_err(list, "list");
         lst->rem_ref();
         return NULL;
@@ -674,7 +674,7 @@ Val ListAccessExp::derivativeOf(string x, Env env, Env denv) {
 
     Val index = idx->evaluate(env);
     if (!index) return NULL;
-    else if (typeid(*index) != typeid(IntVal)) {
+    else if (!isVal<IntVal>(index)) {
         throw_type_err(idx, "integer");
         lst->rem_ref();
         index->rem_ref();
@@ -696,8 +696,8 @@ Val MagnitudeExp::derivativeOf(string x, Env env, Env denv) {
     Val v = exp->evaluate(env);
 
     if (!v) return NULL;
-    else if (typeid(*v) == typeid(IntVal) || typeid(*v) == typeid(RealVal)) {
-        auto val = (typeid(*v) == typeid(IntVal))
+    else if (isVal<IntVal>(v) || isVal<RealVal>(v)) {
+        auto val = (isVal<IntVal>(v))
                 ? ((IntVal*) v)->get()
                 : ((RealVal*) v)->get();
 
@@ -705,9 +705,9 @@ Val MagnitudeExp::derivativeOf(string x, Env env, Env denv) {
 
         Val dv = exp->derivativeOf(x, env, denv);
         if (dv) {
-            if (typeid(*dv) == typeid(IntVal))
+            if (isVal<IntVal>(dv))
                 res = new IntVal((val >= 0 ? 1 : -1) * ((IntVal*) dv)->get());
-            else if (typeid(*dv) == typeid(RealVal))
+            else if (isVal<RealVal>(dv))
                 res = new IntVal((val >= 0 ? 1 : -1) * ((IntVal*) dv)->get());
             else
                 throw_err("runtime", "expression '" + v->toString() + "' does not differentiate to numerical type");
@@ -730,7 +730,7 @@ Val FoldExp::derivativeOf(string x, Env env, Env denv) {
     //      + L'[N-1] * g_b(...(c,L[0])...,L[N-1])
     Val lst = list->evaluate(env);
     if (!lst) return NULL;
-    else if (typeid(*lst) != typeid(ListVal)) {
+    else if (!isVal<ListVal>(lst)) {
         lst->rem_ref();
         throw_type_err(list, "list");
         return NULL;
@@ -746,7 +746,7 @@ Val FoldExp::derivativeOf(string x, Env env, Env denv) {
     // Attempt to evaluate the fold function
     Val f = func->evaluate(env);
     if (!f) return NULL;
-    else if (typeid(*f) != typeid(LambdaVal)) {
+    else if (!isVal<LambdaVal>(f)) {
         throw_type_err(func, "lambda");
 
         f->rem_ref();
@@ -868,7 +868,7 @@ Val MapExp::derivativeOf(string x, Env env, Env denv) {
     if (!f)
         return NULL;
     
-    if (typeid(*f) != typeid(LambdaVal)) {
+    if (!isVal<LambdaVal>(f)) {
         throw_type_err(func, "lambda");
         f->rem_ref();
         return NULL;
@@ -904,7 +904,7 @@ Val MapExp::derivativeOf(string x, Env env, Env denv) {
         return NULL;
     }
 
-    if (typeid(*vs) == typeid(ListVal)) {
+    if (isVal<ListVal>(vs)) {
         // Given a list, map each element of the list
         ListVal *vals = (ListVal*) vs;
         ListVal *dvals = (ListVal*) dvs;
@@ -1111,10 +1111,10 @@ Val StdMathExp::derivativeOf(string x, Env env, Env denv) {
     switch (fn) {
         case SIN:
             if (isnum) {
-                auto z = typeid(*v) == typeid(IntVal)
+                auto z = isVal<IntVal>(v)
                     ? ((IntVal*) v)->get()
                     : ((RealVal*) v)->get();
-                auto dz = typeid(*dv) == typeid(IntVal)
+                auto dz = isVal<IntVal>(dv)
                     ? ((IntVal*) dv)->get()
                     : ((RealVal*) dv)->get();
                 return new RealVal(dz*cos(z));
@@ -1124,10 +1124,10 @@ Val StdMathExp::derivativeOf(string x, Env env, Env denv) {
             }
         case COS:
             if (isnum) {
-                auto z = typeid(*v) == typeid(IntVal)
+                auto z = isVal<IntVal>(v)
                     ? ((IntVal*) v)->get()
                     : ((RealVal*) v)->get();
-                auto dz = typeid(*dv) == typeid(IntVal)
+                auto dz = isVal<IntVal>(dv)
                     ? ((IntVal*) dv)->get()
                     : ((RealVal*) dv)->get();
                 return new RealVal(-dz*sin(z));
@@ -1197,7 +1197,7 @@ Val TupleAccessExp::derivativeOf(string x, Env env, Env denv) {
     Val dv = exp->derivativeOf(x, env, denv);
 
     if (!dv) return NULL;
-    else if (typeid(*dv) != typeid(TupleVal)) {
+    else if (!isVal<TupleVal>(dv)) {
         throw_type_err(exp, "tuple");
         dv->rem_ref();
         return NULL;
@@ -1235,7 +1235,7 @@ Val WhileExp::derivativeOf(string x, Env env, Env denv) {
     while (true) {
         Val c = cond->evaluate(env);
         if (!c) return NULL;
-        else if (typeid(*c) != typeid(BoolVal)) {
+        else if (!isVal<BoolVal>(c)) {
             throw_type_err(cond, "boolean");
             return NULL;
         } else if (skip || ((BoolVal*) c)->get()) {
