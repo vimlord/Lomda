@@ -38,6 +38,11 @@ class AdtVal : public Value {
         AdtVal* clone();
 };
 
+template<typename T>
+inline bool isVal(const Val t) {
+    return t && dynamic_cast<const T*>(t) != nullptr;
+}
+
 class BoolVal : public Value {
     private:
         bool val;
