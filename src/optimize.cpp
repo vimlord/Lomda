@@ -17,21 +17,21 @@ bool is_const_list(ListExp *exp) {
 
 inline bool is_const_exp(Exp exp) {
     
-    if (typeid(*exp) == typeid(ListExp))
+    if (isExp<ListExp>(exp))
         return is_const_list((ListExp*) exp);
 
     return
-        typeid(*exp) == typeid(FalseExp) ||
-        typeid(*exp) == typeid(IntExp) ||
-        typeid(*exp) == typeid(RealExp) ||
-        typeid(*exp) == typeid(StringExp) ||
-        typeid(*exp) == typeid(TrueExp) ||
-        typeid(*exp) == typeid(VoidExp);
+        isExp<FalseExp>(exp) ||
+        isExp<IntExp>(exp) ||
+        isExp<RealExp>(exp) ||
+        isExp<StringExp>(exp) ||
+        isExp<TrueExp>(exp) ||
+        isExp<VoidExp>(exp);
 }
 int ApplyExp::opt_var_usage(string x) {
     // The initial use is verifiable if it is a lambda-exp.
     // Otherwise, we assume that the variable will be used.
-    int use = typeid(*op) == typeid(LambdaExp)
+    int use = isExp<LambdaExp>(op)
             ? op->opt_var_usage(x)
             : 3;
 
@@ -51,12 +51,12 @@ Exp FoldExp::opt_const_prop(opt_varexp_map &vs, opt_varexp_map &ends) {
     list = list->opt_const_prop(vs, ends);
     base = base->opt_const_prop(vs, ends);
     
-    if (typeid(*func) == typeid(ListExp) && ((ListExp*) list)->getList()->size() == 0) {
+    if (isExp<ListExp>(func) && ((ListExp*) list)->getList()->size() == 0) {
         // map [] into f = [] forall f
         Exp e = list; list = NULL;
         delete this;
         return e;
-    } if (typeid(*func) == typeid(LambdaExp)) {
+    } if (isExp<LambdaExp>(func)) {
         // We can see if the function has side effects
         for (auto x : vs) {
             if (func->opt_var_usage(x.first) & 1) {
@@ -91,7 +91,7 @@ Exp ForExp::optimize() {
     set = set->optimize();
     body = body->optimize();
 
-    if (typeid(*set) == typeid(ListExp) && ((ListExp*) set)->getList()->size() == 0) {
+    if (isExp<ListExp>(set) && ((ListExp*) set)->getList()->size() == 0) {
         // If the list is always an empty list, then the body will never execute.
         delete this;
         return new VoidExp;
@@ -130,7 +130,7 @@ Exp HasExp::opt_const_prop(opt_varexp_map& A, opt_varexp_map& B) {
 Exp IfExp::optimize() {
     cond = cond->optimize();
 
-    if (typeid(*cond) == typeid(TrueExp)) {
+    if (isExp<TrueExp>(cond)) {
         // Because the condition is always true, the if statement
         // is redundant. So, we drop all but the true expression.
         throw_debug("preprocessor", "simplified if-then-else conditional to true");
@@ -142,7 +142,7 @@ Exp IfExp::optimize() {
 
         return res;
 
-    } else if (typeid(*cond) == typeid(FalseExp)) {
+    } else if (isExp<FalseExp>(cond)) {
         // Similarly, because the expression is always false, we
         // will simply drop the true body and the condition.
         throw_debug("preprocessor", "simplified if-then-else conditional to false");
@@ -169,7 +169,7 @@ Exp IfExp::opt_const_prop(opt_varexp_map &vs, opt_varexp_map &ends) {
             // Then, we optimize the condition.
             ->optimize();
     
-    if (typeid(*cond) == typeid(TrueExp)) {
+    if (isExp<TrueExp>(cond)) {
         // We now know that the expression is always true.
         Exp e = tExp;
         tExp = NULL;
@@ -178,7 +178,7 @@ Exp IfExp::opt_const_prop(opt_varexp_map &vs, opt_varexp_map &ends) {
         
         // Hence, we will use that branch to proceed.
         return e->opt_const_prop(vs, ends);
-    } else if (typeid(*cond) == typeid(FalseExp)) {
+    } else if (isExp<FalseExp>(cond)) {
         // We now know that the expression is always true.
         Exp e = fExp;
         fExp = NULL;
@@ -387,7 +387,7 @@ Exp ListAccessExp::optimize() {
     list = list->optimize();
     idx = idx->optimize();
 
-    if (typeid(*list) == typeid(ListExp) && typeid(*idx) == typeid(IntExp)) {
+    if (isExp<ListExp>(list) && isExp<IntExp>(idx)) {
         int i = ((IntExp*) idx)->get();
         auto lst = ((ListExp*) list)->getList();
         if (i >= 0 && i < lst->size()) {
@@ -401,7 +401,7 @@ Exp ListAccessExp::optimize() {
 }
 
 Exp MapExp::opt_const_prop(opt_varexp_map &vs, opt_varexp_map &ends) {
-    if (typeid(*func) == typeid(LambdaExp)) {
+    if (isExp<LambdaExp>(func)) {
         // We can see if the function has side effects
         for (auto x : vs) {
             if (func->opt_var_usage(x.first) & 1) {
@@ -424,7 +424,7 @@ Exp MapExp::opt_const_prop(opt_varexp_map &vs, opt_varexp_map &ends) {
 
     list = list->opt_const_prop(vs, ends);
 
-    if (typeid(*list) == typeid(ListExp) && ((ListExp*) list)->getList()->size() == 0) {
+    if (isExp<ListExp>(list) && ((ListExp*) list)->getList()->size() == 0) {
         // map [] into f = [] forall f
         list = list->opt_const_prop(vs, ends);
         Exp e = list; list = NULL;
@@ -438,11 +438,11 @@ Exp MapExp::opt_const_prop(opt_varexp_map &vs, opt_varexp_map &ends) {
 Exp NotExp::optimize() {
     exp = exp->optimize();
 
-    if (typeid(*exp) == typeid(TrueExp)) {
+    if (isExp<TrueExp>(exp)) {
         // not true = false
         delete exp;
         return new FalseExp;
-    } else if (typeid(*exp) == typeid(FalseExp)) {
+    } else if (isExp<FalseExp>(exp)) {
         // not false = true
         delete exp;
         return new TrueExp;
@@ -563,7 +563,7 @@ Exp SetExp::opt_const_prop(opt_varexp_map &vs, opt_varexp_map &end) {
     exp = exp->opt_const_prop(vs, end);
 
     if (
-    typeid(*tgt) == typeid(VarExp) &&
+    isExp<VarExp>(tgt) &&
     vs.count(tgt->toString())
     ) {
         // One of the values is being reassigned. So, we will change
@@ -664,13 +664,13 @@ Exp StdMathExp::optimize() {
     switch (fn) {
         case LOG:
             // log(exp(x)) = x
-            if (typeid(*e) == typeid(StdMathExp) && ((StdMathExp*) e)->fn == EXP) {
+            if (isExp<StdMathExp>(e) && ((StdMathExp*) e)->fn == EXP) {
                 res = ((StdMathExp*) e)->e->clone();
                 delete this;
             }
             break;
         case EXP: // exp(log(x)) = x
-            if (typeid(*e) == typeid(StdMathExp)) {
+            if (isExp<StdMathExp>(e)) {
                 auto x = (StdMathExp*) e;
                 if (x->fn == LOG) {
                     res = x->e->clone();
@@ -679,7 +679,7 @@ Exp StdMathExp::optimize() {
             }
             break;
         case SQRT:
-            if (typeid(*e) == typeid(StdMathExp)) {
+            if (isExp<StdMathExp>(e)) {
                 auto x = (StdMathExp*) e;
                 if (x->fn == EXP) {
                     // sqrt(exp(x)) = exp(x/2)
@@ -714,7 +714,7 @@ Exp VarExp::opt_const_prop(opt_varexp_map &vs, opt_varexp_map &end) {
 Exp WhileExp::optimize() {
     cond = cond->optimize();
 
-    if (typeid(*cond) == typeid(FalseExp)) {
+    if (isExp<FalseExp>(cond)) {
         // The condition is always false, hence it will never execute.
         delete this;
         return new VoidExp;

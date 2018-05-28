@@ -3,7 +3,7 @@
 #include <cmath>
 
 int is_vector(Val v) {
-    if (typeid(*v) != typeid(ListVal))
+    if (!isVal<ListVal>(v))
         return 0;
     ListVal *list = (ListVal*) v;
 
@@ -11,7 +11,7 @@ int is_vector(Val v) {
     int i;
     for (i = 0; it->hasNext(); i++) {
         auto v = it->next();
-        if (typeid(*v) != typeid(RealVal) && typeid(*v) != typeid(IntVal)) {
+        if (!isVal<RealVal>(v) && !isVal<IntVal>(v)) {
             delete it;
             return 0;
         }
@@ -22,7 +22,7 @@ int is_vector(Val v) {
 }
 
 int* is_matrix(Val v) {
-    if (typeid(*v) != typeid(ListVal))
+    if (!isVal<ListVal>(v))
         return 0;
     ListVal *list = (ListVal*) v;
 
@@ -35,7 +35,7 @@ int* is_matrix(Val v) {
     for (i = 0; it->hasNext(); i++) {
         auto v = it->next();
 
-        if (typeid(*v) == typeid(ListVal)) {
+        if (isVal<ListVal>(v)) {
             int c = is_vector((ListVal*) v);
             if (i == 0) {
                 if (c) {
@@ -68,7 +68,7 @@ float* extract_vector(ListVal *list) {
     float *vec = new float[list->get()->size()];
     for (int i = 0; i < list->get()->size(); i++) {
         Val v = list->get()->get(i);
-        vec[i] = typeid(*v) == typeid(RealVal) ? ((RealVal*) v)->get() : ((IntVal*) v)->get();
+        vec[i] = isVal<RealVal>(v) ? ((RealVal*) v)->get() : ((IntVal*) v)->get();
     }
     return vec;
 }
@@ -87,7 +87,7 @@ bool is_negligible_mtrx(ListVal *mtrx, double eps = 1e-4) {
         auto jt = row->get()->iterator();
         while (jt->hasNext()) {
             Val v = jt->next();
-            if (typeid(*v) == typeid(IntVal)) {
+            if (isVal<IntVal>(v)) {
                 return 0 == ((IntVal*) v)->get();
             } else {
                 float f = ((RealVal*) v)->get();
@@ -102,11 +102,11 @@ bool is_negligible_mtrx(ListVal *mtrx, double eps = 1e-4) {
 
 Val exp(Val v) {
     if (!v) return NULL;
-    else if (typeid(*v) == typeid(RealVal))
+    else if (isVal<RealVal>(v))
         return new RealVal(exp(((RealVal*) v)->get()));
-    else if (typeid(*v) == typeid(IntVal))
+    else if (isVal<IntVal>(v))
         return new RealVal(exp(((IntVal*) v)->get()));
-    else if (typeid(*v) == typeid(ListVal)) {
+    else if (isVal<ListVal>(v)) {
         // Perhaps a matrix
         int *dim = is_matrix((ListVal*) v);
         if (!dim) {
@@ -175,9 +175,9 @@ Val exp(Val v) {
 
 Val log(Val v) {
     if (!v) return NULL;
-    else if (typeid(*v) == typeid(RealVal))
+    else if (isVal<RealVal>(v))
         return new RealVal(log(((RealVal*) v)->get()));
-    else if (typeid(*v) == typeid(IntVal))
+    else if (isVal<IntVal>(v))
         return new RealVal(log(((IntVal*) v)->get()));
     else {
         // Perhaps a matrix
@@ -201,7 +201,7 @@ Val log(Val v) {
             for (int j = 0; j < dim[0]; j++) {
                 // Update the norm
                 Val x = ((ListVal*) ((ListVal*) v)->get()->get(i))->get()->get(j);
-                float f = typeid(*x) == typeid(RealVal) ? ((RealVal*) x)->get() : ((IntVal*) x)->get();
+                float f = isVal<RealVal>(x) ? ((RealVal*) x)->get() : ((IntVal*) x)->get();
                 norm += f*f;
 
                 row->get()->add(j, new IntVal(i == j ? 1 : 0));
@@ -227,7 +227,7 @@ Val log(Val v) {
                 for (int j = 0; j < dim[0]; j++) {
                     // Update the norm
                     Val x = ((ListVal*) ((ListVal*) v)->get()->get(i))->get()->get(j);
-                    float f = typeid(*x) == typeid(RealVal) ? ((RealVal*) x)->get() : ((IntVal*) x)->get();
+                    float f = isVal<RealVal>(x) ? ((RealVal*) x)->get() : ((IntVal*) x)->get();
                     row->get()->add(j, new RealVal(f / a));
                 }
             }
@@ -338,14 +338,14 @@ Val identity_matrix(int n) {
 
 Val pow(Val b, Val p) {
     if (!b || !p) return NULL;
-    else if (typeid(*p) == typeid(IntVal)) {
+    else if (isVal<IntVal>(p)) {
         MultExp mult(NULL, NULL);
         
         int n = ((IntVal*) p)->get();
 
         if (n == 0) {
             // Return the identity
-            if (typeid(*b) == typeid(RealVal) || typeid(*b) == typeid(IntVal))
+            if (isVal<RealVal>(b) || isVal<IntVal>(b))
                 return new IntVal(1);
 
             auto dim = is_matrix(b);
@@ -367,7 +367,7 @@ Val pow(Val b, Val p) {
             Val v;
             
             // We may need to generate an identity matrix
-            if (typeid(*b) == typeid(ListVal)) {
+            if (isVal<ListVal>(b)) {
                 auto dta = is_matrix((ListVal*) b);
                 if (dta && dta[0] == dta[1]) {
                     if (n == 1) {
@@ -383,7 +383,7 @@ Val pow(Val b, Val p) {
                     delete dta;
                     return NULL;
                 }
-            } else if (typeid(*b) == typeid(IntVal) || typeid(*b) == typeid(RealVal))
+            } else if (isVal<IntVal>(b) || isVal<RealVal>(b))
                 v = new IntVal(1);
             
             // If n is nonzero, we need to prevent accidental GC

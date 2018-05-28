@@ -1789,7 +1789,7 @@ Exp parse_sequence(string str, list<string> future) {
         // We couldn't generate the rest of the program.
         delete E;
         return NULL;
-    } else if (typeid(*F) == typeid(SequenceExp)) {
+    } else if (isExp<SequenceExp>(F)) {
         // Add to the sequence.
         ((SequenceExp*) F)->getSeq()->add(0, E);
 

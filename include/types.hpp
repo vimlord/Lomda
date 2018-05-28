@@ -13,10 +13,10 @@ inline bool isType(const Type* t) {
 }
 
 inline bool val_is_integer(Val v) {
-    return typeid(*v) == typeid(IntVal);
+    return isVal<IntVal>(v);
 }
 inline bool val_is_real(Val v) {
-    return typeid(*v) == typeid(RealVal);
+    return isVal<RealVal>(v);
 }
 inline bool val_is_number(Val v) {
     return val_is_integer(v) || val_is_real(v);
@@ -24,13 +24,13 @@ inline bool val_is_number(Val v) {
 
 
 inline bool val_is_list(Val v) {
-    return typeid(*v) == typeid(ListVal);
+    return isVal<ListVal>(v);
 }
 inline bool val_is_dict(Val v) {
-    return typeid(*v) == typeid(DictVal);
+    return isVal<DictVal>(v);
 }
 inline bool val_is_tuple(Val v) {
-    return typeid(*v) == typeid(TupleVal);
+    return isVal<TupleVal>(v);
 }
 inline bool val_is_data_struct(Val v) {
     return val_is_list(v) || val_is_dict(v) || val_is_tuple(v);
@@ -38,13 +38,13 @@ inline bool val_is_data_struct(Val v) {
 
 
 inline bool val_is_bool(Val v) {
-    return typeid(*v) == typeid(BoolVal);
+    return isVal<BoolVal>(v);
 }
 inline bool val_is_lambda(Val v) {
-    return typeid(*v) == typeid(LambdaVal);
+    return isVal<LambdaVal>(v);
 }
 inline bool val_is_string(Val v) {
-    return typeid(*v) == typeid(StringVal);
+    return isVal<StringVal>(v);
 }
 
 class PairType : public Type {
