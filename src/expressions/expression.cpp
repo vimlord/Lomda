@@ -9,15 +9,15 @@ using namespace std;
 
 Exp reexpress(Val v) {
     if (!v) return NULL;
-    else if (typeid(*v) == typeid(IntVal))
+    else if (isVal<IntVal>(v))
         return new IntExp(((IntVal*) v)->get());
-    else if (typeid(*v) == typeid(RealVal))
+    else if (isVal<RealVal>(v))
         return new RealExp(((RealVal*) v)->get());
-    else if (typeid(*v) == typeid(BoolVal))
+    else if (isVal<BoolVal>(v))
         return ((BoolVal*) v)->get() 
                 ? (Exp) new TrueExp
                 : (Exp) new FalseExp;
-    else if (typeid(*v) == typeid(ListVal)) {
+    else if (isVal<ListVal>(v)) {
         ListVal *lv = (ListVal*) v;
         LinkedList<Exp> *list = new LinkedList<Exp>;
 
@@ -25,7 +25,7 @@ Exp reexpress(Val v) {
         while (it->hasNext()) list->add(list->size(), reexpress(it->next()));
 
         return new ListExp(list);
-    } else if (typeid(*v) == typeid(LambdaVal)) {
+    } else if (isVal<LambdaVal>(v)) {
         LambdaVal *lv = (LambdaVal*) v;
 
         int argc = 0;

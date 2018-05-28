@@ -7,11 +7,11 @@ using namespace std;
 
 bool is_zero_val(Val e) {
     if (!e) return false;
-    else if (typeid(*e) == typeid(IntVal))
+    else if (isVal<IntVal>(e))
         return ((IntVal*) e)->get();
-    else if (typeid(*e) == typeid(RealVal))
+    else if (isVal<RealVal>(e))
         return ((RealVal*) e)->get();
-    else if (typeid(*e) == typeid(ListVal)) {
+    else if (isVal<ListVal>(e)) {
         auto it = ((ListVal*) e)->get()->iterator();
 
         bool isZero = true;
@@ -77,7 +77,7 @@ int AdtVal::set(Val v) {
 BoolVal::BoolVal(bool n) { val = n; }
 bool BoolVal::get() { return val; }
 int BoolVal::set(Val v) {
-    if (typeid(*v) == typeid(BoolVal)) {
+    if (isVal<BoolVal>(v)) {
         val = ((BoolVal*) v)->val;
         return 0;
     } else return 1;
@@ -128,7 +128,7 @@ Val DictVal::apply(string s) {
 IntVal::IntVal(int n) { val = n; }
 int IntVal::get() { return val; }
 int IntVal::set(Val v) {
-    if (typeid(*v) == typeid(IntVal)) {
+    if (isVal<IntVal>(v)) {
         val = ((IntVal*) v)->val;
         return 0;
     } else return 1;
@@ -138,14 +138,14 @@ int IntVal::set(Val v) {
 RealVal::RealVal(float n) { val = n; }
 float RealVal::get() { return val; }
 int RealVal::set(Val v) {
-    if (typeid(*v) == typeid(RealVal)) {
+    if (isVal<RealVal>(v)) {
         val = ((RealVal*) v)->val;
         return 0;
     } else return 1;
 }
 
 int TupleVal::set(Val v) {
-    if (typeid(*v) == typeid(TupleVal)) {
+    if (isVal<TupleVal>(v)) {
         left->rem_ref();
         left = ((TupleVal*) v)->getLeft();
         left->add_ref();
@@ -159,7 +159,7 @@ int TupleVal::set(Val v) {
 }
 
 int StringVal::set(Val v) {
-    if (typeid(*v) == typeid(StringVal)) {
+    if (isVal<StringVal>(v)) {
         val = ((StringVal*) v)->get();
         return 0;
     } else return 1;
@@ -172,7 +172,7 @@ LambdaVal::LambdaVal(string *ids, Exp exp, Env env) {
     this->env = env ? env : new Environment;
 }
 int LambdaVal::set(Val v) {
-    if (typeid(*v) == typeid(LambdaVal)) {
+    if (isVal<LambdaVal>(v)) {
         LambdaVal *lv = (LambdaVal*) v;
         int i;
     
@@ -269,7 +269,7 @@ ListVal* ListVal::clone() {
     return res;
 }
 int ListVal::set(Val v) {
-    if (typeid(*v) == typeid(ListVal)) {
+    if (isVal<ListVal>(v)) {
         auto lst = list;
 
         list = new ArrayList<Val>;
@@ -294,7 +294,7 @@ int ListVal::set(Val v) {
 }
 
 int Thunk::set(Val v) {
-    if (typeid(*v) == typeid(Thunk)) {
+    if (isVal<Thunk>(v)) {
         Thunk *t = (Thunk*) v;
         
         if (val) val->rem_ref();
