@@ -466,7 +466,7 @@ Val MultExp::op(Val a, Val b) {
         }
     } else if (val_is_list(b)) {
         return op(b, a);
-    } else if (typeid(*a) == typeid(AdtVal)) {
+    } else if (isVal<AdtVal>(a)) {
         AdtVal *A = (AdtVal*) a;
         
         // Get the arg count
@@ -491,7 +491,7 @@ Val MultExp::op(Val a, Val b) {
         return new AdtVal(A->getType(), A->getKind(), args);
 
 
-    } else if (typeid(*b) == typeid(AdtVal)) {
+    } else if (isVal<AdtVal>(b)) {
         return op(b, a);
     } else if (val_is_number(a) && val_is_number(b)) {
 
