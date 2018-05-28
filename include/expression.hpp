@@ -73,6 +73,11 @@ class SwitchExp : public Expression {
 
 };
 
+template<typename T>
+inline bool isExp(const Exp t) {
+    return t && dynamic_cast<const T*>(t) != nullptr;
+}
+
 // Calling functions; {a->b, a} -> b
 class ApplyExp : public Expression {
     private:
