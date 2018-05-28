@@ -51,7 +51,7 @@ string AndExp::toString() {
     return left->toString() + " and " + right->toString();
 }
 string ApplyExp::toString() {
-    string s = (typeid(*op) == typeid(VarExp))
+    string s = (isExp<VarExp>(op))
         ? op->toString() 
         : ("(" + op->toString() + ")");
     s += "(";
@@ -68,7 +68,7 @@ string CastExp::toString() {
     return exp->toString() + " as " + type->toString();
 }
 string DerivativeExp::toString() {
-    if (typeid(*func) == typeid(VarExp))
+    if (isExp<VarExp>(func))
         return "d" + func->toString() + "/d" + var;
 
     string s = "d/d" + var + " (" + func->toString() + ")";
@@ -152,7 +152,7 @@ string LambdaExp::toString() {
 
     s += ") ";
     
-    if (typeid(*exp) == typeid(LetExp) || typeid(*exp) == typeid(SequenceExp))
+    if (isExp<LetExp>(exp) || isExp<SequenceExp>(exp))
         s += "(" + exp->toString() + ")";
     else
         s += exp->toString();
@@ -330,7 +330,7 @@ string Environment::toString() {
 
         s += id += " := ";
 
-        if (typeid(*ref) == typeid(LambdaVal))
+        if (isVal<LambdaVal>(ref))
             s += "λ";
         else s += ref->toString();
 
