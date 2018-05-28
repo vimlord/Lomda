@@ -158,7 +158,7 @@ Val SwitchExp::evaluate(Env env) {
     
     Val val = adt->evaluate(env);
     if (!val) return NULL;
-    else if (typeid(*val) != typeid(AdtVal)) {
+    else if (!isVal<AdtVal>(val)) {
         throw_type_err(adt, "ADT");
         val->rem_ref();
         return NULL;
@@ -366,7 +366,7 @@ Val CastExp::evaluate(Env env) {
 Val DerivativeExp::evaluate(Env env) {
 
     Exp symb = func->symb_diff(var);
-    if (symb && typeid(*symb) != typeid(DerivativeExp)) {
+    if (symb && !isExp<DerivativeExp>(symb)) {
         throw_debug("calc_init", toString() + " = " + symb->toString());
         // Put off the evaluation until a later time.
         Val v = symb->evaluate(env);
@@ -379,7 +379,7 @@ Val DerivativeExp::evaluate(Env env) {
         // The differentiation MUST be over a lambda
         Val v = func->evaluate(env);
         if (!v) return NULL;
-        else if (typeid(*v) != typeid(LambdaVal)) {
+        else if (!isVal<LambdaVal>(v)) {
             throw_type_err(func, "lambda");
             v->rem_ref();
             return NULL;
