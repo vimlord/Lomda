@@ -42,7 +42,7 @@ AdtVal* AdtVal::clone() {
     return new AdtVal(type, kind, xs);
 }
 int AdtVal::set(Val v) {
-    if (typeid(*v) == typeid(AdtVal)) {
+    if (isVal<AdtVal>(v)) {
         // Wipe the array, start anew
         for (int i = 0; args[i]; i++)
             args[i]->rem_ref();
