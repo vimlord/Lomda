@@ -95,7 +95,7 @@ Val DiffExp::op(Val a, Val b) {
 
         // Compute the result
         auto z = x - y;
-        if (typeid(*a) == typeid(RealVal) || typeid(*b) == typeid(RealVal))
+        if (isVal<RealVal>(a) || isVal<RealVal>(b))
             return new RealVal(z);
         else
             return new IntVal(z);
@@ -166,7 +166,7 @@ Val DivExp::op(Val a, Val b) {
 
             // Compute the result
             auto z = x / y;
-            if (typeid(*a) == typeid(RealVal) || typeid(*b) == typeid(RealVal))
+            if (isVal<RealVal>(a) || isVal<RealVal>(b))
                 return new RealVal(z);
             else
                 return new IntVal(z);
@@ -190,7 +190,7 @@ Val DivExp::op(Val a, Val b) {
             return NULL;
         }
     } else {
-        int *dta = typeid(*b) == typeid(ListVal) ? is_matrix(((ListVal*) b)) : NULL;
+        int *dta = isVal<ListVal>(b) ? is_matrix(((ListVal*) b)) : NULL;
         if (!dta || dta[0] != dta[1]) {
             throw_err("runtime", "division is not defined between " + (left ? left->toString() : a->toString()) + " and " + (right ? right->toString() : b->toString()));
             return NULL;
@@ -205,7 +205,7 @@ Val DivExp::op(Val a, Val b) {
             mtrx[i] = new float[2*n];
             for (int j = 0; j < n; j++) {
                 auto ij = (((ListVal*) ((ListVal*) b)->get()->get(i)))->get()->get(j);
-                mtrx[i][j] = typeid(*ij) == typeid(IntVal) ? ((IntVal*) ij)->get() : ((RealVal*) ij)->get();
+                mtrx[i][j] = isVal<IntVal>(ij) ? ((IntVal*) ij)->get() : ((RealVal*) ij)->get();
                 mtrx[i][j+n] = i == j;
             }
         }
@@ -236,12 +236,12 @@ Val CompareExp::op(Val a, Val b) {
 
     if ((val_is_number(a) && val_is_number(b))) {
         auto A =
-            typeid(*a) == typeid(IntVal)
+            isVal<IntVal>(a)
             ? ((IntVal*) a)->get() :
             ((RealVal*) a)->get();
 
         auto B =
-            typeid(*b) == typeid(IntVal)
+            isVal<IntVal>(b)
             ? ((IntVal*) b)->get() :
             ((RealVal*) b)->get();
 
@@ -273,7 +273,7 @@ Val CompareExp::op(Val a, Val b) {
             default:
                 return new BoolVal(false);
         }
-    } else if (typeid(*a) == typeid(VoidVal) && typeid(*b) == typeid(VoidVal))
+    } else if (isVal<VoidVal>(a) && isVal<VoidVal>(b))
         return new BoolVal(operation == CompOp::EQ);
     else if (val_is_string(a) && val_is_string(b)) {
         string A = a->toString();
@@ -301,9 +301,8 @@ Val CompareExp::op(Val a, Val b) {
 
 // Expression for multiplying studd
 Val MultExp::op(Val a, Val b) {
-    
-    if (val_is_list(a)) {
-        if (val_is_list(b)) {
+    if (isVal<ListVal>(a)) {
+        if (isVal<ListVal>(b)) {
             //std::cout << "compute " << *a << " * " << *b << "\n";
 
             if (((ListVal*) a)->get()->size() == 0) {
@@ -315,10 +314,10 @@ Val MultExp::op(Val a, Val b) {
             }
 
             int ordA = 0, ordB = 0;
-            for (Val A = a; typeid(*A) == typeid(ListVal); ordA++)
+            for (Val A = a; isVal<ListVal>(A); ordA++)
                 A = ((ListVal*) A)->get()->get(0);
 
-            for (Val B = b; typeid(*B) == typeid(ListVal); ordB++)
+            for (Val B = b; isVal<ListVal>(B); ordB++)
                 B = ((ListVal*) B)->get()->get(0);
             
             // The restriction imposed is that multiplication restricts the
@@ -498,22 +497,22 @@ Val MultExp::op(Val a, Val b) {
 
         // The lhs is numerical
         auto x = 
-            typeid(*a) == typeid(IntVal)
+            isVal<IntVal>(a)
             ? ((IntVal*) a)->get() :
               ((RealVal*) a)->get();
         
-        if (typeid(*b) == typeid(ListVal)) {
+        if (isVal<ListVal>(b)) {
             return op(b, a);
         } else {
             // rhs is numerical
             auto y = 
-                typeid(*b) == typeid(IntVal)
+                isVal<IntVal>(b)
                 ? ((IntVal*) b)->get() :
                   ((RealVal*) b)->get();
 
             // Compute the result
             auto z = x * y;
-            if (typeid(*a) == typeid(RealVal) || typeid(*b) == typeid(RealVal))
+            if (isVal<RealVal>(a) || isVal<RealVal>(b))
                 return new RealVal(z);
             else
                 return new IntVal(z);
@@ -568,7 +567,7 @@ Val SumExp::op(Val a, Val b) {
 
         // Compute the result
         auto z = x + y;
-        if (typeid(*a) == typeid(RealVal) || typeid(*b) == typeid(RealVal))
+        if (isVal<RealVal>(a) || isVal<RealVal>(b))
             return new RealVal(z);
         else
             return new IntVal(z);
@@ -596,7 +595,7 @@ Val ModulusExp::op(Val a, Val b) {
 
         // Compute the result
         auto z = fmod(x,y);
-        if (typeid(*a) == typeid(RealVal) || typeid(*b) == typeid(RealVal))
+        if (isVal<RealVal>(a) || isVal<RealVal>(b))
             return new RealVal(z);
         else
             return new IntVal(z);

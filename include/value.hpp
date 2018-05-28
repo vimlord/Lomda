@@ -33,6 +33,11 @@ class AdtVal : public Value {
         AdtVal* clone();
 };
 
+template<typename T>
+inline bool isVal(const Val t) {
+    return t && dynamic_cast<const T*>(t) != nullptr;
+}
+
 class BoolVal : public Value {
     private:
         bool val;
@@ -178,7 +183,7 @@ class VoidVal : public Value {
     public:
         std::string toString() { return "void"; }
         VoidVal* clone() { return new VoidVal; }
-        int set(Val v) { return typeid(*v) == typeid(VoidVal); }
+        int set(Val v) { return isVal<VoidVal>(v); }
 };
 
 #endif
