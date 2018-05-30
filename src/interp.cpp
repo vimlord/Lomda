@@ -170,6 +170,7 @@ Val SwitchExp::evaluate(Env env) {
     int xs;
     for (xs = 0; A->getArgs()[xs]; xs++);
     
+    // Find the right argument set
     string name = A->getKind();
     string *ids = NULL;
     int i;
