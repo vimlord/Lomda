@@ -347,16 +347,21 @@ Type* SwitchExp::typeOf(Tenv tenv) {
         }
         
         // Unify the branches
-        auto S = T->unify(t, tenv);
-        delete T;
-        delete t;
-        if (!S) break;
-        else T = S;
+        if (i) {
+            auto S = T->unify(t, tenv);
+            delete T;
+            delete t;
+            if (!S) break;
+            else T = S;
+        } else
+            T = t;
         
         // Remove the items to the tenv
         for (int j = 0; idss[i][j] != ""; j++)
             tenv->remove(idss[i][j]);
     }
+    
+    delete A;
 
     show_proof_therefore(type_res_str(tenv, this, T));
     return T;
