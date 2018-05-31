@@ -4,6 +4,57 @@
 
 using namespace std;
 
+Type* AlgebraicDataType::unify(Type* t, Tenv tenv) {
+    if (isType<AlgebraicDataType>(t)) {
+        // Extract the other ADT
+        auto A = (AlgebraicDataType*) t;
+        
+        if (A->name != name) {
+            // They are distinct types that are not equivalent.
+            show_mgu_step(tenv, this, t, NULL);
+            return NULL;
+        }
+        
+        // Result type
+        Type *T;
+        
+        if (argss && A->argss) {
+            int i;
+            for (i = 0; argss[i]; i++) {
+                if (kinds[i] != A->kinds[i]) break;
+
+                int j;
+                for (j = 0; argss[i][j] && A->argss[i][j]; j++) {
+                    auto X = argss[i][j]->unify(A->argss[i][j], tenv);
+                    if (!X) break;
+                    
+                    // Splice the new information in
+                    argss[i][j] = X;
+                    A->argss[i][j] = X->clone();
+                }
+                
+                // This arg list could not be unified.
+                if (argss[i][j] || A->argss[i][j]) break;
+            }
+            
+            // Generate the final type.
+            T = (argss[i] || A->argss[i]) ? NULL : clone();
+            
+        } else if (argss)
+            T = clone();
+        else
+            T = A->clone();
+
+        show_mgu_step(tenv, this, t, T);
+        return T;
+
+    } else if (isType<PrimitiveType>(t)) {
+        show_mgu_step(tenv, this, t, NULL);
+        return NULL;
+    } else
+        return t->unify(this, tenv);
+}
+
 // Unification rules for fundamental type
 Type* BoolType::unify(Type* t, Tenv tenv) {
     if (isType<BoolType>(t)) {

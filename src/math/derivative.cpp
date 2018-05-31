@@ -248,6 +248,99 @@ Val OrExp::derivativeOf(string x, Env env, Env denv) {
     return NULL;
 }
 
+/**
+ * Performs automatic differentiation of an ADT.
+ * Requires that the derivative type be equivalent (for now).
+ */
+Val AdtExp::derivativeOf(string x, Env env, Env denv) {
+    // Determine the argument count.
+    int argc;
+    for (argc = 0; args[argc]; argc++);
+    
+    // Build an argument list
+    Val *xs = new Val[argc+1];
+    xs[argc] = NULL;
+    for (int i = 0; i < argc; i++) {
+        // The item will be the derivative of that item.
+        xs[i] = args[i]->derivativeOf(x, env, denv);
+        if (!xs[i]) {
+            // Evaluation failed, hence we must return.
+            while (i--)
+                xs[i]->rem_ref();
+            return NULL;
+        }
+    }
+    
+    return new AdtVal(name, kind, xs);
+}
+Val SwitchExp::derivativeOf(string x, Env env, Env denv) {
+    // Evaluate the ADT
+    Val val = adt->evaluate(env);
+    if (!val) return NULL;
+    else if (!isVal<AdtVal>(val)) {
+        throw_type_err(adt, "ADT");
+        val->rem_ref();
+        return NULL;
+    }
+
+    auto A = (AdtVal*) val;
+    
+    // Differentiate the ADT
+    val = adt->derivativeOf(x, env, denv);
+    if (!val) {
+        A->rem_ref();
+        return NULL;
+    }
+
+    auto dA = (AdtVal*) val;
+    
+    // Count the number of arguments
+    int xs;
+    for (xs = 0; A->getArgs()[xs]; xs++);
+    
+    // Find the right argument set
+    string name = A->getKind();
+    string *ids = NULL;
+    int i;
+    for (i = 0; !ids && idss[i]; i++) {
+        if (names[i] == name) {
+            // Compute the argument counts
+            int zs;
+            for (zs = 0; idss[i][zs] != ""; zs++);
+            
+            // Check if a match was found
+            if (xs == zs) {
+                ids = idss[i];
+                break;
+            }
+        }
+    }
+    
+    // Check that the ADT was compatible.
+    if (!ids) {
+        throw_err("type", "adt " + A->toString() + " is incompatible with the switch statement; see:\n\t" + toString());
+        val->rem_ref();
+        return NULL;
+    }
+    
+    // Grab the correct body
+    Exp body = bodies[i];
+    
+    // Extend the environment
+    for (i = 0; i < xs; i++) {
+        env->set(ids[i], A->getArgs()[i]);
+        denv->set(ids[i], dA->getArgs()[i]);
+    }
+
+    // Compute the derivative of the body
+    Val dy = body->derivativeOf(x, env, denv);
+    
+    A->rem_ref();
+    dA->rem_ref();
+    
+    return dy;
+}
+
 Val ApplyExp::derivativeOf(string x, Env env, Env denv) {
     // d/dx f(u1(x), u2(x), ...) = df/du1 * du1/dx + df/du2 * du2/dx + ...
 
@@ -294,6 +387,7 @@ Val ApplyExp::derivativeOf(string x, Env env, Env denv) {
         }
     }
     
+    throw_debug("calculus", "d/d" + x + " " + toString() + " = " + deriv->toString());
     Val v = deriv->evaluate(env);
 
     o->rem_ref();

@@ -11,7 +11,6 @@
 
 using namespace std;
 
-
 OperatorExp::~OperatorExp() {
     delete left;
     delete right;
@@ -301,7 +300,6 @@ Val CompareExp::op(Val a, Val b) {
 
 // Expression for multiplying studd
 Val MultExp::op(Val a, Val b) {
-
     if (isVal<ListVal>(a)) {
         if (isVal<ListVal>(b)) {
             //std::cout << "compute " << *a << " * " << *b << "\n";
@@ -466,6 +464,33 @@ Val MultExp::op(Val a, Val b) {
             return res;
         }
     } else if (val_is_list(b)) {
+        return op(b, a);
+    } else if (isVal<AdtVal>(a)) {
+        AdtVal *A = (AdtVal*) a;
+        
+        // Get the arg count
+        int argc;
+        for (argc = 0; A->getArgs()[argc]; argc++);
+        
+        // Generate an argument list
+        Val *args = new Val[argc+1];
+
+        for (int i = 0; i < argc; i++) {
+            // Compute the element-wise product
+            args[i] = op(A->getArgs()[i], b);
+            if (!args[i]) {
+                // The product is non-computable
+                while (i--) args[i]->rem_ref();
+                delete[] args;
+                return NULL;
+            }
+        }
+        args[argc] = NULL;
+        
+        return new AdtVal(A->getType(), A->getKind(), args);
+
+
+    } else if (isVal<AdtVal>(b)) {
         return op(b, a);
     } else if (val_is_number(a) && val_is_number(b)) {
 

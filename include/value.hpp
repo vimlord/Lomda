@@ -14,6 +14,30 @@ inline bool isVal(const Val t) {
     return t && dynamic_cast<const T*>(t) != nullptr;
 }
 
+// An Algebraic Datatype (ADT)
+class AdtVal : public Value {
+    private:
+        // Typing identifiers used to properly identify the ADT
+        std::string type; // The global type of ADT.
+        std::string kind; // The specific kind of ADT.
+
+        Val *args; // The parameters given to create the ADT.
+    public:
+        AdtVal(std::string t, std::string k, Val *xs)
+        : type(t), kind(k), args(xs) {}
+        ~AdtVal();
+
+        int set(Val);
+
+        // Getters
+        std::string getType() { return type; }
+        std::string getKind() { return kind; }
+        Val* getArgs() { return args; }
+
+        std::string toString();
+        AdtVal* clone();
+};
+
 class BoolVal : public Value {
     private:
         bool val;

@@ -47,6 +47,40 @@ inline bool val_is_string(Val v) {
     return isVal<StringVal>(v);
 }
 
+class AlgebraicDataType : public Type {
+    private:
+        // The name of the ADT
+        std::string name;
+        
+        // The kinds of this ADT
+        std::string *kinds;
+
+        // The composite types of each ADT
+        Type* **argss;
+    public:
+        AlgebraicDataType(std::string nm, std::string *ks, Type ***vs)
+        : name(nm), kinds(ks), argss(vs) {}
+        AlgebraicDataType(std::string nm)
+        : name(nm), kinds(NULL), argss(NULL) {}
+        ~AlgebraicDataType();
+        
+        // Getters
+        std::string getName() { return name; }
+        std::string *getKinds() { return kinds; }
+        Type*** getArgss() { return argss; }
+
+        bool isConstant(Tenv t);
+        virtual bool depends_on_tvar(std::string, Tenv);
+
+        Type* clone();
+        Type* unify(Type*, Tenv);
+        Type* subst(Tenv);
+        
+        bool equals(Type*, Tenv);
+        std::string toString();
+
+};
+
 class PairType : public Type {
     protected:
         Type *left;
@@ -188,8 +222,8 @@ class DictType : public Type {
     private:
         Trie<Type*> *types;
     public:
-        DictType(Trie<Type*> *ts = new Trie<Type*>)
-        : types(ts) {}
+        DictType() { types = new Trie<Type*>; }
+        DictType(Trie<Type*> *ts) : types(ts) {}
         DictType(std::initializer_list<std::pair<std::string, Type*>>);
         ~DictType() {
             auto it = types->iterator();

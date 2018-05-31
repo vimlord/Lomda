@@ -10,6 +10,65 @@
 
 using namespace std;
 
+AlgebraicDataType::~AlgebraicDataType() {
+    delete[] kinds;
+    
+    if (argss) {
+        for (int i = 0; argss[i]; i++) {
+            for (int j = 0; argss[i][j]; j++)
+                delete argss[i][j];
+            delete[] argss[i];
+        }
+        delete[] argss;
+    }
+}
+bool AlgebraicDataType::isConstant(Tenv tenv) { return true; }
+Type* AlgebraicDataType::clone() {
+    string *xs;
+    Type ***ass;
+    
+    if (argss) {
+        // Argument count
+        int i;
+        for (i = 0; argss[i]; i++);
+        
+        xs = new string[i+1];
+        ass = new Type**[i+1];
+
+        xs[i] = ""; ass[i] = NULL;
+
+        while (i--) {
+            xs[i] = kinds[i];
+
+            int j; for (j = 0; argss[i][j]; j++);
+            ass[i] = new Type*[j+1];
+            ass[i][j] = NULL;
+            while (j--) ass[i][j] = argss[i][j]->clone();
+        }
+    } else {
+        xs = NULL;
+        ass = NULL;
+    }
+    
+    return new AlgebraicDataType(name, xs, ass); 
+}
+// The type is constant, therefore cannot be reduced any further.
+bool AlgebraicDataType::depends_on_tvar(string, Tenv) { return false; }
+Type* AlgebraicDataType::subst(Tenv tenv) {
+    if (argss) {
+        for (int i = 0; argss[i]; i++)
+        for (int j = 0; argss[i][j]; j++) {
+            auto T = argss[i][j]->subst(tenv);
+            if (!T) return NULL;
+            else {
+                delete argss[i][j];
+                argss[i][j] = T;
+            }
+        }
+    }
+    return clone();
+}
+
 DictType::DictType(initializer_list<pair<string, Type*>> ts) {
     types = new Trie<Type*>;
 
@@ -150,6 +209,163 @@ Type* AndExp::typeOf(Tenv tenv) {
     show_proof_therefore(type_res_str(tenv, this, B));
 
     return B;
+}
+
+Type* AdtExp::typeOf(Tenv tenv) {
+    // This expression is used as a backend expression. If it
+    // needs to be typed by hand, something went wrong.
+    show_proof_step("back-end ADT definition is not covered by typing system.");
+    show_proof_therefore(type_res_str(tenv, this, NULL));
+    return NULL;
+}
+Type* AdtDeclarationExp::typeOf(Tenv tenv) {
+    // Given that the BNF parser was able to generate, it should be possible
+    // to generate it. Hence, this expression will type.
+    
+    // Determine the number of subtypes
+    int i;
+    for (i = 0; argss[i]; i++);
+
+    // Create a dictionary type
+    auto bin = new DictType;
+    auto fns = bin->getTypes();
+
+    // The types of each argument of each subtype
+    Type ***typess = new Type**[i+1];
+
+    // The names of each kind
+    string *kinds = new string[i+1];
+
+    typess[i] = NULL;
+    kinds[i] = "";
+
+    while (i--) {
+        // Transfer the name
+        kinds[i] = ids[i];
+
+        int j;
+        for (j = 0; argss[i][j]; j++);
+
+        // Pass on the argument types
+        typess[i] = new Type*[j+1];
+        typess[i][j] = NULL;
+
+        while (j--)
+            // Assign the argument element
+            typess[i][j] = argss[i][j]->clone();
+    }
+
+    Type *adt = new AlgebraicDataType(name, kinds, typess);
+
+    for (i = 0; typess[i]; i++) {
+        Type *fn = i ? adt->clone() : adt;
+        if (!typess[i][0])
+            fn = new LambdaType("", new VoidType, fn);
+        else {
+            int j;
+            for (j = 0; typess[i][j]; j++);
+            while (j--) fn = new LambdaType("arg" + to_string(j), typess[i][j]->clone(), fn);
+        }
+        
+        // Add to the pool
+        fns->add(ids[i], fn);
+    }
+
+    // Now, we can apply to the environment and determine the result.
+    tenv->set(name, bin);
+
+    // Evaluate the body
+    auto T = body->typeOf(tenv);
+
+    tenv->remove(name);
+
+    show_proof_therefore(type_res_str(tenv, this, T)); // QED
+
+    return T;
+}
+Type* SwitchExp::typeOf(Tenv tenv) {
+    // Type the given ADT
+    auto A = adt->typeOf(tenv);
+    if (!A) {
+        show_proof_therefore(type_res_str(tenv, this, NULL));
+        return NULL;
+    } else if (isType<AlgebraicDataType>(A)) {
+    } else if (isType<VarType>(A)) {
+        // Because we do not know about the type of our expression,
+        // we must determine a best guess.
+        int i;
+        for (i = 0; bodies[i]; i++);
+
+        string *kinds = new string[i+1]; kinds[i] = "";
+        Type ***argss = new Type**[i+1]; argss[i] = NULL;
+        
+        while (i--) {
+            // Use the name in the slot
+            kinds[i] = names[i];
+
+            int j;
+            for (j = 0; idss[i][j] != ""; j++);
+            
+            // Create a list of arbitrary types
+            argss[i] = new Type*[j+1];
+            argss[i][j] = NULL;
+            while (j--) argss[i][j] = tenv->make_tvar();
+        }
+        
+        // Construct our hypothesis
+        auto Adt = new AlgebraicDataType("", kinds, argss);
+        
+        // Unify the two hypotheses
+        auto T = A->unify(Adt, tenv);
+        delete A;
+        delete Adt;
+        if (!T) {
+            show_proof_therefore(type_res_str(tenv, this, NULL));
+            return NULL;
+        } else
+            A = T;
+    } else {
+        // The item is of some other type.
+        delete A;
+        show_proof_therefore(type_res_str(tenv, this, NULL));
+        return NULL;
+    }
+
+    Type *T = NULL;
+
+    // Now, we can check each type
+    for (int i = 0; idss[i]; i++) {
+        // Add the argtypes to the tenv
+        for (int j = 0; idss[i][j] != ""; j++)
+            tenv->set(idss[i][j], ((AlgebraicDataType*) A)->getArgss()[i][j]->clone());
+        
+        // Type the body
+        auto t = bodies[i]->typeOf(tenv);
+        if (!t) {
+            delete T;
+            break;
+        }
+        
+        // Unify the branches
+        if (i) {
+            auto S = T->unify(t, tenv);
+            delete T;
+            delete t;
+            if (!S) break;
+            else T = S;
+        } else
+            T = t;
+        
+        // Remove the items to the tenv
+        for (int j = 0; idss[i][j] != ""; j++)
+            tenv->remove(idss[i][j]);
+    }
+    
+    delete A;
+
+    show_proof_therefore(type_res_str(tenv, this, T));
+    return T;
+
 }
 Type* ApplyExp::typeOf(Tenv tenv) {
     show_proof_step("To type " + toString() + ", we must match the parameter type(s) of the function with its arguments.");

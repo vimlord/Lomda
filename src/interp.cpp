@@ -91,6 +91,126 @@ Val run(string program) {
         return NULL;
     }
 }
+Val AdtExp::evaluate(Env env) {
+    // Determine the argument count.
+    int argc;
+    for (argc = 0; args[argc]; argc++);
+    
+    // Build an argument list
+    Val *xs = new Val[argc+1];
+    xs[argc] = NULL;
+    for (int i = 0; i < argc; i++) {
+        // Evaluate the argument
+        xs[i] = args[i]->evaluate(env);
+        if (!xs[i]) {
+            // Evaluation failed, hence we must return.
+            while (i--)
+                xs[i]->rem_ref();
+            return NULL;
+        }
+    }
+    
+    return new AdtVal(name, kind, xs);
+}
+Val AdtDeclarationExp::evaluate(Env env) {
+    auto subtypes = new Trie<Val>;
+    
+    auto adt = new DictVal(subtypes);
+
+    for (int i = 0; argss[i]; i++) {
+        auto kind = ids[i];
+        int j;
+        for (j = 0; argss[i][j]; j++);
+        
+        // Generate a list of arguments for the constructor.
+        auto xs = new string[j+1];
+
+        // Generate a list of arguments for the backend factory.
+        auto zs = new Exp[j+1];
+
+        xs[j] = "";
+        zs[j] = NULL;
+        while (j--) {
+            xs[j] = "arg" + to_string(j);
+            zs[j] = new VarExp(xs[j]);
+        }
+        
+        // Add the declaration
+        subtypes->add(kind, new LambdaVal(xs, new AdtExp(name, kind, zs)));
+    }
+    
+    // Store the dictionary. This holds all of the constructors.
+    env->set(name, adt);
+    adt->rem_ref();
+
+    // Display the env if necessary
+    throw_debug("env", "original env Γ extended to env Γ' := " + env->toString());
+    
+    // Now, we can evaluate.
+    Val res = body->evaluate(env);
+    
+    // Now, we remove the item.
+    env->rem(name);
+
+    return res;
+}
+Val SwitchExp::evaluate(Env env) {
+    
+    Val val = adt->evaluate(env);
+    if (!val) return NULL;
+    else if (!isVal<AdtVal>(val)) {
+        throw_type_err(adt, "ADT");
+        val->rem_ref();
+        return NULL;
+    }
+
+    auto A = (AdtVal*) val;
+    
+    // Count the number of arguments
+    int xs;
+    for (xs = 0; A->getArgs()[xs]; xs++);
+    
+    // Find the right argument set
+    string name = A->getKind();
+    string *ids = NULL;
+    int i;
+    for (i = 0; !ids && idss[i]; i++) {
+        if (names[i] == name) {
+            // Compute the argument counts
+            int zs;
+            for (zs = 0; idss[i][zs] != ""; zs++);
+            
+            // Check if a match was found
+            if (xs == zs) {
+                ids = idss[i];
+                break;
+            }
+        }
+    }
+    
+    // Check that the ADT was compatible.
+    if (!ids) {
+        throw_err("type", "adt " + A->toString() + " is incompatible with the switch statement; see:\n\t" + toString());
+        val->rem_ref();
+        return NULL;
+    }
+    
+    // Grab the correct body
+    Exp body = bodies[i];
+
+    // Now, we will extend the environment
+    for (i = 0; i < xs; i++)
+        env->set(ids[i], A->getArgs()[i]);
+
+    Val res = body->evaluate(env);
+    
+    // Perform garbage collection
+    for (i = 0; i < xs; i++)
+        env->rem(ids[i]);
+    val->rem_ref();
+
+    return res;
+}
 
 Val ApplyExp::evaluate(Env env) {
     Val f = op->evaluate(env);
@@ -246,6 +366,51 @@ Val CastExp::evaluate(Env env) {
 
 Val DerivativeExp::evaluate(Env env) {
 
+    Exp symb = func->symb_diff(var);
+    if (symb && !isExp<DerivativeExp>(symb)) {
+        throw_debug("calc_init", toString() + " = " + symb->toString());
+        // Put off the evaluation until a later time.
+        Val v = symb->evaluate(env);
+        delete symb;
+        return v;
+    } else
+        delete symb;
+
+    if (!env->apply(var)) {
+        // The differentiation MUST be over a lambda
+        Val v = func->evaluate(env);
+        if (!v) return NULL;
+        else if (!isVal<LambdaVal>(v)) {
+            throw_type_err(func, "lambda");
+            v->rem_ref();
+            return NULL;
+        } else {
+            // We can compute the derivative.
+            auto f = (LambdaVal*) v;
+            
+            // Argument count
+            int argc;
+            for (argc = 0; f->getArgs()[argc] != ""; argc++);
+
+            // Argument list
+            string *ids = new string[argc+1];
+            ids[argc] = "";
+            while (argc--) ids[argc] = f->getArgs()[argc];
+            
+            // Environment
+            env = f->getEnv();
+            env->add_ref();
+            
+            // Body
+            auto exp = f->getBody()->symb_diff(var);
+
+            v->rem_ref();
+            
+            // Build the final result
+            return new LambdaVal(ids, exp, env);
+        }
+    }
+
     // Base case: we know of nothing
     Env denv = new Environment;
     
@@ -275,8 +440,8 @@ Val DerivativeExp::evaluate(Env env) {
             // Trivial derivative: d/dx c = 0, d/dx x = x
             int c = id == var ? 1 : 0;
             
-            Val V = env->apply(var);
-            v = V ? deriveConstVal(var, v, V, c) : NULL;
+            Val X = env->apply(var);
+            v = X ? deriveConstVal(var, v, X, c) : NULL;
 
             if (v) {
                 // The value is of a differentiable type
@@ -803,6 +968,7 @@ Val DictAccessExp::evaluate(Env env) {
         return NULL;
     else if (!isVal<DictVal>(f)) {
         throw_type_err(list, "dict, list, or string");
+        f->rem_ref();
         return NULL;
     } else {
         DictVal *d = (DictVal*) f;
@@ -811,7 +977,6 @@ Val DictAccessExp::evaluate(Env env) {
         if (d->getVals()->hasKey(idx)) {
             v = d->getVals()->get(idx);
             v->add_ref();
-            return v;
         } else
             v = new VoidVal;
 

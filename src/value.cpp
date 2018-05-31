@@ -22,6 +22,57 @@ bool is_zero_val(Val e) {
     } else return false;
 }
 
+// ADTs
+AdtVal::~AdtVal() {
+    for (int i = 0; args[i]; i++)
+        args[i]->rem_ref();
+    delete[] args;
+}
+AdtVal* AdtVal::clone() {
+    int i;
+    for (i = 0; args[i]; i++);
+
+    Val *xs = new Val[i+1];
+    xs[i] = NULL;
+    while (i--) {
+        xs[i] = args[i];
+        xs[i]->add_ref();
+    }
+    
+    return new AdtVal(type, kind, xs);
+}
+int AdtVal::set(Val v) {
+    if (isVal<AdtVal>(v)) {
+        // Wipe the array, start anew
+        for (int i = 0; args[i]; i++)
+            args[i]->rem_ref();
+        delete[] args;
+        
+        // Claim a specific type for the given assignment
+        AdtVal *adt = (AdtVal*) v;
+        
+        // Find the array length
+        int i;
+        for (i = 0; adt->args[i]; i++);
+        
+        // Generate the null terminated collection of items
+        Val *xs = new Val[i+1];
+        xs[i] = NULL;
+        while (i--) {
+            xs[i] = adt->args[i];
+            xs[i]->add_ref();
+        }
+        
+        // Change the names around.
+        type = adt->type;
+        kind = adt->kind;
+
+        return 0;
+
+    } else
+        return 1;
+}
+
 // Booleans
 BoolVal::BoolVal(bool n) { val = n; }
 bool BoolVal::get() { return val; }

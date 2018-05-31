@@ -12,7 +12,41 @@ std::ostream &operator<< (std::ostream &os, Stringable &obj) {
 }
 
 /* EXPRESSIONS */
+string AdtExp::toString() {
+    string str = name + "<" + kind + ">";
+    if (!args[0]) return str;
+    
+    str += "(";
+    for (int i = 0; args[i]; i++) {
+        if (i) str += ", ";
+        str += args[i]->toString();
+    }
+    
+    return str + ")";
+}
+string AdtDeclarationExp::toString() {
+    string str = "type " + name + " = ";
 
+    for (int i = 0; argss[i]; i++) {
+        string kind = ids[i];
+        Type **args = argss[i];
+
+        if (i) str += " | ";
+        
+        str += kind + "(";
+
+        for (int j = 0; args[j]; j++) {
+            if (j) str += ", ";
+            str += args[j]->toString();
+        }
+
+        str += ")";
+    }
+    
+    str += "; " + body->toString();
+
+    return str;
+}
 string AndExp::toString() {
     return left->toString() + " and " + right->toString();
 }
@@ -247,6 +281,19 @@ string StdMathExp::toString() {
 string StringExp::toString() {
     return "\"" + val + "\"";
 }
+string SwitchExp::toString() {
+    string str = "switch " + adt->toString() + " in ";
+    for (int i = 0; names[i] != ""; i++) {
+        if (i) str += " | ";
+        str += names[i] + "(";
+        for (int j = 0; idss[i][j] != ""; j++) {
+            if (j) str += ", ";
+            str += idss[i][j];
+        }
+        str += ") -> " + bodies[i]->toString();
+    }
+    return str;
+}
 string SumExp::toString() {
     return left->toString() + " + " + right->toString();
 }
@@ -327,6 +374,15 @@ string TypeEnv::toString() {
 
 /* VALUES */
 
+string AdtVal::toString() {
+    string str = type + "<" + kind + ">(";
+    for (int i = 0; args[i]; i++) {
+        if (i) str += ", ";
+        str += args[i]->toString();
+    }
+
+    return str + ")";
+}
 string BoolVal::toString() { return val ? "true" : "false"; }
 string DictExp::toString() {
     string s = "{";
@@ -380,16 +436,18 @@ string StringVal::toString() { return val; }
 string Thunk::toString() { return val ? val->toString() : ("" + exp->toString() + " | " + env->toString()); }
 string TupleVal::toString() { return "(" + left->toString() + ", " + right->toString() + ")"; }
 
-
-std::string LambdaType::toString() {
+string AlgebraicDataType::toString() {
+    return "ADT<" + name + ">";
+}
+string LambdaType::toString() {
     return "(" + left->toString() + " -> " + right->toString() + ")";
 }
-std::string ListType::toString() { return "[" + type->toString() + "]"; }
-std::string TupleType::toString() { return "(" + left->toString() + " * " + right->toString() + ")"; }
-std::string SumType::toString() { return "(" + left->toString() + " + " + right->toString() + ")"; }
-std::string MultType::toString() { return "(" + left->toString() + " x " + right->toString() + ")"; }
-std::string DerivativeType::toString() { return "d" + left->toString() + "/d" + right->toString(); }
-std::string DictType::toString() {
+string ListType::toString() { return "[" + type->toString() + "]"; }
+string TupleType::toString() { return "(" + left->toString() + " * " + right->toString() + ")"; }
+string SumType::toString() { return "(" + left->toString() + " + " + right->toString() + ")"; }
+string MultType::toString() { return "(" + left->toString() + " x " + right->toString() + ")"; }
+string DerivativeType::toString() { return "d" + left->toString() + "/d" + right->toString(); }
+string DictType::toString() {
     string s = "{";
     auto tt = types->iterator();
     while (tt->hasNext()) {
