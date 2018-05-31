@@ -105,6 +105,9 @@ let x = 3; d/dx fold [1,2,x] into (x,y) -> x*y from 1
 type List = Node(Z, ADT<List>) | Empty(); let L = List.Node(1, List.Node(2, List.Node(3, List.Empty()))); switch L in Node(x,l) -> true | Empty() -> false
 true
 
+type Num = Int(Z) | Real(R); switch Num.Int(4) in Int(x) -> x | Real(x) -> x
+4
+
 type Num = Int(Z) | Real(R); let x = 4; d/dx Num.Real(x)
 Num<Real>(1)
 
