@@ -9,6 +9,11 @@
 
 bool is_zero_val(Val e);
 
+template<typename T>
+inline bool isVal(const Val t) {
+    return t && dynamic_cast<const T*>(t) != nullptr;
+}
+
 // An Algebraic Datatype (ADT)
 class AdtVal : public Value {
     private:
@@ -32,11 +37,6 @@ class AdtVal : public Value {
         std::string toString();
         AdtVal* clone();
 };
-
-template<typename T>
-inline bool isVal(const Val t) {
-    return t && dynamic_cast<const T*>(t) != nullptr;
-}
 
 class BoolVal : public Value {
     private:

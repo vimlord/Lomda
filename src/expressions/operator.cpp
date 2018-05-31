@@ -11,7 +11,6 @@
 
 using namespace std;
 
-
 OperatorExp::~OperatorExp() {
     delete left;
     delete right;
