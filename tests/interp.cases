@@ -108,3 +108,6 @@ true
 type Num = Int(Z) | Real(R); let x = 4; d/dx Num.Real(x)
 Num<Real>(1)
 
+type Num = Int(Z) | Real(R); let x = 4; d/dx switch Num.Int(x) in Int(z) -> x*z | Real(z) -> -1
+8
+
