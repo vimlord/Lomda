@@ -1579,6 +1579,15 @@ Val StdMathExp::evaluate(Env env) {
             } else
                 throw_err("type", "cos is undefined for inputs outside of R");
             break;
+        case TAN:
+            if (isnum) {
+                auto z = isVal<IntVal>(v)
+                    ? ((IntVal*) v)->get()
+                    : ((RealVal*) v)->get();
+                y = new RealVal(tan(z));
+            } else
+                throw_err("type", "cos is undefined for inputs outside of R");
+            break;
         case EXP:
             y = exp(v);
             break;
