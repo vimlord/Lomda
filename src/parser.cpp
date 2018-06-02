@@ -659,8 +659,20 @@ result<Expression> parse_pemdas(string str, int order) {
                     base.value = new VoidExp;
                 else if (var == "sin") {
                     auto y = parse_stdmathfn(str, StdMathExp::MathFn::SIN);
+                    if (y.value) {
+                        str = str.substr(y.strlen);
+                        y.strlen += base.strlen;
+                        base = y;
+                    }
                 } else if (var == "cos") {
                     auto y = parse_stdmathfn(str, StdMathExp::MathFn::COS);
+                    if (y.value) {
+                        str = str.substr(y.strlen);
+                        y.strlen += base.strlen;
+                        base = y;
+                    }
+                } else if (var == "tan") {
+                    auto y = parse_stdmathfn(str, StdMathExp::MathFn::TAN);
                     if (y.value) {
                         str = str.substr(y.strlen);
                         y.strlen += base.strlen;
