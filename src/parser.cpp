@@ -21,6 +21,7 @@ struct result {
     }
 };
 
+result<Expression> parse_pemdas(string str, int = 12);
 result<Expression> parse_body(string, bool = false);
 
 bool is_identifier(string str) {
@@ -367,12 +368,24 @@ result<Type> parse_type(string str) {
 
 }
 
+result<Expression> parse_stdmathfn(string str, StdMathExp::MathFn fn) {
+    result<Expression> base;
+    auto arg = parse_pemdas(str, 1);
+    if (arg.value) {
+        base.value = new StdMathExp(fn, arg.value);
+        base.strlen = arg.strlen;
+    } else
+        base.reset();
+
+    return base;
+}
+
 /**
  * Using order of operations, parse the string for an expression.
  * str   - The string to extract a PEMDAS operation from
  * order - The location in the hierarchy to search at
  */
-result<Expression> parse_pemdas(string str, int order = 12) {
+result<Expression> parse_pemdas(string str, int order) {
 
     result<Expression> base;
     base.value = NULL;
@@ -645,54 +658,48 @@ result<Expression> parse_pemdas(string str, int order = 12) {
                 else if (var == "void")
                     base.value = new VoidExp;
                 else if (var == "sin") {
-                    auto arg = parse_pemdas(str, 1);
-                    if (arg.value) {
-                        base.value = new StdMathExp(StdMathExp::MathFn::SIN, arg.value);
-                        base.strlen += arg.strlen;
-                    } else {
-                        base.reset();
-                        return base;
-                    }
+                    auto y = parse_stdmathfn(str, StdMathExp::MathFn::SIN);
                 } else if (var == "cos") {
-                    auto arg = parse_pemdas(str, 1);
-                    if (arg.value) {
-                        base.value = new StdMathExp(StdMathExp::MathFn::COS, arg.value);
-                        base.strlen += arg.strlen;
-                        str = str.substr(arg.strlen);
-                    } else {
-                        base.reset();
-                        return base;
+                    auto y = parse_stdmathfn(str, StdMathExp::MathFn::COS);
+                    if (y.value) {
+                        str = str.substr(y.strlen);
+                        y.strlen += base.strlen;
+                        base = y;
                     }
                 } else if (var == "log") {
-                    auto arg = parse_pemdas(str, 1);
-                    if (arg.value) {
-                        base.value = new StdMathExp(StdMathExp::MathFn::LOG, arg.value);
-                        base.strlen += arg.strlen;
-                        str = str.substr(arg.strlen);
-                    } else {
-                        base.reset();
-                        return base;
+                    auto y = parse_stdmathfn(str, StdMathExp::MathFn::LOG);
+                    if (y.value) {
+                        str = str.substr(y.strlen);
+                        y.strlen += base.strlen;
+                        base = y;
                     }
                 } else if (var == "sqrt") {
-                    auto arg = parse_pemdas(str, 1);
-                    if (arg.value) {
-                        base.value = new StdMathExp(StdMathExp::MathFn::SQRT, arg.value);
-                        base.strlen += arg.strlen;
-                        str = str.substr(arg.strlen);
-                    } else {
-                        base.reset();
-                        return base;
+                    auto y = parse_stdmathfn(str, StdMathExp::MathFn::SQRT);
+                    if (y.value) {
+                        str = str.substr(y.strlen);
+                        y.strlen += base.strlen;
+                        base = y;
                     }
                 } else if (var == "exp") {
-                    auto arg = parse_pemdas(str, 1);
-
-                    if (arg.value) {
-                        base.value = new StdMathExp(StdMathExp::MathFn::EXP, arg.value);
-                        base.strlen += arg.strlen;
-                        str = str.substr(arg.strlen);
-                    } else {
-                        base.reset();
-                        return base;
+                    auto y = parse_stdmathfn(str, StdMathExp::MathFn::EXP);
+                    if (y.value) {
+                        str = str.substr(y.strlen);
+                        y.strlen += base.strlen;
+                        base = y;
+                    }
+                } else if (var == "max") {
+                    auto y = parse_stdmathfn(str, StdMathExp::MathFn::MAX);
+                    if (y.value) {
+                        str = str.substr(y.strlen);
+                        y.strlen += base.strlen;
+                        base = y;
+                    }
+                } else if (var == "min") {
+                    auto y = parse_stdmathfn(str, StdMathExp::MathFn::MIN);
+                    if (y.value) {
+                        str = str.substr(y.strlen);
+                        y.strlen += base.strlen;
+                        base = y;
                     }
                 } else if (var == "lambda") {
                     // Lambda declared by keyword.
@@ -781,6 +788,9 @@ result<Expression> parse_pemdas(string str, int order = 12) {
 
                 } else
                     base.value = new VarExp(var);
+
+                if (!base.value)
+                    return base;
 
             } else {
             
