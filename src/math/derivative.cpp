@@ -1268,6 +1268,19 @@ Val StdMathExp::derivativeOf(string x, Env env, Env denv) {
                 y = new RealVal(-dz*sin(z));
             } else
                 throw_err("type", "cos is undefined for inputs outside of R");
+        case TAN:
+            if (isnum) {
+                auto z = isVal<IntVal>(v)
+                    ? ((IntVal*) v)->get()
+                    : ((RealVal*) v)->get();
+                auto dz = isVal<IntVal>(dv)
+                    ? ((IntVal*) dv)->get()
+                    : ((RealVal*) dv)->get();
+
+                // d/dx tan(x) = sec(x) tan(x)
+                y = new RealVal(dz*tan(z) / cos(z));
+            } else
+                throw_err("type", "sin is undefined for inputs outside of R");
         case LOG:
             y = div.op(dv, v);
         case SQRT:
