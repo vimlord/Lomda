@@ -1517,43 +1517,86 @@ Val StdMathExp::evaluate(Env env) {
     if (!v) return NULL;
 
     bool isnum = val_is_number(v);
+    
+    // Is the value a list of numbers
+    bool islst = val_is_list(v);
+    if (islst) {
+        auto it = ((ListVal*) v)->get()->iterator();
+        while (islst && it->hasNext())
+            islst = val_is_number(it->next());
+        delete it;
+    }
+
+    Val y = NULL;
 
     switch (fn) {
+        case MIN:
+        case MAX:
+            if (islst) {
+                ListVal *lst = (ListVal*) v;
+                // Check on empty lists
+                if (lst->get()->size() == 0) {
+                    throw_err("runtime", "max is undefined on empty lists");
+                    break;
+                }
+
+                CompareExp gt(NULL, NULL, GT);
+                
+                // Iterator and initial condition.
+                auto it = lst->get()->iterator();
+                y = it->next();
+
+                while (it->hasNext()) {
+                    Val val = it->next();
+
+                    BoolVal *b = (BoolVal*) gt.op(val, y);
+                    if (b->get() == (fn == MAX))
+                        y = val;
+                    b->rem_ref();
+                }
+                delete it;
+
+                y->add_ref();
+
+            } else
+                throw_err("type", "max is undefined for inputs outside of [R]");
+            break;
         case SIN:
             if (isnum) {
                 auto z = isVal<IntVal>(v)
                     ? ((IntVal*) v)->get()
                     : ((RealVal*) v)->get();
-                return new RealVal(sin(z));
-            } else {
+                y = new RealVal(sin(z));
+            } else
                 throw_err("type", "sin is undefined for inputs outside of R");
-                return NULL;
-            }
+            break;
         case COS:
             if (isnum) {
                 auto z = isVal<IntVal>(v)
                     ? ((IntVal*) v)->get()
                     : ((RealVal*) v)->get();
-                return new RealVal(cos(z));
-            } else {
+                y = new RealVal(cos(z));
+            } else
                 throw_err("type", "cos is undefined for inputs outside of R");
-                return NULL;
-            }
+            break;
         case EXP:
-            return exp(v);
+            y = exp(v);
+            break;
         case LOG:
-            return log(v);
-        case SQRT:
+            y = log(v);
+            break;
+        case SQRT: {
             // sqrt is x^0.5
             Val p = new RealVal(0.5);
-            Val y = pow(v, p);
+            y = pow(v, p);
             p->rem_ref();
-            return y;
+            break;
+        } default:
+            throw_err("lomda", "the given math function is undefined");
     }
 
     // In case I do not add it
-    throw_err("lomda", "the given math function is undefined");
-    return NULL;
+    return y;
 
 }
 
