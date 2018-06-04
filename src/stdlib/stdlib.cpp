@@ -25,6 +25,8 @@ void add_to_lib(DictVal *lib, string x, Val val) {
 Type* type_stdlib(string name) {
     if (name == "string")
         return type_stdlib_string();
+    else if (name == "sort")
+        return type_stdlib_sort();
 
     return NULL;
 }
@@ -32,6 +34,8 @@ Type* type_stdlib(string name) {
 Val load_stdlib(string name) {
     if (name == "string")
         return load_stdlib_string();
+    else if (name == "sort")
+        return load_stdlib_sort();
 
     return NULL;
 }
