@@ -12,4 +12,8 @@ Val load_stdlib(std::string);
 Type* type_stdlib_string();
 Val load_stdlib_string();
 
+// Sorting libraries
+Type* type_stdlib_sort();
+Val load_stdlib_sort();
+
 #endif
