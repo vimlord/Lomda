@@ -678,6 +678,27 @@ result<Expression> parse_pemdas(string str, int order) {
                         y.strlen += base.strlen;
                         base = y;
                     }
+                } else if (var == "asin" || var == "arcsin") {
+                    auto y = parse_stdmathfn(str, StdMathExp::MathFn::ASIN);
+                    if (y.value) {
+                        str = str.substr(y.strlen);
+                        y.strlen += base.strlen;
+                        base = y;
+                    }
+                } else if (var == "acos" || var == "arccos") {
+                    auto y = parse_stdmathfn(str, StdMathExp::MathFn::ACOS);
+                    if (y.value) {
+                        str = str.substr(y.strlen);
+                        y.strlen += base.strlen;
+                        base = y;
+                    }
+                } else if (var == "atan" || var == "arctan") {
+                    auto y = parse_stdmathfn(str, StdMathExp::MathFn::ATAN);
+                    if (y.value) {
+                        str = str.substr(y.strlen);
+                        y.strlen += base.strlen;
+                        base = y;
+                    }
                 } else if (var == "log") {
                     auto y = parse_stdmathfn(str, StdMathExp::MathFn::LOG);
                     if (y.value) {

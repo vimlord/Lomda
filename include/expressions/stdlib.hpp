@@ -28,6 +28,7 @@ class StdMathExp : public Expression {
         enum MathFn {
             // Trig
             SIN, COS, TAN,
+            ASIN, ACOS, ATAN,
             // Exponentiation
             LOG, SQRT, EXP,
             // Search

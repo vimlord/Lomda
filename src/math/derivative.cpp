@@ -1204,12 +1204,16 @@ Val StdMathExp::derivativeOf(string x, Env env, Env denv) {
     Val dv = e->derivativeOf(x, env, denv);
     if (!dv) return NULL;
     
-    MultExp mult(NULL, NULL);
+    DiffExp diff(NULL, NULL);
     DivExp div(NULL, NULL);
+    ExponentExp exp(NULL, NULL);
+    MultExp mult(NULL, NULL);
+    SumExp sum(NULL, NULL);
     Val y;
 
     RealVal half(0.5);
     IntVal two(2);
+    IntVal one(1);
 
     switch (fn) {
         case MIN:
@@ -1279,6 +1283,81 @@ Val StdMathExp::derivativeOf(string x, Env env, Env denv) {
 
                 // d/dx tan(x) = sec(x) tan(x)
                 y = new RealVal(dz / (cos(z) * cos(z)));
+            } else
+                throw_err("type", "sin is undefined for inputs outside of R");
+        case ASIN:
+            if (isnum) {
+                // x^2
+                y = pow(v, &two);
+                if (!y) break;
+                
+                // 1 - x^2
+                auto dz = diff.op(&one, y);
+                y->rem_ref();
+                y = dz;
+                if (!y) break;
+                
+                // sqrt(1 - x^2)
+                dz = pow(y, &half);
+                y->rem_ref();
+                y = dz;
+                if (!y) break;
+                
+                // dx / sqrt(1 - x^2)
+                dz = div.op(dv, y);
+                y->rem_ref();
+                y = dz;
+
+            } else
+                throw_err("type", "sin is undefined for inputs outside of R");
+        case ACOS:
+            if (isnum) {
+                // x^2
+                y = pow(v, &two);
+                if (!y) break;
+                
+                // 1 - x^2
+                auto dz = diff.op(&one, y);
+                y->rem_ref();
+                y = dz;
+                if (!y) break;
+                
+                // sqrt(1 - x^2)
+                dz = pow(y, &half);
+                y->rem_ref();
+                y = dz;
+                if (!y) break;
+                
+                // dx / sqrt(1 - x^2)
+                dz = div.op(dv, y);
+                y->rem_ref();
+                y = dz;
+                if (!y) break;
+                
+                // -dx / sqrt(1 - x^2)
+                IntVal neg(-1);
+                dz = mult.op(&neg, y);
+                y->rem_ref();
+                y = dz;
+
+            } else
+                throw_err("type", "sin is undefined for inputs outside of R");
+        case ATAN:
+            if (isnum) {
+                // x^2
+                y = pow(v, &two);
+                if (!y) break;
+                
+                // 1 + x^2
+                auto dz = sum.op(&one, y);
+                y->rem_ref();
+                y = dz;
+                if (!y) break;
+                
+                // dx / (1 + x^2)
+                dz = div.op(dv, y);
+                y->rem_ref();
+                y = dz;
             } else
                 throw_err("type", "sin is undefined for inputs outside of R");
         case LOG:
