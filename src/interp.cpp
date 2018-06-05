@@ -1588,6 +1588,33 @@ Val StdMathExp::evaluate(Env env) {
             } else
                 throw_err("type", "cos is undefined for inputs outside of R");
             break;
+        case ASIN:
+            if (isnum) {
+                auto z = isVal<IntVal>(v)
+                    ? ((IntVal*) v)->get()
+                    : ((RealVal*) v)->get();
+                y = new RealVal(asin(z));
+            } else
+                throw_err("type", "arcsin is undefined for inputs outside of R");
+            break;
+        case ACOS:
+            if (isnum) {
+                auto z = isVal<IntVal>(v)
+                    ? ((IntVal*) v)->get()
+                    : ((RealVal*) v)->get();
+                y = new RealVal(acos(z));
+            } else
+                throw_err("type", "arccos is undefined for inputs outside of R");
+            break;
+        case ATAN:
+            if (isnum) {
+                auto z = isVal<IntVal>(v)
+                    ? ((IntVal*) v)->get()
+                    : ((RealVal*) v)->get();
+                y = new RealVal(atan(z));
+            } else
+                throw_err("type", "arccos is undefined for inputs outside of R");
+            break;
         case EXP:
             y = exp(v);
             break;
