@@ -261,6 +261,18 @@ string StdMathExp::toString() {
         case COS:
             s = "cos(";
             break;
+        case TAN:
+            s = "tan(";
+            break;
+        case ASIN:
+            s = "asin(";
+            break;
+        case ACOS:
+            s = "acos(";
+            break;
+        case ATAN:
+            s = "atan(";
+            break;
         case LOG:
             s = "log(";
             break;
@@ -269,6 +281,12 @@ string StdMathExp::toString() {
             break;
         case EXP:
             s = "exp(";
+            break;
+        case MIN:
+            s = "min(";
+            break;
+        case MAX:
+            s = "max(";
             break;
         default:
             s = "undefined";
