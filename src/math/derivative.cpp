@@ -1278,7 +1278,7 @@ Val StdMathExp::derivativeOf(string x, Env env, Env denv) {
                     : ((RealVal*) dv)->get();
 
                 // d/dx tan(x) = sec(x) tan(x)
-                y = new RealVal(dz*tan(z) / cos(z));
+                y = new RealVal(dz / (cos(z) * cos(z)));
             } else
                 throw_err("type", "sin is undefined for inputs outside of R");
         case LOG:
