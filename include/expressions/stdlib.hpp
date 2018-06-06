@@ -29,6 +29,9 @@ class StdMathExp : public Expression {
             // Trig
             SIN, COS, TAN,
             ASIN, ACOS, ATAN,
+            // Hyperbolic trig
+            SINH, COSH, TANH,
+            ASINH, ACOSH, ATANH,
             // Exponentiation
             LOG, SQRT, EXP,
             // Search
