@@ -1281,10 +1281,10 @@ Val StdMathExp::derivativeOf(string x, Env env, Env denv) {
                     ? ((IntVal*) dv)->get()
                     : ((RealVal*) dv)->get();
 
-                // d/dx tan(x) = sec(x) tan(x)
+                // d/dx tan(x) = sec^2(x)
                 y = new RealVal(dz / (cos(z) * cos(z)));
             } else
-                throw_err("type", "sin is undefined for inputs outside of R");
+                throw_err("type", "tan is undefined for inputs outside of R");
         case ASIN:
             if (isnum) {
                 // x^2
@@ -1309,7 +1309,7 @@ Val StdMathExp::derivativeOf(string x, Env env, Env denv) {
                 y = dz;
 
             } else
-                throw_err("type", "sin is undefined for inputs outside of R");
+                throw_err("type", "arcsin is undefined for inputs outside of R");
         case ACOS:
             if (isnum) {
                 // x^2
@@ -1341,7 +1341,7 @@ Val StdMathExp::derivativeOf(string x, Env env, Env denv) {
                 y = dz;
 
             } else
-                throw_err("type", "sin is undefined for inputs outside of R");
+                throw_err("type", "arccos is undefined for inputs outside of R");
         case ATAN:
             if (isnum) {
                 // x^2
@@ -1359,7 +1359,110 @@ Val StdMathExp::derivativeOf(string x, Env env, Env denv) {
                 y->rem_ref();
                 y = dz;
             } else
-                throw_err("type", "sin is undefined for inputs outside of R");
+                throw_err("type", "arctan is undefined for inputs outside of R");
+        case SINH:
+            if (isnum) {
+                auto z = isVal<IntVal>(v)
+                    ? ((IntVal*) v)->get()
+                    : ((RealVal*) v)->get();
+                auto dz = isVal<IntVal>(dv)
+                    ? ((IntVal*) dv)->get()
+                    : ((RealVal*) dv)->get();
+                y = new RealVal(dz*cos(z));
+            } else
+                throw_err("type", "sinh is undefined for inputs outside of R");
+        case COSH:
+            if (isnum) {
+                auto z = isVal<IntVal>(v)
+                    ? ((IntVal*) v)->get()
+                    : ((RealVal*) v)->get();
+                auto dz = isVal<IntVal>(dv)
+                    ? ((IntVal*) dv)->get()
+                    : ((RealVal*) dv)->get();
+                y = new RealVal(dz*sin(z));
+            } else
+                throw_err("type", "cosh is undefined for inputs outside of R");
+        case TANH:
+            if (isnum) {
+                auto z = isVal<IntVal>(v)
+                    ? ((IntVal*) v)->get()
+                    : ((RealVal*) v)->get();
+                auto dz = isVal<IntVal>(dv)
+                    ? ((IntVal*) dv)->get()
+                    : ((RealVal*) dv)->get();
+
+                // d/dx tanh(x) = sech^2(x)
+                y = new RealVal(dz / (cosh(z) * cosh(z)));
+            } else
+                throw_err("type", "tanh is undefined for inputs outside of R");
+        case ASINH:
+            if (isnum) {
+                // x^2
+                y = pow(v, &two);
+                if (!y) break;
+                
+                // 1 + x^2
+                auto dz = sum.op(&one, y);
+                y->rem_ref();
+                y = dz;
+                if (!y) break;
+                
+                // sqrt(1 + x^2)
+                dz = pow(y, &half);
+                y->rem_ref();
+                y = dz;
+                if (!y) break;
+                
+                // dx / sqrt(1 + x^2)
+                dz = div.op(dv, y);
+                y->rem_ref();
+                y = dz;
+
+            } else
+                throw_err("type", "arcsinh is undefined for inputs outside of R");
+        case ACOSH:
+            if (isnum) {
+                // x^2
+                y = pow(v, &two);
+                if (!y) break;
+                
+                // 1 - x^2
+                auto dz = diff.op(&one, y);
+                y->rem_ref();
+                y = dz;
+                if (!y) break;
+                
+                // sqrt(1 - x^2)
+                dz = pow(y, &half);
+                y->rem_ref();
+                y = dz;
+                if (!y) break;
+                
+                // dx / sqrt(1 - x^2)
+                dz = div.op(dv, y);
+                y->rem_ref();
+                y = dz;
+
+            } else
+                throw_err("type", "arccosh is undefined for inputs outside of R");
+        case ATANH:
+            if (isnum) {
+                // x^2
+                y = pow(v, &two);
+                if (!y) break;
+                
+                // 1 - x^2
+                auto dz = diff.op(&one, y);
+                y->rem_ref();
+                y = dz;
+                if (!y) break;
+                
+                // dx / (1 - x^2)
+                dz = div.op(dv, y);
+                y->rem_ref();
+                y = dz;
+            } else
+                throw_err("type", "arctanh is undefined for inputs outside of R");
         case LOG:
             y = div.op(dv, v);
         case SQRT:

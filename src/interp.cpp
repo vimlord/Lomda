@@ -1586,7 +1586,7 @@ Val StdMathExp::evaluate(Env env) {
                     : ((RealVal*) v)->get();
                 y = new RealVal(tan(z));
             } else
-                throw_err("type", "cos is undefined for inputs outside of R");
+                throw_err("type", "tan is undefined for inputs outside of R");
             break;
         case ASIN:
             if (isnum) {
@@ -1613,7 +1613,61 @@ Val StdMathExp::evaluate(Env env) {
                     : ((RealVal*) v)->get();
                 y = new RealVal(atan(z));
             } else
-                throw_err("type", "arccos is undefined for inputs outside of R");
+                throw_err("type", "arctan is undefined for inputs outside of R");
+            break;
+        case SINH:
+            if (isnum) {
+                auto z = isVal<IntVal>(v)
+                    ? ((IntVal*) v)->get()
+                    : ((RealVal*) v)->get();
+                y = new RealVal(sinh(z));
+            } else
+                throw_err("type", "sinh is undefined for inputs outside of R");
+            break;
+        case COSH:
+            if (isnum) {
+                auto z = isVal<IntVal>(v)
+                    ? ((IntVal*) v)->get()
+                    : ((RealVal*) v)->get();
+                y = new RealVal(cosh(z));
+            } else
+                throw_err("type", "cosh is undefined for inputs outside of R");
+            break;
+        case TANH:
+            if (isnum) {
+                auto z = isVal<IntVal>(v)
+                    ? ((IntVal*) v)->get()
+                    : ((RealVal*) v)->get();
+                y = new RealVal(tanh(z));
+            } else
+                throw_err("type", "tanh is undefined for inputs outside of R");
+            break;
+        case ASINH:
+            if (isnum) {
+                auto z = isVal<IntVal>(v)
+                    ? ((IntVal*) v)->get()
+                    : ((RealVal*) v)->get();
+                y = new RealVal(asinh(z));
+            } else
+                throw_err("type", "arcsinh is undefined for inputs outside of R");
+            break;
+        case ACOSH:
+            if (isnum) {
+                auto z = isVal<IntVal>(v)
+                    ? ((IntVal*) v)->get()
+                    : ((RealVal*) v)->get();
+                y = new RealVal(acosh(z));
+            } else
+                throw_err("type", "arccosh is undefined for inputs outside of R");
+            break;
+        case ATANH:
+            if (isnum) {
+                auto z = isVal<IntVal>(v)
+                    ? ((IntVal*) v)->get()
+                    : ((RealVal*) v)->get();
+                y = new RealVal(atanh(z));
+            } else
+                throw_err("type", "arctanh is undefined for inputs outside of R");
             break;
         case EXP:
             y = exp(v);
@@ -1630,6 +1684,9 @@ Val StdMathExp::evaluate(Env env) {
         } default:
             throw_err("lomda", "the given math function is undefined");
     }
+    
+    // Garbage collection
+    v->rem_ref();
 
     // In case I do not add it
     return y;

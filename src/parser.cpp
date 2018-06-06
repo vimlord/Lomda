@@ -699,6 +699,48 @@ result<Expression> parse_pemdas(string str, int order) {
                         y.strlen += base.strlen;
                         base = y;
                     }
+                } else if (var == "sinh") {
+                    auto y = parse_stdmathfn(str, StdMathExp::MathFn::SINH);
+                    if (y.value) {
+                        str = str.substr(y.strlen);
+                        y.strlen += base.strlen;
+                        base = y;
+                    }
+                } else if (var == "cosh") {
+                    auto y = parse_stdmathfn(str, StdMathExp::MathFn::COSH);
+                    if (y.value) {
+                        str = str.substr(y.strlen);
+                        y.strlen += base.strlen;
+                        base = y;
+                    }
+                } else if (var == "tanh") {
+                    auto y = parse_stdmathfn(str, StdMathExp::MathFn::TANH);
+                    if (y.value) {
+                        str = str.substr(y.strlen);
+                        y.strlen += base.strlen;
+                        base = y;
+                    }
+                } else if (var == "asinh" || var == "arcsinh") {
+                    auto y = parse_stdmathfn(str, StdMathExp::MathFn::ASINH);
+                    if (y.value) {
+                        str = str.substr(y.strlen);
+                        y.strlen += base.strlen;
+                        base = y;
+                    }
+                } else if (var == "acosh" || var == "arccosh") {
+                    auto y = parse_stdmathfn(str, StdMathExp::MathFn::ACOSH);
+                    if (y.value) {
+                        str = str.substr(y.strlen);
+                        y.strlen += base.strlen;
+                        base = y;
+                    }
+                } else if (var == "atanh" || var == "arctanh") {
+                    auto y = parse_stdmathfn(str, StdMathExp::MathFn::ATANH);
+                    if (y.value) {
+                        str = str.substr(y.strlen);
+                        y.strlen += base.strlen;
+                        base = y;
+                    }
                 } else if (var == "log") {
                     auto y = parse_stdmathfn(str, StdMathExp::MathFn::LOG);
                     if (y.value) {
