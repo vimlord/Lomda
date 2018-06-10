@@ -27,6 +27,8 @@ Type* type_stdlib(string name) {
         return type_stdlib_string();
     else if (name == "sort")
         return type_stdlib_sort();
+    else if (name == "random")
+        return type_stdlib_random();
 
     return NULL;
 }
@@ -36,6 +38,8 @@ Val load_stdlib(string name) {
         return load_stdlib_string();
     else if (name == "sort")
         return load_stdlib_sort();
+    else if (name == "random")
+        return load_stdlib_random();
 
     return NULL;
 }
