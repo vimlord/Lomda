@@ -80,12 +80,6 @@ bool quicksort(Val *vs, int i, int j) {
         // Extract a partition, and set it aside
         swap(vs, i, (i+j)/2);
 
-        /**
-
-        2 1 3 5 4
-            |
-        */
-        
         int lo = i;
         int hi = j;
         while (true) {
@@ -135,7 +129,7 @@ Val std_sort(Env env, bool (*sort)(Val*, int, int)) {
     Val A = env->apply("L");
     if (!isVal<ListVal>(A)) {
         // Illegal argument.
-        throw_err("type", "sort.mergesort : [R] -> void applied to invalid argument " + A->toString());
+        throw_err("type", "sort.mergesort : [R] -> void cannot be applied to invalid argument " + A->toString());
         return NULL;
     }
 
