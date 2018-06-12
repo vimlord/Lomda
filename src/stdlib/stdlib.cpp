@@ -34,10 +34,12 @@ Type* type_stdlib(string name) {
 }
 
 Val load_stdlib(string name) {
-    if (name == "string")
-        return load_stdlib_string();
+    if (name == "linalg")
+        return load_stdlib_linalg();
     else if (name == "sort")
         return load_stdlib_sort();
+    else if (name == "string")
+        return load_stdlib_string();
     else if (name == "random")
         return load_stdlib_random();
 
