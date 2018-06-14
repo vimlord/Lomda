@@ -68,6 +68,57 @@ Val std_transpose(Env env) {
 
 }
 
+Val std_trace(Env env) {
+    Val x = env->apply("x");
+
+    if (!isVal<ListVal>(x)) {
+        throw_err("type", "linalg.transpose : [[R]] -> R cannot be applied to argument " + x->toString());
+        return NULL;
+    }
+
+    ListVal *xss = (ListVal*) x;
+
+    float tr = 0;
+    
+    auto it = xss->get()->iterator();
+    for (int n = 0; it->hasNext(); n++) {
+        // Check that the item is a list
+        Val v = it->next();
+        if (!isVal<ListVal>(v)) {
+            throw_err("type", "linalg.transpose : [[R]] -> R cannot be applied to argument " + x->toString());
+            delete it;
+            return NULL;
+        }
+        
+        // Acquire the row
+        ListVal *xs = (ListVal*) v;
+        if (n < xss->get()->size()) {
+            throw_err("type", "linalg.transpose : [[R]] -> R cannot be applied to argument " + x->toString());
+            delete it;
+            return NULL;
+        }
+
+        // Get the item
+        v = xs->get()->get(n);
+        
+        // Process it
+        if (isVal<IntVal>(v))
+            tr += ((IntVal*) v)->get();
+        else if (isVal<RealVal>(v))
+            tr += ((RealVal*) v)->get();
+        else {
+            throw_err("type", "linalg.transpose : [[R]] -> R cannot be applied to argument " + x->toString());
+            delete it;
+            return NULL;
+        }
+    }
+
+    delete it;
+   
+    return new RealVal(tr);
+
+}
+
 Val std_gaussian(Env env) {
     Val x = env->apply("x");
 
@@ -189,16 +240,129 @@ Val std_gaussian(Env env) {
     delete[] mtrx;
 
     return M;
+}
+
+
+Val std_determinant(Env env) {
+    Val x = env->apply("x");
+
+    if (!isVal<ListVal>(x)) {
+        throw_err("type", "linalg.gaussian : [[R]] -> [[R]] cannot be applied to argument " + x->toString());
+        return NULL;
+    }
+
+    ListVal *M = (ListVal*) x;
+    
+    // Should be a non-empty list
+    int n = M->get()->size();
+    if (n == 0) {
+        throw_err("type", "linalg.gaussian : [[R]] -> [[R]] cannot be applied to argument " + x->toString());
+        return NULL;
+    }
+
+    // We will ensure that M is rectangular and consisting exclusively of numbers.
+    for (int i = 0; i < n; i++) {
+        Val r = M->get()->get(i);
+        if (!isVal<ListVal>(r)) {
+            throw_err("type", "linalg.gaussian : [[R]] -> [[R]] cannot be applied to argument " + x->toString());
+            return NULL;
+        }
+        
+        ListVal *row = (ListVal*) r;
+        if (row->get()->size() != n) {
+            throw_err("type", "linalg.gaussian : [[R]] -> [[R]] cannot be applied to argument " + x->toString());
+            return NULL;
+        }
+
+        auto it = row->get()->iterator();
+        while (it->hasNext()) {
+            auto v = it->next();
+            if (!isVal<RealVal>(v) && !isVal<IntVal>(v)) {
+                delete it;
+                throw_err("type", "linalg.gaussian : [[R]] -> [[R]] cannot be applied to argument " + x->toString());
+                return NULL;
+            }
+        }
+        delete it;
+    }
+
+    // We will build a 2D array
+    float **mtrx = new float*[n];
+    for (int i = 0; i < n; i++) {
+        mtrx[i] = new float[n];
+        for (int j = 0; j < n; j++) {
+            Val v = ((ListVal*) M->get()->get(i))->get()->get(j);
+            if (isVal<IntVal>(v))
+                mtrx[i][j] = ((IntVal*) v)->get();
+            else
+                mtrx[i][j] = ((RealVal*) v)->get();
+        }
+    }
+    
+    // Initial condition: the determinant is 1
+    float det = 1;
+    
+    int i;
+    for (i = 0; i < n; i++) {
+
+        int j = i;
+        while (j < n && mtrx[j][i] == 0)
+            j++;
+        
+        if (j == n) {
+            // Non-invertible, therefore determinant is zero
+            det = 0;
+            break;
+        } else if (i != j) {
+            // Swap rows
+            auto tmp = mtrx[i];
+            mtrx[i] = mtrx[j];
+            mtrx[j] = tmp;
+            
+            det *= -1; // On swap, negate determinant
+        }
+        
+        // Normalize the row
+        for (int j = i+1; j < n; j++)
+            mtrx[i][j] /= mtrx[i][i];
+        
+        det *= mtrx[i][i];
+        mtrx[i][i] = 1;
+        
+        // Perform row subtractions
+        for (int j = i+1; j < n; j++) {
+            for (int k = i+1; k < n; k++)
+                mtrx[j][k] -= mtrx[j][i] * mtrx[i][k];
+            mtrx[j][i] = 0;
+        }
+    }
+    
+    // Garbage collection
+    for (int i = 0; i < n; i++)
+        delete[] mtrx[i];
+    delete[] mtrx;
+
+    return new RealVal(det);
 
 }
 
 Type* type_stdlib_linalg() {
     return new DictType {
         {
+            "det",
+            new LambdaType("x",
+                new ListType(new ListType(new RealType)),
+                new RealType)
+        }, {
             "gaussian",
             new LambdaType("x",
                 new ListType(new ListType(new RealType)),
                 new ListType(new ListType(new RealType)))
+        }, {
+            "trace",
+            new LambdaType("x",
+                new ListType(new ListType(new RealType)),
+                new RealType)
         }, {
             "transpose",
             new LambdaType("x",
@@ -211,9 +375,17 @@ Type* type_stdlib_linalg() {
 Val load_stdlib_linalg() {
     return new DictVal {
         {
+            "det",
+            new LambdaVal(new std::string[2]{"x", ""},
+                new ImplementExp(std_determinant, NULL))
+        }, {
             "gaussian",
             new LambdaVal(new std::string[2]{"x", ""},
                 new ImplementExp(std_gaussian, NULL))
+        }, {
+            "trace",
+            new LambdaVal(new std::string[2]{"x", ""},
+                new ImplementExp(std_trace, NULL))
         }, {
             "transpose",
             new LambdaVal(new std::string[2]{"x", ""},
