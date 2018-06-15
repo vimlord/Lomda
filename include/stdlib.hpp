@@ -8,6 +8,10 @@
 Type* type_stdlib(std::string);
 Val load_stdlib(std::string);
 
+// File system libearies
+Type* type_stdlib_fs();
+Val load_stdlib_fs();
+
 // Linear algebra libraries
 Type* type_stdlib_linalg();
 Val load_stdlib_linalg();
