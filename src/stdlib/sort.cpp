@@ -3,7 +3,8 @@
 
 #include "expression.hpp"
 
-inline void swap(Val *vs, int i, int j) {
+template<typename T>
+inline void swap(T *vs, int i, int j) {
     auto tmp = vs[i];
     vs[i] = vs[j];
     vs[j] = tmp;
@@ -154,9 +155,45 @@ Val std_sort(Env env, bool (*sort)(Val*, int, int)) {
 Val std_mergesort(Env env) { return std_sort(env, mergesort); }
 Val std_quicksort(Env env) { return std_sort(env, quicksort); }
 
+Val std_is_sorted(Env env) {
+    Val L = env->apply("L");
+    if (!isVal<ListVal>(L)) {
+        throw_err("type", "sort.is_sorted : [R] -> B cannot be applied to invalid argument " + L->toString());
+        return NULL;
+    }
+
+    CompareExp comp(NULL, NULL, CompOp::GT);
+
+    ListVal *list = (ListVal*) L;
+    if (list->get()->size() < 2) return new BoolVal(true);
+
+    auto it = list->get()->iterator();
+    Val v = it->next();
+    while (it->hasNext()) {
+        Val u = it->next();
+
+        BoolVal *b = (BoolVal*) comp.op(u, v);
+        if (!b) {
+            delete it;
+            return NULL;
+        } else if (!b->get()) {
+            delete it;
+            return new BoolVal(false);
+        }
+    }
+
+    delete it;
+    return new BoolVal(true);
+
+}
+
 Type* type_stdlib_sort() {
     return new DictType {
         {
+            "is_sorted",
+            new LambdaType("L",
+                new ListType(new RealType), new BoolType)
+        }, {
             "mergesort",
             new LambdaType("L",
                 new ListType(new RealType), new VoidType)
@@ -171,6 +208,11 @@ Type* type_stdlib_sort() {
 
 Val load_stdlib_sort() {
     return new DictVal {
+        {
+            "is_sorted",
+            new LambdaVal(new std::string[2]{"L", ""},
+                new ImplementExp(std_is_sorted, NULL))
+        },
         {
             "mergesort",
             new LambdaVal(new std::string[2]{"L", ""},
