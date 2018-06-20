@@ -16,6 +16,10 @@ Val load_stdlib_fs();
 Type* type_stdlib_linalg();
 Val load_stdlib_linalg();
 
+// Math libraries
+Type* type_stdlib_math();
+Val load_stdlib_math();
+
 // Defines the string library
 Type* type_stdlib_string();
 Val load_stdlib_string();
