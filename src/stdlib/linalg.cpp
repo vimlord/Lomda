@@ -71,113 +71,6 @@ Val std_transpose(Env env) {
 }
 
 /**
- * Computes the eigenvalues of a matrix by method of QR decomposition using
- * the Gram-Schmidt process.
- */
-Val std_eig(Env env) {
-    static DiffExp diff(NULL, NULL);
-    static DivExp div(NULL, NULL);
-    static MultExp mult(NULL, NULL);
-
-    Val x = env->apply("x");
-
-    if (!isVal<ListVal>(x)) {
-        throw_err("type", "linalg.qr : [[R]] -> [[[R]]] cannot be applied to argument "
-                + x->toString());
-    }
-    
-    // We want the column matrix form
-    auto A = (ListVal*) std_transpose(env);
-    if (!A) return NULL;
-    
-    auto Q = new ListVal;
-    auto R = new ListVal;
-
-    auto it = A->get()->iterator();
-    
-    if (!it->hasNext()) {
-        throw_err("type", "linalg.qr : [[R]] -> [[[R]]] cannot be applied to argument "
-                + env->apply("x")->toString());
-        delete it;
-        Q->rem_ref();
-        return NULL;
-    }
-
-    while (it->hasNext()) {
-        x = it->next();
-        if (!isVal<ListVal>(x)) {
-            throw_err("type", "linalg.qr : [[R]] -> [[[R]]] cannot be applied to argument "
-                    + env->apply("x")->toString());
-            delete it;
-            Q->rem_ref();
-            return NULL;
-        }
-        
-        // The current col of A
-        auto a = (ListVal*) x;
-        
-        // Initial condition for col of Q
-        auto u = a->clone();
-
-        auto jt = Q->get()->iterator();
-        while (jt->hasNext()) {
-            auto e = jt->next();
-
-            // proj a onto v = a*e * e
-            auto n = mult.op(a, e);
-            e = mult.op(n, e);
-            n->rem_ref();
-            
-            // Subtract the projection
-            n = diff.op(u, e);
-            u->rem_ref();
-            e->rem_ref();
-
-            u = (ListVal*) n;
-        }
-
-        // Compute the sqnorm of our vector u
-        float norm = 0;
-        jt = u->get()->iterator();
-        while (jt->hasNext()) {
-            auto y = jt->next();
-
-            if (isVal<IntVal>(y))
-                norm += pow(((IntVal*) y)->get(), 2);
-            else if (isVal<RealVal>(y))
-                norm += pow(((RealVal*) y)->get(), 2);
-            else {
-                throw_err("type", "linalg.qr : [[R]] -> [[[R]]] cannot be applied to argument "
-                        + env->apply("x")->toString());
-                delete jt;
-                delete it;
-                Q->rem_ref();
-                R->rem_ref();
-                return NULL;
-            }
-        }
-        
-        // Now, we know the norm of u
-        norm = sqrt(norm);
-        
-        // Update Q
-        RealVal N(norm);
-        auto e = div.op(u, &N);
-        u->rem_ref();
-        Q->get()->add(Q->get()->size(), e);
-
-        // Now, we compute the next eigenvalue
-        auto r = mult.op(e, A->get()->get(Q->get()->size()-1));
-        R->get()->add(R->get()->size(), r);
-    }
-    
-    Q->rem_ref();
-    return R;
-}
-
-
-
-/**
  * Computes a QR decomposition using the Gram-Schmidt process.
  */
 Val std_qr(Env env) {
@@ -615,11 +508,6 @@ Type* type_stdlib_linalg() {
                 new ListType(new ListType(new RealType)),
                 new RealType)
         }, {
-            "eig",
-            new LambdaType("x",
-                new ListType(new ListType(new RealType)),
-                new ListType(new RealType))
-        }, {
             "gaussian",
             new LambdaType("x",
                 new ListType(new ListType(new RealType)),
@@ -649,10 +537,6 @@ Val load_stdlib_linalg() {
             "det",
             new LambdaVal(new std::string[2]{"x", ""},
                 new ImplementExp(std_determinant, NULL))
-        }, {
-            "eig",
-            new LambdaVal(new std::string[2]{"x", ""},
-                new ImplementExp(std_eig, NULL))
         }, {
             "gaussian",
             new LambdaVal(new std::string[2]{"x", ""},
