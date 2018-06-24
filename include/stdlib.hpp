@@ -28,6 +28,10 @@ Val load_stdlib_string();
 Type* type_stdlib_sort();
 Val load_stdlib_sort();
 
+// System libs
+Type* type_stdlib_sys();
+Val load_stdlib_sys();
+
 // Random numbers
 Type* type_stdlib_random();
 Val load_stdlib_random();

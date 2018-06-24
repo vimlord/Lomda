@@ -28,7 +28,7 @@ Val std_isnan(Env env) {
 }
 
 
-Type* type_stdlib_sort() {
+Type* type_stdlib_math() {
     return new DictType {
         {
             "isinfinite",
@@ -42,7 +42,7 @@ Type* type_stdlib_sort() {
     };
 }
 
-Val load_stdlib_sort() {
+Val load_stdlib_math() {
     return new DictVal {
         {
             "isinfinite",

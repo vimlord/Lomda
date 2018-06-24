@@ -81,6 +81,7 @@ int interpret() {
 }
 
 int main(int argc, char *argv[]) { 
+    set_argv(argv);
 
     string filename = "";
 
