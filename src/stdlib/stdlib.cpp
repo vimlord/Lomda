@@ -35,6 +35,8 @@ Type* type_stdlib(string name) {
         return type_stdlib_string();
     else if (name == "random")
         return type_stdlib_random();
+    else if (name == "sys")
+        return type_stdlib_sys();
 
     return NULL;
 }
@@ -52,6 +54,8 @@ Val load_stdlib(string name) {
         return load_stdlib_string();
     else if (name == "random")
         return load_stdlib_random();
+    else if (name == "sys")
+        return load_stdlib_sys();
 
     return NULL;
 }
