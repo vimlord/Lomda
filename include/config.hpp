@@ -17,4 +17,7 @@ void set_use_types(int b);
 bool USE_MODULE_CACHING();
 void set_use_module_caching(bool b);
 
+char** get_argv();
+void set_argv(char **argv);
+
 #endif
