@@ -1517,43 +1517,179 @@ Val StdMathExp::evaluate(Env env) {
     if (!v) return NULL;
 
     bool isnum = val_is_number(v);
+    
+    // Is the value a list of numbers
+    bool islst = val_is_list(v);
+    if (islst) {
+        auto it = ((ListVal*) v)->get()->iterator();
+        while (islst && it->hasNext())
+            islst = val_is_number(it->next());
+        delete it;
+    }
+
+    Val y = NULL;
 
     switch (fn) {
+        case MIN:
+        case MAX:
+            if (islst) {
+                ListVal *lst = (ListVal*) v;
+                // Check on empty lists
+                if (lst->get()->size() == 0) {
+                    throw_err("runtime", "max is undefined on empty lists");
+                    break;
+                }
+
+                CompareExp gt(NULL, NULL, GT);
+                
+                // Iterator and initial condition.
+                auto it = lst->get()->iterator();
+                y = it->next();
+
+                while (it->hasNext()) {
+                    Val val = it->next();
+
+                    BoolVal *b = (BoolVal*) gt.op(val, y);
+                    if (b->get() == (fn == MAX))
+                        y = val;
+                    b->rem_ref();
+                }
+                delete it;
+
+                y->add_ref();
+
+            } else
+                throw_err("type", "max is undefined for inputs outside of [R]");
+            break;
         case SIN:
             if (isnum) {
                 auto z = isVal<IntVal>(v)
                     ? ((IntVal*) v)->get()
                     : ((RealVal*) v)->get();
-                return new RealVal(sin(z));
-            } else {
+                y = new RealVal(sin(z));
+            } else
                 throw_err("type", "sin is undefined for inputs outside of R");
-                return NULL;
-            }
+            break;
         case COS:
             if (isnum) {
                 auto z = isVal<IntVal>(v)
                     ? ((IntVal*) v)->get()
                     : ((RealVal*) v)->get();
-                return new RealVal(cos(z));
-            } else {
+                y = new RealVal(cos(z));
+            } else
                 throw_err("type", "cos is undefined for inputs outside of R");
-                return NULL;
-            }
+            break;
+        case TAN:
+            if (isnum) {
+                auto z = isVal<IntVal>(v)
+                    ? ((IntVal*) v)->get()
+                    : ((RealVal*) v)->get();
+                y = new RealVal(tan(z));
+            } else
+                throw_err("type", "tan is undefined for inputs outside of R");
+            break;
+        case ASIN:
+            if (isnum) {
+                auto z = isVal<IntVal>(v)
+                    ? ((IntVal*) v)->get()
+                    : ((RealVal*) v)->get();
+                y = new RealVal(asin(z));
+            } else
+                throw_err("type", "arcsin is undefined for inputs outside of R");
+            break;
+        case ACOS:
+            if (isnum) {
+                auto z = isVal<IntVal>(v)
+                    ? ((IntVal*) v)->get()
+                    : ((RealVal*) v)->get();
+                y = new RealVal(acos(z));
+            } else
+                throw_err("type", "arccos is undefined for inputs outside of R");
+            break;
+        case ATAN:
+            if (isnum) {
+                auto z = isVal<IntVal>(v)
+                    ? ((IntVal*) v)->get()
+                    : ((RealVal*) v)->get();
+                y = new RealVal(atan(z));
+            } else
+                throw_err("type", "arctan is undefined for inputs outside of R");
+            break;
+        case SINH:
+            if (isnum) {
+                auto z = isVal<IntVal>(v)
+                    ? ((IntVal*) v)->get()
+                    : ((RealVal*) v)->get();
+                y = new RealVal(sinh(z));
+            } else
+                throw_err("type", "sinh is undefined for inputs outside of R");
+            break;
+        case COSH:
+            if (isnum) {
+                auto z = isVal<IntVal>(v)
+                    ? ((IntVal*) v)->get()
+                    : ((RealVal*) v)->get();
+                y = new RealVal(cosh(z));
+            } else
+                throw_err("type", "cosh is undefined for inputs outside of R");
+            break;
+        case TANH:
+            if (isnum) {
+                auto z = isVal<IntVal>(v)
+                    ? ((IntVal*) v)->get()
+                    : ((RealVal*) v)->get();
+                y = new RealVal(tanh(z));
+            } else
+                throw_err("type", "tanh is undefined for inputs outside of R");
+            break;
+        case ASINH:
+            if (isnum) {
+                auto z = isVal<IntVal>(v)
+                    ? ((IntVal*) v)->get()
+                    : ((RealVal*) v)->get();
+                y = new RealVal(asinh(z));
+            } else
+                throw_err("type", "arcsinh is undefined for inputs outside of R");
+            break;
+        case ACOSH:
+            if (isnum) {
+                auto z = isVal<IntVal>(v)
+                    ? ((IntVal*) v)->get()
+                    : ((RealVal*) v)->get();
+                y = new RealVal(acosh(z));
+            } else
+                throw_err("type", "arccosh is undefined for inputs outside of R");
+            break;
+        case ATANH:
+            if (isnum) {
+                auto z = isVal<IntVal>(v)
+                    ? ((IntVal*) v)->get()
+                    : ((RealVal*) v)->get();
+                y = new RealVal(atanh(z));
+            } else
+                throw_err("type", "arctanh is undefined for inputs outside of R");
+            break;
         case EXP:
-            return exp(v);
+            y = exp(v);
+            break;
         case LOG:
-            return log(v);
-        case SQRT:
+            y = log(v);
+            break;
+        case SQRT: {
             // sqrt is x^0.5
             Val p = new RealVal(0.5);
-            Val y = pow(v, p);
+            y = pow(v, p);
             p->rem_ref();
-            return y;
+            break;
+        } default:
+            throw_err("lomda", "the given math function is undefined");
     }
+    
+    // Garbage collection
+    v->rem_ref();
 
     // In case I do not add it
-    throw_err("lomda", "the given math function is undefined");
-    return NULL;
+    return y;
 
 }
 

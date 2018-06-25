@@ -26,7 +26,16 @@ class PrintExp : public Expression {
 class StdMathExp : public Expression {
     public:
         enum MathFn {
-            SIN, COS, LOG, SQRT, EXP
+            // Trig
+            SIN, COS, TAN,
+            ASIN, ACOS, ATAN,
+            // Hyperbolic trig
+            SINH, COSH, TANH,
+            ASINH, ACOSH, ATANH,
+            // Exponentiation
+            LOG, SQRT, EXP,
+            // Search
+            MAX, MIN
         };
     private:
         Exp e;

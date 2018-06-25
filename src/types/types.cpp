@@ -1537,13 +1537,37 @@ Type* LetExp::typeOf(Tenv tenv) {
 }
 Type* StdMathExp::typeOf(Tenv tenv) {
     auto T = e->typeOf(tenv);
-    auto R = new RealType;
+    if (!T) return NULL;
+    
+    switch (fn) {
+        // Certain functions take lists and give numbers
+        case MIN:
+        case MAX: {
+            // The input must be a ist of numbers
+            auto L = new ListType(new RealType);
+            auto U = T->unify(L, tenv);
+            delete T;
+            delete L;
+            
+            // The output type is the same as that of the contents.
+            L = (ListType*) U;
+            U = L->subtype()->clone();
+            delete L;
 
-    auto U = T->unify(R, tenv);
-    delete T;
-    delete R;
+            return U;
 
-    return U;
+        } 
+        // Others will take numbers and give new numbers
+        default: {
+            auto R = new RealType;
+
+            auto U = T->unify(R, tenv);
+            delete T;
+            delete R;
+
+            return U;
+        }
+    }
 }
 Type* TupleAccessExp::typeOf(Tenv tenv) {
     auto T = exp->typeOf(tenv);

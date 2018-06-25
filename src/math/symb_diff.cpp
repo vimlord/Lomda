@@ -73,12 +73,39 @@ Exp StdMathExp::symb_diff(string x) {
             return new MultExp(new StdMathExp(COS, e->clone()), dx);
         case COS:
             return new MultExp(new IntExp(-1), new StdMathExp(SIN, e->clone()));
+        case TAN:
+            return new DivExp(dx,
+                    new MultExp(
+                        new StdMathExp(COS, e->clone()),
+                        new StdMathExp(COS, e->clone())
+                    ));
+        case ASIN:
+            return new DivExp(dx,
+                new StdMathExp(SQRT, new DiffExp(
+                    new IntExp(1),
+                    new ExponentExp(e->clone(), new IntExp(2))
+                )));
+        case ACOS:
+            return new DivExp(new MultExp(new IntExp(-1), dx),
+                new StdMathExp(SQRT, new DiffExp(
+                    new IntExp(1),
+                    new ExponentExp(e->clone(), new IntExp(2))
+                )));
+        case ATAN:
+            return new DivExp(dx,
+                new SumExp(
+                    new IntExp(1),
+                    new ExponentExp(e->clone(), new IntExp(2))
+            ));
         case LOG:
             return new DivExp(dx, e->clone());
         case SQRT:
             return new DivExp(dx, new MultExp(new IntExp(2), new StdMathExp(SQRT, e->clone())));
         case EXP:
             return new MultExp(clone(), dx);
+        default:
+            delete dx;
+            return new DerivativeExp(clone(), x);
     }
 
     delete dx;
