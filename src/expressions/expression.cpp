@@ -174,23 +174,22 @@ LetExp::LetExp(string *vs, Exp *xs, Exp y, bool *r) {
     rec = r;
 }
 
-ListExp::ListExp() {
-    list = new ArrayList<Exp>;
+ListExp::ListExp() {}
+
+ListExp::ListExp(Exp* exps) : ListExp::ListExp() {
+    for (int i = 0; exps[i]; i++)
+        add(i, exps[i]);
 }
 
-ListExp::ListExp(Expression** exps) : ListExp::ListExp() {
-    for (int i = 0; exps[i]; i++)
-        list->add(i, exps[i]);
+ListExp::ListExp(List<Exp> *list) {
+    while (list->size())
+        add(size(), list->remove(0));
+    delete list;
 }
 
 ListExp::~ListExp() {
-    auto it = list->iterator();
-    while (it->hasNext()) {
-        Exp e = it->next();
-        delete e;
-    }
-    delete it;
-    delete list;
+    for (int i = 0; i < size(); i++)
+        delete remove(i);
 }
 
 std::map<std::string, Val> ImportExp::module_cache;

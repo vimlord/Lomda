@@ -718,7 +718,7 @@ Val ListExp::derivativeOf(string x, Env env, Env denv) {
     ListVal *val = new ListVal();
     
     // Add each item
-    auto it = list->iterator();
+    auto it = iterator();
     for(int i = 0; it->hasNext(); i++) {
         // Compute the value of each item
         Exp exp = it->next();

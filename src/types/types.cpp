@@ -1005,17 +1005,15 @@ Type* LambdaExp::typeOf(Tenv tenv) {
 }
 Type* ListExp::typeOf(Tenv tenv) {
     // If the list is empty, it could contain any type
-    if (list->size() == 0)
+    if (size() == 0)
         return new ListType(tenv->make_tvar());
     
-    auto it = list->iterator();
-
     // Get the type of the first element
-    auto T = it->next()->typeOf(tenv);
+    auto T = get(0)->typeOf(tenv);
     
     // Next, we must verify that the type of each element is unifiable.
-    while (T && it->hasNext()) {
-        auto A = it->next()->typeOf(tenv);
+    for (int i = 1; T && i < size(); i++) {
+        auto A = get(i)->typeOf(tenv);
         if (!A) {
             delete T;
             T = NULL;
@@ -1028,8 +1026,6 @@ Type* ListExp::typeOf(Tenv tenv) {
 
         T = B;
     }
-
-    delete it;
     
     if (T) {
         T = new ListType(T);

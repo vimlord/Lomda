@@ -172,16 +172,13 @@ string LetExp::toString() {
 string ListExp::toString() {
     string s = "[";
 
-    auto it = list->iterator();
-
-    for (int i = 0; it->hasNext(); i++) {
+    for (int i = 0; i < size(); i++) {
         if (i) s += ", ";
-        s += it->next()->toString();
+        s += get(i)->toString();
     }
 
     s += "]";
 
-    delete it;
     return s;
 
 }
