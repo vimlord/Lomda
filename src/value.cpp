@@ -12,7 +12,7 @@ bool is_zero_val(Val e) {
     else if (isVal<RealVal>(e))
         return ((RealVal*) e)->get();
     else if (isVal<ListVal>(e)) {
-        auto it = ((ListVal*) e)->get()->iterator();
+        auto it = ((ListVal*) e)->iterator();
 
         bool isZero = true;
         while (it->hasNext()) isZero = is_zero_val(it->next());
@@ -248,20 +248,19 @@ void LambdaVal::setEnv(Env e) {
 }
 
 ListVal::~ListVal() {
-    while (!list->isEmpty()) {
-        Val v = list->remove(0);
+    while (!isEmpty()) {
+        Val v = remove(0);
         if (v) v->rem_ref();
     }
-    delete list;
 }
 ListVal* ListVal::clone() {
     // Add a copy of each element of the list
-    auto it = list->iterator();
+    auto it = iterator();
     ListVal *res = new ListVal;
     
     for (int i = 0; it->hasNext(); i++) {
         Val v = it->next();
-        res->list->add(i, v);
+        res->add(i, v);
         if (v) v->add_ref();
     }
 
@@ -270,25 +269,17 @@ ListVal* ListVal::clone() {
 }
 int ListVal::set(Val v) {
     if (isVal<ListVal>(v)) {
-        auto lst = list;
-
-        list = new ArrayList<Val>;
+        // Clear the list
+        while (!isEmpty())
+            remove(size()-1)->rem_ref();
         
         // Add each value to the new list
-        auto vs = ((ListVal*) v)->list;
-        auto it = vs->iterator();
-        while (it->hasNext()) {
-            // New references have been added
-            auto v = it->next();
-            v->add_ref();
-            list->add(list->size(), v);
+        auto vs = (ListVal*) v;
+        while (!vs->isEmpty()) {
+            auto v = vs->remove(0);
+            add(size(), v);
         }
-        delete it;
         
-        // Garbage collection
-        while (!lst->isEmpty()) lst->remove(0)->rem_ref();
-        delete lst;
-
         return 0;
     } else return 1;
 }

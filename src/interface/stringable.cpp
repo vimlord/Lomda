@@ -434,9 +434,9 @@ string LambdaVal::toString() {
 string ListVal::toString() {
     string s = "[";
 
-    for (int i = 0; i < list->size(); i++) {
+    for (int i = 0; i < size(); i++) {
         if (i) s += ", ";
-        Val v = list->get(i);
+        Val v = get(i);
         if (v)
             s += v->toString();
         else
