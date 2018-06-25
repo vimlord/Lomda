@@ -67,15 +67,12 @@ Exp LetExp::clone() {
 }
 
 Exp ListExp::clone() {
-    LinkedList<Exp> *exps = new LinkedList<Exp>;
-
-    auto it = list->iterator();
-    while (it->hasNext())
-        exps->add(exps->size(), it->next()->clone());
-    delete it;
-
-    return new ListExp(exps);
-
+    ListExp *exps = new ListExp;
+    
+    for (int i = 0; i < size(); i++)
+        exps->add(exps->size(), get(i)->clone());
+    
+    return exps;
 }
 
 Exp PrintExp::clone() {

@@ -6,7 +6,7 @@ using namespace std;
 bool is_const_list(ListExp *exp) {
     bool res = true;
 
-    auto it = exp->getList()->iterator();
+    auto it = exp->iterator();
     while (it->hasNext() && res)
         res = is_const_exp(it->next());
 
@@ -51,7 +51,7 @@ Exp FoldExp::opt_const_prop(opt_varexp_map &vs, opt_varexp_map &ends) {
     list = list->opt_const_prop(vs, ends);
     base = base->opt_const_prop(vs, ends);
     
-    if (isExp<ListExp>(func) && ((ListExp*) list)->getList()->size() == 0) {
+    if (isExp<ListExp>(func) && ((ListExp*) list)->size() == 0) {
         // map [] into f = [] forall f
         Exp e = list; list = NULL;
         delete this;
@@ -91,7 +91,7 @@ Exp ForExp::optimize() {
     set = set->optimize();
     body = body->optimize();
 
-    if (isExp<ListExp>(set) && ((ListExp*) set)->getList()->size() == 0) {
+    if (isExp<ListExp>(set) && ((ListExp*) set)->size() == 0) {
         // If the list is always an empty list, then the body will never execute.
         delete this;
         return new VoidExp;
@@ -348,15 +348,15 @@ Exp LetExp::opt_const_prop(opt_varexp_map& consts, opt_varexp_map &end) {
 }
 
 Exp ListExp::optimize() {
-    auto tmp = new LinkedList<Exp>;
+    auto tmp = new ListExp;
     
     // Optimize each element one by one.
-    while (!list->isEmpty())
-        tmp->add(0, list->remove(0)->optimize());
+    while (!isEmpty())
+        tmp->add(0, remove(0)->optimize());
     
     // Reassemble the list.
     while (!tmp->isEmpty())
-        list->add(0, tmp->remove(0));
+        add(0, tmp->remove(0));
 
     return this;
 }
@@ -364,21 +364,21 @@ Exp ListExp::opt_const_prop(opt_varexp_map& vs, opt_varexp_map &end) {
     auto tmp = new LinkedList<Exp>;
     
     // Optimize each element one by one.
-    while (!list->isEmpty())
-        tmp->add(0, list->remove(0)->opt_const_prop(vs, end));
+    while (!isEmpty())
+        tmp->add(0, remove(0)->opt_const_prop(vs, end));
     
     // Reassemble the list.
     while (!tmp->isEmpty())
-        list->add(0, tmp->remove(0));
+        add(0, tmp->remove(0));
 
     return this;
 }
 int ListExp::opt_var_usage(string x) {
     int use = 0;
-    auto it = list->iterator();
+    auto it = iterator();
     
-    while (it->hasNext() && use ^ 3)
-        use |= it->next()->opt_var_usage(x);
+    for (int i = 0; i < size() && use ^ 3; i++)
+        use |= get(i)->opt_var_usage(x);
     
     return use;
 }
@@ -389,7 +389,7 @@ Exp ListAccessExp::optimize() {
 
     if (isExp<ListExp>(list) && isExp<IntExp>(idx)) {
         int i = ((IntExp*) idx)->get();
-        auto lst = ((ListExp*) list)->getList();
+        auto lst = ((ListExp*) list);
         if (i >= 0 && i < lst->size()) {
             Exp e = lst->remove(i);
             delete this;
@@ -424,7 +424,7 @@ Exp MapExp::opt_const_prop(opt_varexp_map &vs, opt_varexp_map &ends) {
 
     list = list->opt_const_prop(vs, ends);
 
-    if (isExp<ListExp>(list) && ((ListExp*) list)->getList()->size() == 0) {
+    if (isExp<ListExp>(list) && ((ListExp*) list)->size() == 0) {
         // map [] into f = [] forall f
         list = list->opt_const_prop(vs, ends);
         Exp e = list; list = NULL;
