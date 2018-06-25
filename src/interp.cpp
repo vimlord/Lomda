@@ -895,13 +895,12 @@ Val ListExp::evaluate(Env env) {
     ListVal *val = new ListVal;
     
     // Add each item
-    auto it = list->iterator();
-    for(int i = 0; it->hasNext(); i++) {
+    for(int i = 0; i < size(); i++) {
         // Compute the value of each item
-        Val v = it->next()->evaluate(env);
+        Val v = get(i)->evaluate(env);
+
         if (!v) {
             // Garbage collection on the iterator and the value
-            delete it;
             delete val;
 
             return NULL;
@@ -910,7 +909,6 @@ Val ListExp::evaluate(Env env) {
         }
     }
 
-    delete it;
     return val;
 }
 
