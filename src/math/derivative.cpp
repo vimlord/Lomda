@@ -23,7 +23,7 @@ void resolveIdentity(Val val, List<int> *idx = NULL) {
 
         ListVal *lst = (ListVal*) val;
         
-        auto it = lst->get()->iterator();
+        auto it = lst->iterator();
         for (int i = 0; it->hasNext(); i++) {
             idx->add(0, i);
             resolveIdentity(it->next(), idx);
@@ -79,16 +79,15 @@ Val deriveConstVal(string id, Val v, int c) {
         // Certain types are non-differentiable
         return NULL;
     else if (isVal<ListVal>(v)) {
-        auto it = ((ListVal*) v)->get()->iterator();
+        auto it = ((ListVal*) v)->iterator();
 
-        auto lst = new ArrayList<Val>;
-        Val res = new ListVal(lst);
+        auto lst = new ListVal;
 
         while (it->hasNext()) {
             Val x = deriveConstVal(id, it->next(), c);
 
             if (!x) {
-                res->rem_ref();
+                lst->rem_ref();
                 delete it;
                 return NULL;
             }
@@ -96,7 +95,7 @@ Val deriveConstVal(string id, Val v, int c) {
             lst->add(lst->size(), x);
         }
         delete it;
-        return res; 
+        return lst; 
     } else if (isVal<DictVal>(v)) {
         auto vit = ((DictVal*) v)->getVals()->iterator();
 
@@ -162,11 +161,10 @@ Val deriveConstVal(string id, Val y, Val x, int c) {
         // Certain types are non-differentiable
         return NULL;
     else if (isVal<ListVal>(x)) {
-        auto it = ((ListVal*) x)->get()->iterator();
+        auto it = ((ListVal*) x)->iterator();
         
         // Resulting derivative
-        auto lst = new ArrayList<Val>;
-        Val res = new ListVal(lst);
+        auto lst = new ListVal;
         
         // Build the subderivatives
         while (it->hasNext()) {
@@ -174,7 +172,7 @@ Val deriveConstVal(string id, Val y, Val x, int c) {
             Val dy = deriveConstVal(id, y, u, 0);
 
             if (!dy) {
-                res->rem_ref();
+                lst->rem_ref();
                 delete it;
                 return NULL;
             }
@@ -185,9 +183,9 @@ Val deriveConstVal(string id, Val y, Val x, int c) {
 
         // This is to ensure an initial condition for data structures:
         // to ensure that an identity is met.
-        if (c == 1) resolveIdentity(res);
+        if (c == 1) resolveIdentity(lst);
 
-        return res;
+        return lst;
     } else if (isVal<DictVal>(x)) {
         auto vit = ((DictVal*) x)->getVals()->iterator();
 
@@ -581,8 +579,8 @@ Val ForExp::derivativeOf(string x, Env env, Env denv) {
     Val dlistExp = set->derivativeOf(x, env, denv);
     if (!dlistExp) return NULL;
 
-    List<Val> *list = ((ListVal*) listExp)->get();
-    List<Val> *dlist = ((ListVal*) dlistExp)->get();
+    List<Val> *list = ((ListVal*) listExp);
+    List<Val> *dlist = ((ListVal*) dlistExp);
     
     // Gather an iterator
     auto it = list->iterator();
@@ -715,22 +713,19 @@ Val LetExp::derivativeOf(string x, Env env, Env denv) {
 
 Val ListExp::derivativeOf(string x, Env env, Env denv) {
     // d/dx [u_0, u_1, ...] = [d/dx u_0, d/dx u_1, ...]
-    ListVal *val = new ListVal();
+    ListVal *val = new ListVal;
     
     // Add each item
-    auto it = iterator();
-    for(int i = 0; it->hasNext(); i++) {
+    for(int i = 0; i < size(); i++) {
         // Compute the value of each item
-        Exp exp = it->next();
+        Exp exp = get(i);
         Val v = exp->derivativeOf(x, env, denv);
         if (!v) {
-            delete it;
             return NULL;
         } else
-            val->get()->add(i, v);
+            val->add(i, v);
     }
 
-    delete it;
     return val;
 }
 
@@ -775,7 +770,7 @@ Val ListAccessExp::derivativeOf(string x, Env env, Env denv) {
         return NULL;
     }
 
-    Val v = ((ListVal*) lst)->get()->get(((IntVal*) index)->get());
+    Val v = ((ListVal*) lst)->get(((IntVal*) index)->get());
 
     v->add_ref();
     index->rem_ref();
@@ -828,7 +823,7 @@ Val FoldExp::derivativeOf(string x, Env env, Env denv) {
         lst->rem_ref();
         throw_type_err(list, "list");
         return NULL;
-    } else if (((ListVal*) lst)->get()->isEmpty()) {
+    } else if (((ListVal*) lst)->isEmpty()) {
         // Base case: empty list
         lst->rem_ref();
         return base->derivativeOf(x, env, denv);
@@ -883,8 +878,8 @@ Val FoldExp::derivativeOf(string x, Env env, Env denv) {
     }
     LambdaVal *df_b = (LambdaVal*) v;
 
-    auto it = ((ListVal*) lst)->get()->iterator();
-    auto dit = ((ListVal*) dlst)->get()->iterator();
+    auto it = ((ListVal*) lst)->iterator();
+    auto dit = ((ListVal*) dlst)->iterator();
 
     Val xs[3];
     xs[2] = NULL;
@@ -1005,8 +1000,8 @@ Val MapExp::derivativeOf(string x, Env env, Env denv) {
 
         ListVal *res = new ListVal;
         
-        auto it = vals->get()->iterator();
-        auto dit = dvals->get()->iterator();
+        auto it = vals->iterator();
+        auto dit = dvals->iterator();
         while (it->hasNext()) {
             Val v = it->next();
             Val dv = dit->next();
@@ -1035,7 +1030,7 @@ Val MapExp::derivativeOf(string x, Env env, Env denv) {
 
                 if (elem)
                     // Compute the answer
-                    res->get()->add(res->get()->size(), elem);
+                    res->add(res->size(), elem);
                 else {
                     // The product could not be computed; collect garbage and quit
                     fn->rem_ref();
@@ -1195,7 +1190,7 @@ Val StdMathExp::derivativeOf(string x, Env env, Env denv) {
     // Is the value a list of numbers
     bool islst = val_is_list(v);
     if (islst) {
-        auto it = ((ListVal*) v)->get()->iterator();
+        auto it = ((ListVal*) v)->iterator();
         while (islst && it->hasNext())
             islst = val_is_number(it->next());
         delete it;
@@ -1221,7 +1216,7 @@ Val StdMathExp::derivativeOf(string x, Env env, Env denv) {
             if (islst) {
                 ListVal *lst = (ListVal*) v;
                 // Check on empty lists
-                if (lst->get()->size() == 0) {
+                if (lst->size() == 0) {
                     throw_err("runtime", "max is undefined on empty lists");
                     break;
                 }
@@ -1229,7 +1224,7 @@ Val StdMathExp::derivativeOf(string x, Env env, Env denv) {
                 CompareExp gt(NULL, NULL, GT);
                 
                 // Iterator and initial condition.
-                auto it = lst->get()->iterator();
+                auto it = lst->iterator();
                 y = it->next();
                 int idx = 0;
 
@@ -1245,7 +1240,7 @@ Val StdMathExp::derivativeOf(string x, Env env, Env denv) {
                 }
                 delete it;
                 
-                y = ((ListVal*) dv)->get()->get(idx);
+                y = ((ListVal*) dv)->get(idx);
                 y->add_ref();
 
             } else

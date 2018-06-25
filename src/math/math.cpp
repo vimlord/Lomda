@@ -7,7 +7,7 @@ int is_vector(Val v) {
         return 0;
     ListVal *list = (ListVal*) v;
 
-    auto it = list->get()->iterator();
+    auto it = list->iterator();
     int i;
     for (i = 0; it->hasNext(); i++) {
         auto v = it->next();
@@ -26,7 +26,7 @@ int* is_matrix(Val v) {
         return 0;
     ListVal *list = (ListVal*) v;
 
-    auto it = list->get()->iterator();
+    auto it = list->iterator();
 
     int cols = 0;
 
@@ -65,26 +65,26 @@ int* is_matrix(Val v) {
 
 // For building representations of vectors and matrices
 float* extract_vector(ListVal *list) {
-    float *vec = new float[list->get()->size()];
-    for (int i = 0; i < list->get()->size(); i++) {
-        Val v = list->get()->get(i);
+    float *vec = new float[list->size()];
+    for (int i = 0; i < list->size(); i++) {
+        Val v = list->get(i);
         vec[i] = isVal<RealVal>(v) ? ((RealVal*) v)->get() : ((IntVal*) v)->get();
     }
     return vec;
 }
 float** extract_matrix(ListVal *list) {
-    float **vec = new float*[list->get()->size()];
-    for (int i = 0; i < list->get()->size(); i++) {
-        vec[i] = extract_vector((ListVal*) list->get()->get(i));
+    float **vec = new float*[list->size()];
+    for (int i = 0; i < list->size(); i++) {
+        vec[i] = extract_vector((ListVal*) list->get(i));
     }
     return vec;
 }
 
 bool is_negligible_mtrx(ListVal *mtrx, double eps = 1e-4) {
-    auto it = mtrx->get()->iterator();
+    auto it = mtrx->iterator();
     while (it->hasNext()) {
         ListVal *row = (ListVal*) it->next();
-        auto jt = row->get()->iterator();
+        auto jt = row->iterator();
         while (jt->hasNext()) {
             Val v = jt->next();
             if (isVal<IntVal>(v)) {
@@ -123,9 +123,9 @@ Val exp(Val v) {
         auto Xn = new ListVal;
         for (int i = 0; i < dim[0]; i++) {
             auto row = new ListVal;
-            Xn->get()->add(i, row);
+            Xn->add(i, row);
             for (int j = 0; j < dim[0]; j++)
-                row->get()->add(j, new IntVal(i == j ? 1 : 0));
+                row->add(j, new IntVal(i == j ? 1 : 0));
         }
 
         Val S = Xn->clone();
@@ -197,14 +197,14 @@ Val log(Val v) {
         float norm = 0;
         for (int i = 0; i < dim[0]; i++) {
             auto row = new ListVal;
-            I->get()->add(i, row);
+            I->add(i, row);
             for (int j = 0; j < dim[0]; j++) {
                 // Update the norm
-                Val x = ((ListVal*) ((ListVal*) v)->get()->get(i))->get()->get(j);
+                Val x = ((ListVal*) ((ListVal*) v)->get(i))->get(j);
                 float f = isVal<RealVal>(x) ? ((RealVal*) x)->get() : ((IntVal*) x)->get();
                 norm += f*f;
 
-                row->get()->add(j, new IntVal(i == j ? 1 : 0));
+                row->add(j, new IntVal(i == j ? 1 : 0));
             }
         }
 
@@ -223,12 +223,12 @@ Val log(Val v) {
             auto A = new ListVal;
             for (int i = 0; i < dim[0]; i++) {
                 auto row = new ListVal;
-                A->get()->add(i, row);
+                A->add(i, row);
                 for (int j = 0; j < dim[0]; j++) {
                     // Update the norm
-                    Val x = ((ListVal*) ((ListVal*) v)->get()->get(i))->get()->get(j);
+                    Val x = ((ListVal*) ((ListVal*) v)->get(i))->get(j);
                     float f = isVal<RealVal>(x) ? ((RealVal*) x)->get() : ((IntVal*) x)->get();
-                    row->get()->add(j, new RealVal(f / a));
+                    row->add(j, new RealVal(f / a));
                 }
             }
 
@@ -247,8 +247,8 @@ Val log(Val v) {
             float loga = log(a);
             //std::cout << "log a = " << loga << "\n";
             for (int i = 0; i < dim[0]; i++) {
-                ((ListVal*) ((ListVal*) I)->get()->get(i))->get()->get(i)->rem_ref();
-                ((ListVal*) ((ListVal*) I)->get()->get(i))->get()->set(i, new RealVal(loga));
+                ((ListVal*) ((ListVal*) I)->get(i))->get(i)->rem_ref();
+                ((ListVal*) ((ListVal*) I)->get(i))->set(i, new RealVal(loga));
             }
 
             delete[] dim;
@@ -329,7 +329,7 @@ Val identity_matrix(int n) {
     auto B = new ListVal;
     for (int i = 0; i < n; i++) {
         auto L = new ArrayList<Val>;
-        B->get()->add(i, new ListVal(L));
+        B->add(i, new ListVal(L));
         for (int j = 0; j < n; j++)
             L->add(j, new IntVal(i == j ? 1 : 0));
     }

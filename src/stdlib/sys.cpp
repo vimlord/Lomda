@@ -33,7 +33,7 @@ Val load_stdlib_sys() {
     // Assign items to the list
     for (int i = 0; args[i]; i++) {
         StringVal *arg = new StringVal(args[i]);
-        argv->get()->add(i, arg);
+        argv->add(i, arg);
     }
 
     return new DictVal {
