@@ -134,7 +134,7 @@ Val std_sort(Env env, bool (*sort)(Val*, int, int)) {
         return NULL;
     }
 
-    List<Val> *L = ((ListVal*) A)->get();
+    auto L = (ListVal*) A;
 
     // Build an array
     Val *vs = new Val[L->size()];
@@ -165,9 +165,9 @@ Val std_is_sorted(Env env) {
     CompareExp comp(NULL, NULL, CompOp::GT);
 
     ListVal *list = (ListVal*) L;
-    if (list->get()->size() < 2) return new BoolVal(true);
+    if (list->size() < 2) return new BoolVal(true);
 
-    auto it = list->get()->iterator();
+    auto it = list->iterator();
     Val v = it->next();
     while (it->hasNext()) {
         Val u = it->next();
