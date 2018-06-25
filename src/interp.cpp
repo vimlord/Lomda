@@ -549,22 +549,19 @@ Val FoldExp::evaluate(Env env) {
         return NULL;
     }
 
-    auto it = ((ListVal*) lst)->get()->iterator();
     Val xs[3];
     xs[0] = base->evaluate(env); // First slot is the accumulator
     xs[2] = NULL; // Last slot is a null terminator.
 
-    while (it->hasNext() && xs[0]) {
+    for (int i = 0; i < ((ListVal*) lst)->size() && xs[0]; i++) {
         // Second slot is the element
-        xs[1] = it->next();
+        xs[1] = ((ListVal*) lst)->get(i);
         
         // Update the accumulator.
         Val acc = fn->apply(xs);
         xs[0]->rem_ref();
         xs[0] = acc;
     }
-    
-    delete it;
 
     fn->rem_ref();
     lst->rem_ref();
@@ -582,14 +579,11 @@ Val ForExp::evaluate(Env env) {
         throw_type_err(set, "list");
         return NULL;
     }
-    List<Val> *list = ((ListVal*) listExp)->get();
+    List<Val> *list = (ListVal*) listExp;
     
-    // Gather an iterator
-    auto it = list->iterator();
-
-    while (it->hasNext()) {
+    for (int i = 0; i < list->size(); i++) {
         // Get the next item from the list
-        Val x = it->next();
+        Val x = list->get(i);
         
         // Temporarily store the old value
         Val tmp = env->apply(id);
@@ -610,13 +604,11 @@ Val ForExp::evaluate(Env env) {
 
 
         if (!v) {
-            delete it;
             listExp->rem_ref();
             return NULL;
         }
     }
 
-    delete it;
     listExp->rem_ref();
 
     return new VoidVal;
@@ -635,24 +627,21 @@ Val HasExp::evaluate(Env env) {
         x->rem_ref();
         return NULL;
     } else if (val_is_list(xs)) {
-        List<Val> *lst = ((ListVal*) xs)->get();
+        List<Val> *lst = (ListVal*) xs;
         
-        auto it = lst->iterator();
-        while (!res && it->hasNext()) {
-            Val v = it->next();
+        for (int i = 0; i < lst->size() && !res; i++) {
+            Val v = lst->get(i);
             
             Val b = equals.op(x, v);
             if (!b) {
                 delete x;
                 delete xs;
-                delete it;
                 return NULL;
             } else if (((BoolVal*) b)->get())
                 res = new BoolVal(true);
         }
         if (!res) res = new BoolVal(false);
 
-        delete it;
     } else if (val_is_dict(xs)) {
 
         if (val_is_string(x)) {
@@ -798,7 +787,7 @@ bool static_typecheck(Val val, Type *type) {
         if (isType<ListType>(type)) {
             // We must check each element for correctness.
             auto T = ((ListType*) type)->subtype();
-            auto it = ((ListVal*) val)->get()->iterator();
+            auto it = ((ListVal*) val)->iterator();
             bool res = true;
             while (res && it->hasNext())
                 res = static_typecheck(it->next(), T);
@@ -905,7 +894,7 @@ Val ListExp::evaluate(Env env) {
 
             return NULL;
         } else {
-            val->get()->add(i, v);
+            val->add(i, v);
         }
     }
 
@@ -931,7 +920,7 @@ Val ListAccessExp::evaluate(Env env) {
     if (!index) return NULL;  
 
     // The list
-    List<Val> *vals = ((ListVal*) f)->get();
+    auto vals = (ListVal*) f;
 
     if (!isVal<IntVal>(index)) {
             throw_type_err(idx, "integer");
@@ -995,7 +984,7 @@ Val ListAddExp::evaluate(Env env) {
         throw_type_err(list, "list");
         return NULL;
     }
-    List<Val> *vals = ((ListVal*) f)->get();
+    auto vals = (ListVal*) f;
 
     // Compute the index
     Val index = idx->evaluate(env);
@@ -1030,7 +1019,7 @@ Val ListRemExp::evaluate(Env env) {
         throw_type_err(list, "list");
         return NULL;
     }
-    List<Val> *vals = ((ListVal*) f)->get();
+    auto vals = (ListVal*) f;
 
     // Compute the index
     Val index = idx->evaluate(env);
@@ -1097,12 +1086,12 @@ Val ListSliceExp::evaluate(Env env) {
         j = ((IntVal*) t)->get();
         t->rem_ref();
     } else if (isVal<ListVal>(lst))
-        j = ((ListVal*) lst)->get()->size();
+        j = ((ListVal*) lst)->size();
     else
         j = lst->toString().length();
     
     // The list
-    ArrayList<Val> *vals = ((ListVal*) lst)->get();
+    auto vals = (ListVal*) lst;
 
     if (i < 0 || j < 0 || i >= vals->size() || j > vals->size()) {
         throw_err("runtime", "index " + to_string(i) + " is out of bounds (len: " + to_string(vals->size()) + ")");
@@ -1148,7 +1137,7 @@ Val MagnitudeExp::evaluate(Env env) {
         res = new RealVal(val > 0 ? val : -val);
     } else if (isVal<ListVal>(v)) {
         // Magnitude of list is its length
-        int val = ((ListVal*) v)->get()->size();
+        int val = ((ListVal*) v)->size();
         res = new IntVal(val);
     } else if (isVal<StringVal>(v)) {
         res = new IntVal(v->toString().length());
@@ -1194,12 +1183,10 @@ Val MapExp::evaluate(Env env) {
     if (isVal<ListVal>(vs)) {
         // Given a list, map each element of the list
         ListVal *vals = (ListVal*) vs;
-        ListVal *res = new ListVal();
+        ListVal *res = new ListVal;
         
-        int i = 0;
-        auto it = vals->get()->iterator();
-        while (it->hasNext()) {
-            Val v = it->next();
+        for (int i = 0; i < vals->size(); i++) {
+            Val v = vals->get(i);
 
             Val *xs = new Val[2];
             xs[0] = v;
@@ -1215,12 +1202,11 @@ Val MapExp::evaluate(Env env) {
                 res->rem_ref();
                 return NULL;
             } else {
-                res->get()->add(res->get()->size(), elem);
+                res->add(res->size(), elem);
             }
 
             i++;
         }
-        delete it;
         
         fn->rem_ref();
         vals->rem_ref();
@@ -1258,7 +1244,7 @@ Val sqnorm(Val v, Env env) {
         return new RealVal(val * val);
     } else if (isVal<ListVal>(v)) {
         // Magnitude of list is its length
-        auto it = ((ListVal*) v)->get()->iterator();
+        auto it = ((ListVal*) v)->iterator();
 
         float sum = 0;
         
@@ -1409,7 +1395,7 @@ Val SetExp::evaluate(Env env) {
             int idx = ((IntVal*) index)->get();
             index->rem_ref();
             
-            if (idx < 0 || lst->get()->size() <= idx) {
+            if (idx < 0 || lst->size() <= idx) {
                 u->rem_ref();
                 return NULL;
             }
@@ -1418,8 +1404,8 @@ Val SetExp::evaluate(Env env) {
                 u->rem_ref();
                 return NULL;
             } else {
-                lst->get()->remove(idx)->rem_ref();
-                lst->get()->add(idx, v);
+                lst->remove(idx)->rem_ref();
+                lst->add(idx, v);
                 lst->rem_ref();
             }
         
@@ -1519,7 +1505,7 @@ Val StdMathExp::evaluate(Env env) {
     // Is the value a list of numbers
     bool islst = val_is_list(v);
     if (islst) {
-        auto it = ((ListVal*) v)->get()->iterator();
+        auto it = ((ListVal*) v)->iterator();
         while (islst && it->hasNext())
             islst = val_is_number(it->next());
         delete it;
@@ -1533,7 +1519,7 @@ Val StdMathExp::evaluate(Env env) {
             if (islst) {
                 ListVal *lst = (ListVal*) v;
                 // Check on empty lists
-                if (lst->get()->size() == 0) {
+                if (lst->size() == 0) {
                     throw_err("runtime", "max is undefined on empty lists");
                     break;
                 }
@@ -1541,7 +1527,7 @@ Val StdMathExp::evaluate(Env env) {
                 CompareExp gt(NULL, NULL, GT);
                 
                 // Iterator and initial condition.
-                auto it = lst->get()->iterator();
+                auto it = lst->iterator();
                 y = it->next();
 
                 while (it->hasNext()) {

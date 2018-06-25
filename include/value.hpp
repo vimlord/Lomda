@@ -109,20 +109,21 @@ class LambdaVal : public Value {
         void setEnv(Env);
 };
 
-class ListVal : public Value {
+class ListVal : public Value, public ArrayList<Val> {
     // Note: it may be of interest to make this a subclass of
     // some form of map value in order to generalize certain
     // behaviors.
-    private:
-        ArrayList<Val> *list;
     public:
-        ListVal() { list = new ArrayList<Val>(); }
-        ListVal(ArrayList<Val> *l) : list(l) {}
+        ListVal() { }
+        ListVal(ArrayList<Val> *l) {
+            for (int i = 0; i < l->size(); i++)
+                add(i, l->get(i));
+        }
         ~ListVal();
 
-        ArrayList<Val>* get() { return list; }
         ListVal* clone();
         int set(Val);
+        using ArrayList<Val>::set;
 
         std::string toString();
 };
