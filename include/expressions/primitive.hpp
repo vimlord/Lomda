@@ -125,15 +125,13 @@ class LambdaExp : public Expression {
         int opt_var_usage(std::string);
 };
 
-class ListExp : public Expression {
-    private:
-        List<Exp> *list;
+class ListExp : public Expression, public ArrayList<Exp> {
     public:
         ListExp();
-        ~ListExp();
-
         ListExp(Exp*);
-        ListExp(List<Exp>* l) { list = l; }
+        ListExp(List<Exp>* l);
+
+        ~ListExp();
 
         Val evaluate(Env);
         Val derivativeOf(std::string, Env, Env);
@@ -142,14 +140,11 @@ class ListExp : public Expression {
         Exp clone();
         std::string toString();
 
-        List<Exp>* getList() { return list; }
-
         bool postprocessor(Trie<bool> *vars) {
-            auto it = list->iterator();
             auto res = true;
-            while (res && it->hasNext())
-                res = it->next()->postprocessor(vars);
-            delete it;
+            for (int i = 0; i < size(); i++) {
+                res = get(i)->postprocessor(vars);
+            }
             return res;
         }
         
