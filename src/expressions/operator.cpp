@@ -56,8 +56,8 @@ Val DiffExp::op(Val a, Val b) {
     if (val_is_list(a)) {
         if (val_is_list(b)) {
             // Concatenate the two lists
-            ArrayList<Val> *A = ((ListVal*) a)->get();
-            ArrayList<Val> *B = ((ListVal*) b)->get();
+            ArrayList<Val> *A = ((ListVal*) a);
+            ArrayList<Val> *B = ((ListVal*) b);
             if (A->size() != B->size()) {
                 Stringable *l = left ? (Stringable*) left : (Stringable*) a;
                 Stringable *r = right ? (Stringable*) right : (Stringable*) b;
@@ -65,7 +65,7 @@ Val DiffExp::op(Val a, Val b) {
                 return NULL;
             }
 
-            ArrayList<Val> *C = new ArrayList<Val>;
+            auto C = new ListVal;
             
             auto ait = A->iterator();
             auto bit = B->iterator();
@@ -79,8 +79,9 @@ Val DiffExp::op(Val a, Val b) {
             }
             delete ait;
             delete bit;
+            
+            return C;
 
-            return new ListVal(C);
         } else  {
             Stringable *l = left ? (Stringable*) left : (Stringable*) a;
             Stringable *r = right ? (Stringable*) right : (Stringable*) b;
@@ -171,7 +172,7 @@ Val DivExp::op(Val a, Val b) {
                 return new IntVal(z);
         } else if (val_is_list(a)) {
             ListVal *c = new ListVal;
-            auto it = ((ListVal*) a)->get()->iterator();
+            auto it = ((ListVal*) a)->iterator();
 
             while (c && it->hasNext()) {
                 auto d = op(it->next(), b);
@@ -179,7 +180,7 @@ Val DivExp::op(Val a, Val b) {
                     c->rem_ref();
                     c = NULL;
                 } else
-                    c->get()->add(c->get()->size(), d);
+                    c->add(c->size(), d);
             }
 
             delete it;
@@ -203,7 +204,7 @@ Val DivExp::op(Val a, Val b) {
         for (int i = 0; i < n; i++) {
             mtrx[i] = new float[2*n];
             for (int j = 0; j < n; j++) {
-                auto ij = (((ListVal*) ((ListVal*) b)->get()->get(i)))->get()->get(j);
+                auto ij = (((ListVal*) ((ListVal*) b)->get(i)))->get(j);
                 mtrx[i][j] = isVal<IntVal>(ij) ? ((IntVal*) ij)->get() : ((RealVal*) ij)->get();
                 mtrx[i][j+n] = i == j;
             }
@@ -219,8 +220,8 @@ Val DivExp::op(Val a, Val b) {
 
         auto L = new ListVal;
         for (int i = 0; i < n; i++) {
-            auto R = new ArrayList<Val>;
-            L->get()->add(i, new ListVal(R));
+            auto R = new ListVal;
+            L->add(i, R);
             for (int j = 0; j < n; j++)
                 R->add(j, new RealVal(mtrx[i][j+n]));
             delete[] mtrx[i];
@@ -304,20 +305,20 @@ Val MultExp::op(Val a, Val b) {
         if (isVal<ListVal>(b)) {
             //std::cout << "compute " << *a << " * " << *b << "\n";
 
-            if (((ListVal*) a)->get()->size() == 0) {
+            if (((ListVal*) a)->size() == 0) {
                 throw_err("runtime", "multiplication is not defined on empty lists");
                 return NULL;
-            } else if (((ListVal*) b)->get()->size() == 0) {
+            } else if (((ListVal*) b)->size() == 0) {
                 throw_err("runtime", "multiplication is not defined on empty lists");
                 return NULL;
             }
 
             int ordA = 0, ordB = 0;
             for (Val A = a; isVal<ListVal>(A); ordA++)
-                A = ((ListVal*) A)->get()->get(0);
+                A = ((ListVal*) A)->get(0);
 
             for (Val B = b; isVal<ListVal>(B); ordB++)
-                B = ((ListVal*) B)->get()->get(0);
+                B = ((ListVal*) B)->get(0);
             
             // The restriction imposed is that multiplication restricts the
             // domain such that at least one of the arguments must be bounded
@@ -333,15 +334,15 @@ Val MultExp::op(Val a, Val b) {
             Val res = NULL;
             
             if (ordA > 1) {
-                auto lst = new ArrayList<Val>;
-                res = new ListVal(lst);
+                auto lst = new ListVal;
+                res = lst;
 
                 MultExp mult(NULL, NULL);
 
                 if (ordB == 1) {
                     //std::cout << "2 by 1\n";
                     // Matrix by vector
-                    auto it = ((ListVal*) a)->get()->iterator();
+                    auto it = ((ListVal*) a)->iterator();
 
                     while (res && it->hasNext()) {
                         Val v = it->next();
@@ -358,7 +359,7 @@ Val MultExp::op(Val a, Val b) {
                     // Matrix by matrix
                     //std::cout << "2 by 2\n";
                     
-                    auto it = ((ListVal*) a)->get()->iterator();
+                    auto it = ((ListVal*) a)->iterator();
                     while (res && it->hasNext()) {
                         Val v = mult.op(it->next(), b);
                         if (!v) {
@@ -374,8 +375,8 @@ Val MultExp::op(Val a, Val b) {
             } else if (ordB > 1) {
                 //std::cout << "1 by 2\n";
                 // List by matrix
-                auto ait = ((ListVal*) a)->get()->iterator();
-                auto bit = ((ListVal*) b)->get()->iterator();
+                auto ait = ((ListVal*) a)->iterator();
+                auto bit = ((ListVal*) b)->iterator();
 
                 MultExp mult(NULL, NULL);
                 SumExp sum(NULL, NULL);
@@ -408,8 +409,8 @@ Val MultExp::op(Val a, Val b) {
                 // Dot product
                 res = new IntVal;
                 
-                auto ait = ((ListVal*) a)->get()->iterator();
-                auto bit = ((ListVal*) b)->get()->iterator();
+                auto ait = ((ListVal*) a)->iterator();
+                auto bit = ((ListVal*) b)->iterator();
 
                 SumExp sum(NULL, NULL);
                 
@@ -450,14 +451,14 @@ Val MultExp::op(Val a, Val b) {
         } else {
             ListVal *res = new ListVal;
 
-            auto it = ((ListVal*) a)->get()->iterator();
+            auto it = ((ListVal*) a)->iterator();
             while (res && it->hasNext()) {
                 Val x = op(it->next(), b);
                 if (!x) {
                     res->rem_ref();
                     res = NULL;
                 } else
-                    res->get()->add(res->get()->size(), x);
+                    res->add(res->size(), x);
             }
 
             delete it;
@@ -528,8 +529,8 @@ Val SumExp::op(Val a, Val b) {
     if (val_is_list(a)) {
         if (val_is_list(b)) {
             // Concatenate the two lists
-            List<Val> *A = ((ListVal*) a)->get();
-            List<Val> *B = ((ListVal*) b)->get();
+            List<Val> *A = ((ListVal*) a);
+            List<Val> *B = ((ListVal*) b);
             if (A->size() != B->size()) {
                 Stringable *l = left ? (Stringable*) left : (Stringable*) a;
                 Stringable *r = right ? (Stringable*) right : (Stringable*) b;
@@ -537,7 +538,7 @@ Val SumExp::op(Val a, Val b) {
                 return NULL;
             }
 
-            auto C = new ArrayList<Val>;
+            auto C = new ListVal;
             
             auto ait = A->iterator();
             auto bit = B->iterator();
@@ -551,8 +552,9 @@ Val SumExp::op(Val a, Val b) {
             }
             delete ait;
             delete bit;
+            
+            return C;
 
-            return new ListVal(C);
         } else  {
             Stringable *l = left ? (Stringable*) left : (Stringable*) a;
             Stringable *r = right ? (Stringable*) right : (Stringable*) b;

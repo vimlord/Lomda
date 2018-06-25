@@ -21,7 +21,7 @@ Exp reexpress(Val v) {
         ListVal *lv = (ListVal*) v;
         LinkedList<Exp> *list = new LinkedList<Exp>;
 
-        auto it = lv->get()->iterator();
+        auto it = lv->iterator();
         while (it->hasNext()) list->add(list->size(), reexpress(it->next()));
 
         return new ListExp(list);

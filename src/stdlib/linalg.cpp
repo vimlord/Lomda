@@ -17,7 +17,7 @@ Val std_transpose(Env env) {
 
     int rows = 0, cols = 0;
     
-    auto it = xss->get()->iterator();
+    auto it = xss->iterator();
     while (it->hasNext()) {
         Val xs = it->next();
         if (!isVal<ListVal>(xs)) {
@@ -27,7 +27,7 @@ Val std_transpose(Env env) {
         }
 
         int c = 0;
-        auto jt = ((ListVal*) xs)->get()->iterator();
+        auto jt = ((ListVal*) xs)->iterator();
         while (jt->hasNext()) {
             auto v = jt->next();
             if (!isVal<RealVal>(v) && !isVal<IntVal>(v)) {
@@ -55,13 +55,13 @@ Val std_transpose(Env env) {
     for (int i = 0; i < cols; i++) {
         // Init the row structure
         ListVal *ys = new ListVal;
-        yss->get()->add(i, ys);
+        yss->add(i, ys);
 
         // Add the row transpose
         for (int j = 0; j < rows; j++) {
-            ListVal *row = (ListVal*) (xss->get()->get(j));
-            Val y = row->get()->get(i);
-            ys->get()->add(j, y);
+            ListVal *row = (ListVal*) (xss->get(j));
+            Val y = row->get(i);
+            ys->add(j, y);
             y->add_ref();
         }
     }
@@ -92,7 +92,7 @@ Val std_qr(Env env) {
     auto Q = new ListVal;
     auto R = new ListVal;
 
-    auto it = A->get()->iterator();
+    auto it = A->iterator();
     
     if (!it->hasNext()) {
         throw_err("type", "linalg.qr : [[R]] -> [[[R]]] cannot be applied to argument "
@@ -118,7 +118,7 @@ Val std_qr(Env env) {
         // Initial condition for col of Q
         auto u = a->clone();
 
-        auto jt = Q->get()->iterator();
+        auto jt = Q->iterator();
         while (jt->hasNext()) {
             auto e = jt->next();
 
@@ -137,7 +137,7 @@ Val std_qr(Env env) {
 
         // Compute the sqnorm of our vector u
         float norm = 0;
-        jt = u->get()->iterator();
+        jt = u->iterator();
         while (jt->hasNext()) {
             auto y = jt->next();
 
@@ -164,12 +164,12 @@ Val std_qr(Env env) {
         auto e = div.op(u, &N);
         u->rem_ref();
 
-        Q->get()->add(Q->get()->size(), e);
+        Q->add(Q->size(), e);
 
         // Now, we compute a row of R
         auto r = new ListVal;
-        R->get()->add(R->get()->size(), r);
-        jt = A->get()->iterator();
+        R->add(R->size(), r);
+        jt = A->iterator();
         
         bool compute = false;
         while (jt->hasNext()) {
@@ -188,25 +188,25 @@ Val std_qr(Env env) {
                     R->rem_ref();
                     return NULL;
                 }
-                r->get()->add(r->get()->size(), y);
+                r->add(r->size(), y);
             } else {
                 // By definition, we know it to be 0
-                r->get()->add(r->get()->size(), new RealVal(0));
+                r->add(r->size(), new RealVal(0));
             }
         }
     }
     
     // Our result for Q is its transpose. We will correct this.
     auto Qt = new ListVal;
-    for (int i = 0; i < Q->get()->size(); i++)
-        Qt->get()->add(i, new ListVal);
+    for (int i = 0; i < Q->size(); i++)
+        Qt->add(i, new ListVal);
 
-    for (int i = 0; i < Q->get()->size(); i++)
-    for (int j = 0; j < Q->get()->size(); j++) {
+    for (int i = 0; i < Q->size(); i++)
+    for (int j = 0; j < Q->size(); j++) {
         // Add to the transpose
-        Val q = ((ListVal*) Q->get()->get(j))->get()->get(i);
+        Val q = ((ListVal*) Q->get(j))->get(i);
         q->add_ref();
-        ((ListVal*) Qt->get()->get(i))->get()->add(j, q);
+        ((ListVal*) Qt->get(i))->add(j, q);
     }
     
     // Upate with the true result
@@ -215,8 +215,8 @@ Val std_qr(Env env) {
     
     // Finalize the result
     ListVal *QR = new ListVal;
-    QR->get()->add(0, Q);
-    QR->get()->add(1, R);
+    QR->add(0, Q);
+    QR->add(1, R);
 
     return QR;
 
@@ -234,7 +234,7 @@ Val std_trace(Env env) {
 
     float tr = 0;
     
-    auto it = xss->get()->iterator();
+    auto it = xss->iterator();
     for (int n = 0; it->hasNext(); n++) {
         // Check that the item is a list
         Val v = it->next();
@@ -246,14 +246,14 @@ Val std_trace(Env env) {
         
         // Acquire the row
         ListVal *xs = (ListVal*) v;
-        if (n < xss->get()->size()) {
+        if (n < xss->size()) {
             throw_err("type", "linalg.trace : [[R]] -> R cannot be applied to argument " + x->toString());
             delete it;
             return NULL;
         }
 
         // Get the item
-        v = xs->get()->get(n);
+        v = xs->get(n);
         
         // Process it
         if (isVal<IntVal>(v))
@@ -284,7 +284,7 @@ Val std_gaussian(Env env) {
     ListVal *M = (ListVal*) x;
     
     // Should be a non-empty list
-    int rows = M->get()->size();
+    int rows = M->size();
     if (rows == 0) {
         throw_err("type", "linalg.gaussian : [[R]] -> [[R]] cannot be applied to argument " + x->toString());
         return NULL;
@@ -293,13 +293,13 @@ Val std_gaussian(Env env) {
     // We will ensure that M is rectangular and consisting exclusively of numbers.
     int cols;
     for (int i = 0; i < rows; i++) {
-        Val row = M->get()->get(i);
+        Val row = M->get(i);
         if (!isVal<ListVal>(row)) {
             throw_err("type", "linalg.gaussian : [[R]] -> [[R]] cannot be applied to argument " + x->toString());
             return NULL;
         }
         
-        auto it = ((ListVal*) row)->get()->iterator();
+        auto it = ((ListVal*) row)->iterator();
         int j = 0;
         while (it->hasNext()) {
             auto v = it->next();
@@ -329,7 +329,7 @@ Val std_gaussian(Env env) {
     for (int i = 0; i < rows; i++) {
         mtrx[i] = new float[cols];
         for (int j = 0; j < cols; j++) {
-            Val v = ((ListVal*) M->get()->get(i))->get()->get(j);
+            Val v = ((ListVal*) M->get(i))->get(j);
             if (isVal<IntVal>(v))
                 mtrx[i][j] = ((IntVal*) v)->get();
             else
@@ -384,10 +384,10 @@ Val std_gaussian(Env env) {
     M = new ListVal;
     for (int i = 0; i < rows; i++) {
         auto row = new ListVal;
-        M->get()->add(i, row);
+        M->add(i, row);
 
         for (int j = 0; j < cols; j++)
-            row->get()->add(j, new RealVal(mtrx[i][j]));
+            row->add(j, new RealVal(mtrx[i][j]));
         
         delete[] mtrx[i];
     }
@@ -408,7 +408,7 @@ Val std_determinant(Env env) {
     ListVal *M = (ListVal*) x;
     
     // Should be a non-empty list
-    int n = M->get()->size();
+    int n = M->size();
     if (n == 0) {
         throw_err("type", "linalg.gaussian : [[R]] -> [[R]] cannot be applied to argument " + x->toString());
         return NULL;
@@ -416,19 +416,19 @@ Val std_determinant(Env env) {
 
     // We will ensure that M is rectangular and consisting exclusively of numbers.
     for (int i = 0; i < n; i++) {
-        Val r = M->get()->get(i);
+        Val r = M->get(i);
         if (!isVal<ListVal>(r)) {
             throw_err("type", "linalg.gaussian : [[R]] -> [[R]] cannot be applied to argument " + x->toString());
             return NULL;
         }
         
         ListVal *row = (ListVal*) r;
-        if (row->get()->size() != n) {
+        if (row->size() != n) {
             throw_err("type", "linalg.gaussian : [[R]] -> [[R]] cannot be applied to argument " + x->toString());
             return NULL;
         }
 
-        auto it = row->get()->iterator();
+        auto it = row->iterator();
         while (it->hasNext()) {
             auto v = it->next();
             if (!isVal<RealVal>(v) && !isVal<IntVal>(v)) {
@@ -445,7 +445,7 @@ Val std_determinant(Env env) {
     for (int i = 0; i < n; i++) {
         mtrx[i] = new float[n];
         for (int j = 0; j < n; j++) {
-            Val v = ((ListVal*) M->get()->get(i))->get()->get(j);
+            Val v = ((ListVal*) M->get(i))->get(j);
             if (isVal<IntVal>(v))
                 mtrx[i][j] = ((IntVal*) v)->get();
             else
