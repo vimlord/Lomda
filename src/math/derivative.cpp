@@ -23,10 +23,9 @@ void resolveIdentity(Val val, List<int> *idx = NULL) {
 
         ListVal *lst = (ListVal*) val;
         
-        auto it = lst->iterator();
-        for (int i = 0; it->hasNext(); i++) {
+        for (int i = 0; i < lst->size(); i++) {
             idx->add(0, i);
-            resolveIdentity(it->next(), idx);
+            resolveIdentity(lst->get(i), idx);
             idx->remove(0);
         }
 
@@ -58,17 +57,7 @@ void resolveIdentity(Val val, List<int> *idx = NULL) {
 
         if (idx->size() == 0) delete idx;
     } else if (idx->size() % 2 == 0) {
-
-        auto it = idx->iterator();
-        auto jt = idx->iterator();
-        
-        int i;
-        for (i = 0; i < idx->size() / 2; i++) jt->next();
-        for (; i < idx->size() && it->next() == jt->next(); i++);
-
-        if (i == idx->size()) {
-            val->set(isVal<IntVal>(val) ? (Val) new IntVal(1) : (Val) new RealVal(1));
-        }
+        val->set(isVal<IntVal>(val) ? (Val) new IntVal(1) : (Val) new RealVal(1));
     }
 }
 
@@ -653,8 +642,9 @@ Val LambdaExp::derivativeOf(string x, Env env, Env denv) {
     ids[argc] = "";
     while (argc--)
         ids[argc] = xs[argc];
-
-    return new LambdaVal(ids, exp->symb_diff(x), env->clone());
+    
+    env->add_ref();
+    return new LambdaVal(ids, exp->symb_diff(x), env);
 }
 
 Val LetExp::derivativeOf(string x, Env env, Env denv) {
@@ -973,11 +963,15 @@ Val MapExp::derivativeOf(string x, Env env, Env denv) {
     
     // Then, we differentiate it.
     string var = fn->getArgs()[0];
+
     fn->rem_ref();
+
     f = func->derivativeOf(var, env, denv);
     if (!f) {
         return NULL;
-    } else fn = (LambdaVal*) f;
+    }
+    
+    fn = (LambdaVal*) f;
     
     Val vs = list->evaluate(env);
     if (!vs) {
@@ -1000,17 +994,18 @@ Val MapExp::derivativeOf(string x, Env env, Env denv) {
 
         ListVal *res = new ListVal;
         
-        auto it = vals->iterator();
-        auto dit = dvals->iterator();
-        while (it->hasNext()) {
-            Val v = it->next();
-            Val dv = dit->next();
+        for (int i = 0; i < vals->size(); i++) {
+            Val v = vals->get(i);
+            Val dv = dvals->get(i);
 
             Val *xs = new Val[2];
             xs[0] = v;
             xs[1] = NULL;
-
+            
+            // f'(x)
             Val elem = fn->apply(xs);
+
+            delete[] xs;
 
             if (!elem) {
                 fn->rem_ref();
@@ -1020,17 +1015,14 @@ Val MapExp::derivativeOf(string x, Env env, Env denv) {
                 return NULL;
             } else {
                 // Compute the other part
-                Exp cell = new MultExp(
-                    reexpress(elem), reexpress(dv)
-                );
+                MultExp mult(NULL, NULL);
+                Val y = mult.op(elem, dv);
+
                 elem->rem_ref();
 
-                elem = cell->evaluate(env);
-                delete cell;
-
-                if (elem)
+                if (y)
                     // Compute the answer
-                    res->add(res->size(), elem);
+                    res->add(res->size(), y);
                 else {
                     // The product could not be computed; collect garbage and quit
                     fn->rem_ref();
@@ -1041,14 +1033,12 @@ Val MapExp::derivativeOf(string x, Env env, Env denv) {
                 }
             }
         }
-        delete it;
-        delete dit;
         
         // Garbage collection
         fn->rem_ref();
         vals->rem_ref();
         dvals->rem_ref();
-
+        
         return res;
 
     } else if (WERROR()) {
