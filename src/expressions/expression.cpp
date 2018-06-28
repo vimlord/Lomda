@@ -188,8 +188,8 @@ ListExp::ListExp(List<Exp> *list) {
 }
 
 ListExp::~ListExp() {
-    for (int i = 0; i < size(); i++)
-        delete remove(i);
+    while (!isEmpty())
+        delete remove(size()-1);
 }
 
 std::map<std::string, Val> ImportExp::module_cache;
