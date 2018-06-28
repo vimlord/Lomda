@@ -518,7 +518,8 @@ result<Expression> parse_pemdas(string str, int order) {
             list<string> argv = extract_statements(seg, ',', false);
 
             // Build the argument list if possible.
-            base.value = new ListExp;
+            auto list = new ListExp;
+            base.value = list;
 
             int i = 0;
             for (auto it = argv.begin(); it != argv.end(); it++, i++) {
@@ -528,8 +529,9 @@ result<Expression> parse_pemdas(string str, int order) {
                 if (!arg.value || !is_all_whitespace(x.substr(arg.strlen))) {
                     base.reset();
                     return base;
-                } else
-                    ((ListExp*) base.value)->add(i, arg.value);
+                } else {
+                    list->add(i, arg.value);
+                }
             }
 
         } else if ((len = starts_with(str, "{")) > 0) {

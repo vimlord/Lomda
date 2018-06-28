@@ -255,11 +255,10 @@ ListVal::~ListVal() {
 }
 ListVal* ListVal::clone() {
     // Add a copy of each element of the list
-    auto it = iterator();
     ListVal *res = new ListVal;
     
-    for (int i = 0; it->hasNext(); i++) {
-        Val v = it->next();
+    for (int i = 0; i < size(); i++) {
+        Val v = get(i);
         res->add(i, v);
         if (v) v->add_ref();
     }

@@ -1202,10 +1202,8 @@ Val MapExp::evaluate(Env env) {
                 res->rem_ref();
                 return NULL;
             } else {
-                res->add(res->size(), elem);
+                res->add(i, elem);
             }
-
-            i++;
         }
         
         fn->rem_ref();
