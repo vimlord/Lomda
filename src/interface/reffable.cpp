@@ -18,8 +18,7 @@ void Reffable::add_ref() {
 
 void Reffable::rem_ref() {
     if (refs == 0) {
-        /*
-        std::cout << "\x1b[34m\x2b[1mmem_mgt:\x1b[0m "
+        /*std::cout << "\x1b[34m\x1b[1mmem_mgt:\x1b[0m "
                   << "ref " << this << " is already zero\n";*/
         return;
     }
