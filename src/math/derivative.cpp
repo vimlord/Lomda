@@ -57,7 +57,19 @@ void resolveIdentity(Val val, List<int> *idx = NULL) {
 
         if (idx->size() == 0) delete idx;
     } else if (idx->size() % 2 == 0) {
-        val->set(isVal<IntVal>(val) ? (Val) new IntVal(1) : (Val) new RealVal(1));
+        
+        // Iterate to check that the indices are symmetric
+        int i, j;
+        for (
+            i = 0, j = idx->size()/2;
+            i < idx->size()/2 && idx->get(i) == idx->get(j);
+            ++i, ++j
+        );
+        
+        // If the indices are symmetric, then apply to the diagonal
+        if (j == idx->size())
+            val->set(isVal<IntVal>(val) ? (Val) new IntVal(1) : (Val) new RealVal(1));
+
     }
 }
 
