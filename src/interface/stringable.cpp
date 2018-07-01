@@ -238,10 +238,9 @@ string RealExp::toString() {
 string SequenceExp::toString() {
     string s = "";
 
-    auto it = seq->iterator();
-    for (int i = 0; it->hasNext(); i++) {
+    for (int i = 0; i < seq->size(); i++) {
         if (i) s += "; ";
-        s += it->next()->toString();
+        s += seq->get(i)->toString();
     }
     
     return s;
