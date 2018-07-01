@@ -107,7 +107,8 @@ SwitchExp::~SwitchExp() {
         delete bodies[i];
         delete[] idss[i];
     }
-
+    
+    delete adt;
     delete[] bodies;
     delete[] idss;
     delete[] names;
