@@ -606,7 +606,8 @@ Val ForExp::evaluate(Env env) {
         if (!v) {
             listExp->rem_ref();
             return NULL;
-        }
+        } else
+            v->rem_ref();
     }
 
     listExp->rem_ref();
@@ -787,10 +788,10 @@ bool static_typecheck(Val val, Type *type) {
         if (isType<ListType>(type)) {
             // We must check each element for correctness.
             auto T = ((ListType*) type)->subtype();
-            auto it = ((ListVal*) val)->iterator();
+            auto lst = ((ListVal*) val);
             bool res = true;
-            while (res && it->hasNext())
-                res = static_typecheck(it->next(), T);
+            for (int i = 0; res && i < lst->size(); i++)
+                res = static_typecheck(lst->get(i), T);
             return res;
         } else
             return false;
@@ -799,6 +800,7 @@ bool static_typecheck(Val val, Type *type) {
 }
 Val IsaExp::evaluate(Env env) {
     Val val = exp->evaluate(env);
+
     val = unpack_thunk(val);
     if (!val) return NULL;
     
@@ -1370,6 +1372,7 @@ Val SetExp::evaluate(Env env) {
     Val v = NULL;
 
     if (isExp<ListAccessExp>(tgt)) {
+        // We are attempting to assign to a list
         ListAccessExp *acc = (ListAccessExp*) tgt;
         
         Val u = acc->getList()->evaluate(env);
@@ -1402,6 +1405,8 @@ Val SetExp::evaluate(Env env) {
                 u->rem_ref();
                 return NULL;
             } else {
+                v->add_ref();
+
                 lst->remove(idx)->rem_ref();
                 lst->add(idx, v);
                 lst->rem_ref();
@@ -1414,6 +1419,7 @@ Val SetExp::evaluate(Env env) {
         }
 
     } else if (isExp<DictAccessExp>(tgt)) {
+        // We are attempting to assign to a dictionary
         auto acc = (DictAccessExp*) tgt;
 
         Val u = acc->getList()->evaluate(env);
@@ -1432,7 +1438,8 @@ Val SetExp::evaluate(Env env) {
             if (!(v = exp->evaluate(env))) {
                 u->rem_ref();
                 return NULL;
-            }
+            } else
+                v->add_ref();
             
             for (int i = 0; !done && vt->hasNext(); i++) {
                 string k = vt->next();
@@ -1450,6 +1457,7 @@ Val SetExp::evaluate(Env env) {
             // On failure, new element
             if (!done)
                 vals->add(idx, v);
+
         } else {
             throw_err("type", "cannot perform dictionary assignment to non-dictionary");
             u->rem_ref();
@@ -1457,6 +1465,7 @@ Val SetExp::evaluate(Env env) {
         }
     
     } else if (isExp<VarExp>(tgt)) {
+        // We are attempting to perform direct assignment to a variable
         VarExp *var = (VarExp*) tgt;
         
         v = exp->evaluate(env);
@@ -1487,10 +1496,10 @@ Val SetExp::evaluate(Env env) {
             throw_err("runtime", "assignment to right-handish expression '" + tgt->toString() + "' failed");
             v->rem_ref();
             return NULL;
-        }
+        } else
+            v->add_ref();
     }
     
-    v->add_ref();
     return v;
 }
 
@@ -1724,16 +1733,20 @@ Val WhileExp::evaluate(Env env) {
     bool skip = alwaysEnter;
 
     while (true) {
-        Val c = cond->evaluate(env);
+        Val c = skip ? new BoolVal(true) : cond->evaluate(env);
         c = unpack_thunk(c);
 
-        if (!c) return NULL;
-        else if (!isVal<BoolVal>(c)) {
+        skip = false; // Do not do do-while from now on.
+
+        if (!isVal<BoolVal>(c)) {
             throw_type_err(cond, "boolean");
             return NULL;
-        } else if (skip || ((BoolVal*) c)->get()) {
-            // If do-while was enacted, cease the action.
-            skip = false;
+        }
+        
+        bool cond = ((BoolVal*) c)->get();
+        c->rem_ref();
+        
+        if (cond) {
             // Compute the new outcome. If it is
             // NULL, computation failed, so NULL
             // should be returned.
@@ -1743,6 +1756,7 @@ Val WhileExp::evaluate(Env env) {
             else
                 v->rem_ref();
         } else
+            // On success, the return type is void
             return new VoidVal;
     }
 }
