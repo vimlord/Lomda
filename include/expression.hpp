@@ -106,7 +106,7 @@ class CastExp : public Expression {
         Exp exp;
     public:
         CastExp(Type *t, Exp e) : type(t), exp(e) {}
-        ~CastExp() { delete exp; }
+        ~CastExp() { delete exp; delete type; }
 
         Val evaluate(Env);
         Type* typeOf(Tenv);
@@ -295,7 +295,7 @@ class IsaExp : public Expression {
         Type *type;
     public:
         IsaExp(Exp e, Type *t) : exp(e), type(t) {}
-        ~IsaExp() { delete exp; }
+        ~IsaExp() { delete exp; delete type; }
 
         Val evaluate(Env);
         Type* typeOf(Tenv);

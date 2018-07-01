@@ -67,8 +67,11 @@ void resolveIdentity(Val val, List<int> *idx = NULL) {
         );
         
         // If the indices are symmetric, then apply to the diagonal
-        if (j == idx->size())
-            val->set(isVal<IntVal>(val) ? (Val) new IntVal(1) : (Val) new RealVal(1));
+        if (j == idx->size()) {
+            Val one = isVal<IntVal>(val) ? (Val) new IntVal(1) : (Val) new RealVal(1);
+            val->set(one);
+            one->rem_ref();
+        }
 
     }
 }
@@ -813,6 +816,11 @@ Val MagnitudeExp::derivativeOf(string x, Env env, Env denv) {
     return res;
 }
 
+/**
+ * Note to readers: this was by far the biggest pain in the ass
+ * when it came down to writing out the derivative for this.
+ * - Vimlord
+ */
 Val FoldExp::derivativeOf(string x, Env env, Env denv) {
     // f(L, c) = g(g(...g(c,L[0]),L[1],...),L[N-1])
     // g'(a,b) = a' * g_a(a,b) + b' * g_b(a,b)
@@ -880,17 +888,14 @@ Val FoldExp::derivativeOf(string x, Env env, Env denv) {
     }
     LambdaVal *df_b = (LambdaVal*) v;
 
-    auto it = ((ListVal*) lst)->iterator();
-    auto dit = ((ListVal*) dlst)->iterator();
-
     Val xs[3];
     xs[2] = NULL;
     
     Val c = base->evaluate(env);
     Val dc = base->derivativeOf(x, env, denv);
-
-    while (c && dc && it->hasNext()) {
-        v = it->next();
+    
+    for (int i = 0; i < ((ListVal*) lst)->size() && c && dc; i++) {
+        v = ((ListVal*) lst)->get(i);
 
         xs[0] = c;
         xs[1] = v;
@@ -920,7 +925,7 @@ Val FoldExp::derivativeOf(string x, Env env, Env denv) {
         c = v;
 
         // Derivative of the list index
-        v = dit->next();
+        v = ((ListVal*) dlst)->get(i);
         
         // We will construct an expression to handle the ordeal
         Expression *cell = new SumExp(
