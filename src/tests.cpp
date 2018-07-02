@@ -29,6 +29,8 @@ std::map<Exp,string> load_test_cases(string fname) {
 
     ifstream file;
     file.open(fname);
+
+    int failures = 0;
     
     if (!file) {
         throw_err("", "could not load test cases from '" + fname + "'");
@@ -54,47 +56,79 @@ std::map<Exp,string> load_test_cases(string fname) {
             // Keep the case if it passes the postprocessor
             if (valid)
                 cases[exp] = y;
-            else
+            else {
+                delete exp;
                 std::cout << "Test case " << i << " from '" << fname << "' will not be loaded (failed postprocessor)\n";
+                failures++;
+            }
         } else {
             // Discard it.
             std::cout << "Test case " << i << " from '" << fname << "' will not be loaded (failed BNF parsing)\n";
             std::cout << "Case: " << x << "\n";
+            failures++;
         }
     }
 
     file.close();
     std::cout << "Loaded " << cases.size() << " test cases from '" << fname << "'\n";
 
+    // Store the number of failing test cases
+    cases[NULL] = to_string(failures);
+
     return cases;
 }
 
-int test_interp_cases(string title) {
+string run_interp(Exp x) {
+    Env env = new Environment;
+    Val v = x->evaluate(env);
+    if (!v) return "NULL";
+
+    env->rem_ref();
+    
+    string res = v->toString();
+    v->rem_ref();
+
+    return res;
+}
+
+string run_types(Exp x) {
+    Tenv tenv = new TypeEnv;
+    Type *t = x->typeOf(tenv);
+    if (!t) return "NULL";
+    
+    delete tenv;
+    
+    string res = t->toString();
+    delete t;
+
+    return res;
+}
+
+int test_cases(string title, string (*run)(Exp)) {
     int n = 0;
     int i = 1;
     auto interp_cases = load_test_cases("./tests/" + title + ".cases");
+    
+    // The number of cases that do not parse
+    n += stoi(interp_cases[NULL]);
+    interp_cases.erase(NULL);
 
     for (auto it : interp_cases) {
         // Evaluate the test case
         Exp exp = it.first;
 
-        if (VERBOSITY()) std::cout << "Testing " << *exp << "\n";
+        if (VERBOSITY()) std::cout << "Testing " << *exp << "\n"; 
 
-        Env env = new Environment;
-        Val v = exp->evaluate(env);
+        string res = run(exp);
         
         // Garbage collection
         delete exp;
-        env->rem_ref();
 
-        if (!v || v->toString() != it.second) {
+        if (res != it.second) {
             std::cout << "Failed test case " << title << ":" << to_string(i) << "\n";
-            std::cout << "\tExpected " << it.second << ", got " << (v ? v->toString() : "null") << "\n";
+            std::cout << "\tExpected " << it.second << ", got " << res << "\n";
             n++;
         }
-
-        // Destroy the value
-        v->rem_ref();
 
         // Counter
         i++;
@@ -106,7 +140,8 @@ int test_interp_cases(string title) {
 int test() {
     int n = 0;
 
-    n += test_interp_cases("interp");
+    n += test_cases("interp", run_interp);
+    n += test_cases("types", run_types);
 
     // Display end results
     std::cout << "\n";
