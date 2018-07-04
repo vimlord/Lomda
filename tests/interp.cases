@@ -45,6 +45,14 @@ let f() = 1; f()
 [1, 2, 3, 4][2]
 3
 
+# Tuples
+left of (1,2)
+1
+right of (1,2)
+2
+let x = (1,2); (right of x, left of x)
+(2, 1)
+
 # Dictionary with elements
 {x:1,y:2}
 {x : 1, y : 2}
