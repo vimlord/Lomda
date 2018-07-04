@@ -99,11 +99,6 @@ int index_of_closure(string str, char a, char b) {
     if (str.find('\n') >= 0)
         str = str.substr(0, str.find('\n'));
 
-    string mssg = "missing closing '";
-    mssg += b;
-    mssg += "' in\n\t" + str.substr(0, 16) + "\n\t^";
-    throw_err("parser", mssg); 
-
     return -1;
 }
 
@@ -256,12 +251,6 @@ result<Type> parse_type(string str) {
 
         // The opening brace
         if ((j = starts_with(str.substr(i), "<")) == -1) {
-            for (i = 0; str[i] == ' ' || str[i] == '\n' || str[i] == '\t'; i++);
-            str = str.substr(i);
-            if (str.find('\n') > 0)
-                str = str.substr(0, str.find('\n'));
-            throw_err("parser", "closing less-than sign expected, but not found; see:\n\t" + str.substr(0, 16));
-
             // No type could be found
             return res;
         } else
@@ -270,12 +259,6 @@ result<Type> parse_type(string str) {
         // The name of the ADT
         string id = extract_identifier(str.substr(i));
         if (id == "") {
-            for (i = 0; str[i] == ' ' || str[i] == '\n' || str[i] == '\t'; i++);
-            str = str.substr(i);
-            if (str.find('\n') > 0)
-                str = str.substr(0, str.find('\n'));
-            throw_err("parser", "expected identifier, but not found; see:\n\t" + str.substr(0, 16));
-
             // No type could be found
             return res;
         } else
@@ -283,12 +266,6 @@ result<Type> parse_type(string str) {
         
         // The closing brace
         if ((j = starts_with(str.substr(i), ">")) == -1) {
-            for (i = 0; str[i] == ' ' || str[i] == '\n' || str[i] == '\t'; i++);
-            str = str.substr(i);
-            if (str.find('\n') > 0)
-                str = str.substr(0, str.find('\n'));
-            throw_err("parser", "closing greater-than sign expected, but not found; see:\n\t" + str.substr(0, 16));
-
             // No type could be found
             return res;
         } else {
@@ -328,13 +305,6 @@ result<Type> parse_type(string str) {
         }
         
     } else {
-        // Print an error message designating that a problem occurred.
-        for (i = 0; str[i] == ' ' || str[i] == '\n' || str[i] == '\t'; i++);
-        str = str.substr(i);
-        if (str.find('\n') > 0)
-            str = str.substr(0, str.find('\n'));
-        throw_err("parser", "unrecognized type detected; see:\n\t" + str.substr(0, 16));
-
         // No type could be found
         return res;
     }
@@ -390,7 +360,7 @@ result<Expression> parse_pemdas(string str, int order) {
     result<Expression> base;
     base.value = NULL;
     base.strlen = -1;
-    
+
     // We will first attempt to derive a unary expression
     // from the front of the expression.
     if (order >= 3) {
@@ -885,7 +855,7 @@ result<Expression> parse_pemdas(string str, int order) {
                 try { Z = stoi(str, &Zlen, 10); }
                 catch (std::out_of_range oor) { Zlen = -1; }
                 catch (std::invalid_argument ia) { Zlen = -1; }
-                
+
                 // If one of them prevails, choose it.
                 if (Rlen > Zlen) {
                     base.value = new RealExp(R);
@@ -896,20 +866,6 @@ result<Expression> parse_pemdas(string str, int order) {
                     base.strlen = Zlen + len;
                     str = str.substr(Zlen);
                 } else {
-                    // In any other case, there is no possible primitive.
-                    // Hence, this arrangement is impossible.
-                    if (str.find('\n') >= 0)
-                        str = str.substr(0, str.find('\n'));
-                    
-                    string under = "";
-                    for (int i = 0; i < 16 && i < str.length(); i++)
-                        if (str[i] != ' ' && str[i] != '\n' && str[i] != '\t')
-                            under += "^";
-                        else
-                            break;
-
-                    throw_err("parser", "non-primitive symbol found when primitive expected; see:\n\t'" + str.substr(0, 16) + "'\n\t " + under);
-
                     base.reset();
                     return base;
                 }
@@ -1024,14 +980,6 @@ result<Expression> parse_pemdas(string str, int order) {
                 string idx = extract_identifier(str.substr(i)); 
 
                 if (idx == "") {
-                    // Tidy up the string so that we can formally complain
-                    for (i = 0; str[i] == ' ' || str[i] == '\n' || str[i] == '\t'; i++);
-                    str = str.substr(i);
-                    if (str.find('\n') > 0)
-                        str = str.substr(0, str.find('\n'));
-
-                    throw_err("parser", "dot accessor expects identifier; see:\n\t" + str.substr(0, 16));
-
                     base.reset();
                     return base;
                 } else {
@@ -1407,11 +1355,7 @@ Exp parse_statement(string str) {
         
         // Then keyword
         if ((i = starts_with(str, "then")) < 0) {
-            if (str.find('\n') >= 0)
-                str = str.substr(0, str.find('\n'));
-            throw_err("parser", "if statement should include then keyword; see:\n\t" + str.substr(0, 16));
-
-            delete cond.value;
+            cond.reset();
             return NULL;
         } else
             str = str.substr(i);
@@ -1426,10 +1370,6 @@ Exp parse_statement(string str) {
 
         // Else keyword
         if ((i = starts_with(str, "else")) < 0) {
-            if (str.find('\n') >= 0)
-                str = str.substr(0, str.find('\n'));
-            throw_err("parser", "if statement missing else keyword; see:\n\t" + str.substr(0, 16));
-
             delete cond.value;
             delete tBody.value;
             return NULL;
@@ -1458,9 +1398,6 @@ Exp parse_statement(string str) {
         
         // Then keyword
         if ((i = starts_with(str, "into")) < 0) {
-            if (str.find('\n') >= 0)
-                str = str.substr(0, str.find('\n'));
-            throw_err("parser", "fold statement missing into keyword; see:\n\t" + str.substr(0, 16));
             delete lst.value;
             return NULL;
         } else
@@ -1476,9 +1413,6 @@ Exp parse_statement(string str) {
 
         // Else keyword
         if ((i = starts_with(str, "from")) < 0) {
-            if (str.find('\n') >= 0)
-                str = str.substr(0, str.find('\n'));
-            throw_err("parser", "fold statement missing from keyword; see:\n\t" + str.substr(0, 16));
             delete lst.value;
             delete func.value;
             return NULL;
@@ -1507,9 +1441,6 @@ Exp parse_statement(string str) {
         
         // Then keyword
         if ((i = starts_with(str, "over")) < 0) {
-            if (str.find('\n') >= 0)
-                str = str.substr(0, str.find('\n'));
-            throw_err("parser", "map statement missing from keyword; see:\n\t" + str.substr(0, 16));
             delete func.value;
             return NULL;
         } else
@@ -1583,9 +1514,6 @@ Exp parse_statement(string str) {
         string x = extract_identifier(str.substr(index_of_char(str, 'd') + 3));
 
         if (x == "") {
-            if (str.find('\n') >= 0)
-                str = str.substr(index_of_char(str, 'd'), str.find('\n'));
-            throw_err("parser", "differential must include attached identifier; see:\n\t" + str.substr(0, 16));
             return NULL;
         }
         
@@ -1606,7 +1534,6 @@ Exp parse_statement(string str) {
         else str = str.substr(adt.strlen);
 
         if ((i = starts_with(str, "in")) == -1) {
-            throw_err("parser", "switch statement missing in keyword; see:\n\t" + str.substr(0, 16));
             delete adt.value;
             return NULL;
         } else
@@ -1684,7 +1611,6 @@ Exp parse_statement(string str) {
         }
 
         if (states.size()) {
-            throw_err("parser", "switch bodies could not be parsed");
             // The evaluation failed
             delete adt.value;
             while (bodies.size()) { delete bodies.front(); bodies.pop_front(); }
@@ -1716,22 +1642,13 @@ Exp parse_sequence(string str, list<string> future) {
 
     if ((i = starts_with(str, "let")) > 0) {
         // Let expression
-        if (future.size() == 0) {
-            if (str.find('\n') >= 0)
-                str = str.substr(0, str.find('\n'));
-
-            throw_err("parser", "let statement must be followed by a valid sequence:\n\t" + str.substr(0, 16));
-
+        if (future.empty()) {
             return NULL;
         }
 
         // Parse the argument list
         auto args = extract_statements(str.substr(i), ',', false);
-        if (args.size() == 0) {
-            if (str.find('\n') >= 0)
-                str = str.substr(0, str.find('\n'));
-
-            throw_err("parser", "let statement must define at least one variable:\n\t" + str.substr(0, 16));
+        if (args.empty()) {
             return NULL;
         }
         
@@ -1859,8 +1776,7 @@ Exp parse_sequence(string str, list<string> future) {
         return new LetExp(vs, xs, body, rs);
 
     } else if ((i = starts_with(str, "from")) > 0) {
-        if (future.size() == 0) {
-            throw_err("parser", "import statement must be followed by a valid sequence:\n\t" + str.substr(0, 16));
+        if (future.empty()) {
             return NULL;
         }
 
@@ -1869,18 +1785,12 @@ Exp parse_sequence(string str, list<string> future) {
         // Extract the module name
         string module = extract_identifier(str);
         if (module == "") {
-            if (str.find('\n') > 0)
-                str = str.substr(0, str.find('\n'));
-            throw_err("parser", "import expects identifier for module, thus the following name is invalid:\n\t" + str.substr(0, 32));
             return NULL;
         }
         str = str.substr(module.length());
         
         // Parse the import keyword
         if ((i = starts_with(str, "import")) < 0) {
-            if (str.find('\n') >= 0)
-                str = str.substr(0, str.find('\n'));
-            throw_err("parser", "import-from statement missing import keyword; see:\n\t" + str.substr(0, 16));
             return NULL;
         }
 
@@ -1901,9 +1811,6 @@ Exp parse_sequence(string str, list<string> future) {
             // Reduce the string from the back
             for (j = id.length() - 1; j >= 0 && (id[j] == ' ' || id[j] == '\n' || id[j] == '\t'); j--);
             if (j < 0) {
-                if (str.find('\n') >= 0)
-                    str = str.substr(0, str.find('\n'));
-                throw_err("parser", "import-from statement expects proper list of identifiers; see:\n\t" + str.substr(0, 16));
                 return NULL;
             } else
                 id = id.substr(0, j+1);
@@ -1912,9 +1819,6 @@ Exp parse_sequence(string str, list<string> future) {
                 // The string is legal
                 ids.push_back(id);
             else {
-                if (str.find('\n') >= 0)
-                    str = str.substr(0, str.find('\n'));
-                throw_err("parser", "import-from statement expects proper list of identifiers, but " + id + " is not an identifier; see:\n\t" + str.substr(0, 16));
                 return NULL;
             }
         }
@@ -1948,8 +1852,7 @@ Exp parse_sequence(string str, list<string> future) {
 
     } else if ((i = starts_with(str, "import")) > 0) {
         // The import must be followed by something that uses the import
-        if (future.size() == 0) {
-            throw_err("parser", "import statement must be followed by a valid sequence:\n\t" + str.substr(0, 16));
+        if (future.empty()) {
             return NULL;
         }
 
@@ -1961,9 +1864,6 @@ Exp parse_sequence(string str, list<string> future) {
         while (true) {
             string module = extract_identifier(str);
             if (module == "") {
-                if (str.find('\n') > 0)
-                    str = str.substr(0, str.find('\n'));
-                throw_err("parser", "import expects identifier for module, thus the following name is invalid:\n\t" + str.substr(0, 32));
                 return NULL;
             }
             str = str.substr(module.length());
@@ -1974,9 +1874,6 @@ Exp parse_sequence(string str, list<string> future) {
                 name = extract_identifier(str);
 
                 if (module == "") {
-                    if (str.find('\n') > 0)
-                        str = str.substr(0, str.find('\n'));
-                    throw_err("parser", "import expects identifier for name, thus the following name is invalid:\n\t" + str.substr(0, 32));
                     return NULL;
                 }
 
@@ -1995,7 +1892,6 @@ Exp parse_sequence(string str, list<string> future) {
                 break;
             else {
                 // Module definition is followed by garbage.
-                throw_err("parser", "import of module " + module + " as " + name + " is followed by extra symbols:\n\t" + str);
                 return NULL;
             }
         }
@@ -2018,12 +1914,7 @@ Exp parse_sequence(string str, list<string> future) {
         return body;
 
     } else if ((i = starts_with(str, "type")) > 0) {
-        if (future.size() == 0) {
-            if (str.find('\n') >= 0)
-                str = str.substr(0, str.find('\n'));
-
-            throw_err("parser", "adt definition must be followed by a valid sequence:\n\t" + str.substr(0, 16));
-
+        if (future.empty()) {
             return NULL;
         }
 
@@ -2157,7 +2048,7 @@ Exp parse_sequence(string str, list<string> future) {
     if (!E) return NULL;
     
     // Now, handle the rest
-    if (future.size() == 0) {
+    if (future.empty()) {
         // Nothing else follows. Hence, E is all we need.
         return E;
     }
@@ -2221,8 +2112,7 @@ Exp parse_program(string str) {
     auto statements = extract_statements(str);
     
     // If statements cannot be extracted, we cannot build an expression.
-    if (statements.size() == 0) {
-        throw_err("parser", "could not extract a statement from the given program");
+    if (statements.empty()) {
         return NULL;
     } else
         throw_debug("parser", "extracted " + to_string(statements.size()) + " lines from '" + str + "'");
@@ -2230,7 +2120,13 @@ Exp parse_program(string str) {
     string first = statements.front();
     statements.pop_front();
     
-    return parse_sequence(first, statements);
+    Exp program = parse_sequence(first, statements);
 
+    if (!program)
+        throw_err("parser", "the given program could not be converted to an AST via BNF parsing");
+    else if (VERBOSITY())
+        throw_debug("parsed", program->toString());
+    
+    return program;
 }
 
