@@ -37,6 +37,10 @@ Z
 let x = 0, i = 1; while i <= 3 { x = x + i; i = i + 1 }; x
 Z
 
+# Tuples
+(1,2.5)
+(Z * R)
+
 # Types
 "123" as Z
 Z
