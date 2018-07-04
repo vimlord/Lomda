@@ -382,6 +382,38 @@ result<Expression> parse_pemdas(string str, int order) {
                 base.strlen += i;
             } else
                 return base;
+        } else if ((i = starts_with(str, "left")) > 0) {
+            // Parse for the 'of' keyword
+            int j = starts_with(str.substr(i), "of");
+            if (j <= 0) {
+                base.reset();
+                return base;
+            }
+
+            // Build the result if possible
+            base = parse_pemdas(str.substr(i+j), 2);
+            if (base.value) {
+                base.value = new TupleAccessExp(base.value, false);
+                base.strlen += i + j;
+            } else
+                return base;
+
+        } else if ((i = starts_with(str, "right")) > 0) {
+            // Parse for the 'of' keyword
+            int j = starts_with(str.substr(i), "of");
+            if (j <= 0) {
+                base.reset();
+                return base;
+            }
+
+            base = parse_pemdas(str, 2);
+            
+            // Build the result if possible
+            base = parse_pemdas(str.substr(i+j), 2);
+            if (base.value) {
+                base.value = new TupleAccessExp(base.value, true);
+                base.strlen += i + j;
+            }
         }
         
         // If we found a unary expression, progress the string
@@ -1182,7 +1214,7 @@ result<Expression> parse_pemdas(string str, int order) {
         
         if (i > 0) {
             str = str.substr(i);
-            result<Expression> alt = parse_pemdas(str, 7);
+            result<Expression> alt = parse_pemdas(str, 8);
             if (!alt.value) {
                 base.reset();
                 return base;
@@ -1205,7 +1237,7 @@ result<Expression> parse_pemdas(string str, int order) {
 
             str = str.substr(i);
 
-            result<Expression> next = parse_pemdas(str, 8);
+            result<Expression> next = parse_pemdas(str, 9);
             if (next.value) {
                 // Extend the result<Expression>.
                 base.value = new AndExp(base.value, next.value);
@@ -1233,7 +1265,7 @@ result<Expression> parse_pemdas(string str, int order) {
 
             str = str.substr(i);
 
-            result<Expression> next = parse_pemdas(str, 9);
+            result<Expression> next = parse_pemdas(str, 10);
             if (next.value) {
                 // Extend the result.
                 base.value = new OrExp(base.value, next.value);
@@ -1253,7 +1285,7 @@ result<Expression> parse_pemdas(string str, int order) {
         // Assignment
         int i;
         if ((i = starts_with(str, "=")) > 0) {
-            result<Expression> next = parse_pemdas(str.substr(i), 10);
+            result<Expression> next = parse_pemdas(str.substr(i), 11);
             if (!next.value) {
                 base.reset();
                 return base;
@@ -1269,7 +1301,7 @@ result<Expression> parse_pemdas(string str, int order) {
     if (order >= 12) {
         int i;
         if ((i = starts_with(str, ",")) > 0) {
-            result<Expression> next = parse_pemdas(str.substr(i), 11);
+            result<Expression> next = parse_pemdas(str.substr(i), 12);
             if (!next.value) {
                 base.reset();
                 return base;
