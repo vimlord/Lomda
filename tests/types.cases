@@ -1,0 +1,57 @@
+
+# Primitives
+2
+Z
+
+3.75
+R
+
+"abc"
+S
+
+# Void
+void
+void
+
+# Bools
+true
+B
+false
+B
+
+let x = 2; 2.5 + x
+R
+
+let x = 2, y = 3; x + y
+Z
+
+[1, 2, 3.0, 4]
+[R]
+
+# Loops
+let x = 0; for i in [1, 2, 3] x = x + i; x
+Z
+let x = 0, i = 1; while i <= 3 { x = x + i; i = i + 1 }; x
+Z
+
+# Types
+"123" as Z
+Z
+
+3.14 isa Z
+B
+
+# Differentials
+let x = 2; d/dx x
+Z
+
+let x = [1,2.0,3]; d/dx x
+[[R]]
+
+map (x) -> x > 0 over [1,2,3]
+[B]
+
+# ADTs
+type Num = Int(Z) | Real(R); Num.Int
+(Z -> ADT<Num>)
+
