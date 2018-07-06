@@ -1418,6 +1418,49 @@ Exp parse_statement(string str) {
 
         // Build the end result
         return new IfExp(cond.value, tBody.value, fBody.value);
+    } else if ((i = starts_with(str, "insert")) > 0) {
+        str = str.substr(i);
+        
+        // Parse the valitional
+        result<Expression> val = parse_pemdas(str);
+        if (!val.value)
+            return NULL;
+        else
+            str = str.substr(val.strlen);
+        
+        // Then keyword
+        if ((i = starts_with(str, "into")) < 0) {
+            val.reset();
+            return NULL;
+        } else
+            str = str.substr(i);
+        
+        // Parse the first body
+        result<Expression> lst = parse_body(str);
+        if (!lst.value) {
+            delete val.value;
+            return NULL;
+        } else
+            str = str.substr(lst.strlen);
+
+        // Else keyword
+        if ((i = starts_with(str, "at")) < 0) {
+            delete val.value;
+            delete lst.value;
+            return NULL;
+        } else
+            str = str.substr(i);
+
+        // Parse the seval body
+        result<Expression> idx = parse_body(str, true);
+        if (!idx.value) {
+            delete val.value;
+            delete lst.value;
+            return NULL;
+        }
+
+        // Build the end result
+        return new ListAddExp(lst.value, idx.value, val.value);
     } else if ((i = starts_with(str, "fold")) > 0) {
         str = str.substr(i);
         
@@ -1557,6 +1600,38 @@ Exp parse_statement(string str) {
 
         return Y;
 
+    } else if ((i = starts_with(str, "remove")) > 0) {
+        str = str.substr(i);
+        
+        // Then keyword
+        if ((i = starts_with(str, "from")) < 0) {
+            return NULL;
+        } else
+            str = str.substr(i);
+        
+        // Parse the first body
+        result<Expression> lst = parse_body(str);
+        if (!lst.value) {
+            return NULL;
+        } else
+            str = str.substr(lst.strlen);
+
+        // Else keyword
+        if ((i = starts_with(str, "at")) < 0) {
+            delete lst.value;
+            return NULL;
+        } else
+            str = str.substr(i);
+
+        // Parse the seval body
+        result<Expression> idx = parse_body(str, true);
+        if (!idx.value) {
+            delete lst.value;
+            return NULL;
+        }
+
+        // Build the end result
+        return new ListRemExp(lst.value, idx.value);
     } else if ((i = starts_with(str, "switch")) > 0) {
         str = str.substr(i);
         
