@@ -358,6 +358,8 @@ Type* VarType::unify(Type* t, Tenv tenv) {
             // Since the variable identifies as itself, we can
             // define it to be whatever we want it to be.
             T = S;
+
+        delete A;
         
         // Show proof step
         if (T)
