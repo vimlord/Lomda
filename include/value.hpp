@@ -14,7 +14,9 @@ inline bool isVal(const Val t) {
     return t && dynamic_cast<const T*>(t) != nullptr;
 }
 
-// An Algebraic Datatype (ADT)
+/**
+ * An Algebraic Datatype (ADT)
+ */
 class AdtVal : public Value {
     private:
         // Typing identifiers used to properly identify the ADT
@@ -38,6 +40,9 @@ class AdtVal : public Value {
         AdtVal* clone();
 };
 
+/**
+ * A boolean value.
+ */
 class BoolVal : public Value {
     private:
         bool val;
@@ -49,6 +54,9 @@ class BoolVal : public Value {
         int set(Val);
 };
 
+/**
+ * Defines a dictionary of values.
+ */
 class DictVal : public Value {
     private: 
         Trie<Val> *vals;
@@ -82,7 +90,9 @@ class IntVal : public Value {
         int set(Val);
 };
 
-// Represents a closure
+/**
+ * Represents a applicable lambda.
+ */
 class LambdaVal : public Value {
     private:
         std::string *xs;
@@ -104,10 +114,10 @@ class LambdaVal : public Value {
         void setEnv(Env);
 };
 
+/**
+ * Represents a list of values.
+ */
 class ListVal : public Value, public ArrayList<Val> {
-    // Note: it may be of interest to make this a subclass of
-    // some form of map value in order to generalize certain
-    // behaviors.
     public:
         ListVal() { }
         ListVal(ArrayList<Val> *l) {
@@ -148,6 +158,11 @@ class StringVal : public Value {
         StringVal* clone() { return new StringVal(val); }
 };
 
+/**
+ * An uncomputed value that can be invoked at any time to yield an evaluated
+ * value. This may be used in cases where we wish to lazily evaluate an
+ * expression to avoid unnecessary computations.
+ */
 class Thunk : public Value {
     private:
         Exp exp;
@@ -180,6 +195,9 @@ class TupleVal : public Value {
         TupleVal* clone() { left->add_ref(); right->add_ref(); return new TupleVal(left, right); }
 };
 
+/**
+ * Defines the void value, which represents nothing.
+ */
 class VoidVal : public Value {
     public:
         std::string toString() { return "void"; }

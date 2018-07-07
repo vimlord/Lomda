@@ -81,6 +81,9 @@ class AlgebraicDataType : public Type {
 
 };
 
+/**
+ * A base behavior for types that consist of exactly two types.
+ */
 class PairType : public Type {
     protected:
         Type *left;
@@ -96,7 +99,10 @@ class PairType : public Type {
         virtual bool depends_on_tvar(std::string x, Tenv tenv) { return left->depends_on_tvar(x, tenv) || right->depends_on_tvar(x, tenv); }
 };
 
-// Composite primitive types
+/**
+ * A type that defines functions.
+ * Denoted (s -> t)
+ */
 class LambdaType : public PairType {
     private:
         std::string id;
@@ -114,6 +120,11 @@ class LambdaType : public PairType {
         bool equals(Type*, Tenv);
         std::string toString();
 };
+
+/**
+ * A type that represents a list of a given type.
+ * Denoted [t]
+ */
 class ListType : public Type {
     private:
         Type *type;
@@ -132,6 +143,11 @@ class ListType : public Type {
 
         bool depends_on_tvar(std::string x, Tenv tenv) { return type->depends_on_tvar(x, tenv); }
 };
+
+/**
+ * Defines a pair type that consists of two types that represent a tuple.
+ * Denoted (s * t)
+ */
 class TupleType : public PairType {
     public:
         using PairType::PairType;
@@ -144,8 +160,9 @@ class TupleType : public PairType {
         std::string toString();
 };
 
-/** Operator types
- * Motivation: We will wish to restrict the types of veriables
+/**
+ * An operator type that represents an arbitrary addition operation.
+ * Denoted (s + t)
  */
 class SumType : public PairType {
     public:
@@ -157,6 +174,11 @@ class SumType : public PairType {
         bool equals(Type*, Tenv);
         std::string toString();
 };
+
+/**
+ * An operator type that represents an arbitrary addition operation.
+ * Denoted (s x t)
+ */
 class MultType : public PairType {
     public:
         using PairType::PairType;
@@ -167,6 +189,11 @@ class MultType : public PairType {
         bool equals(Type*, Tenv);
         std::string toString();
 };
+
+/**
+ * An operator type that defines the differential operator.
+ * Denoted ds/dt
+ */
 class DerivativeType : public PairType {
     public:
         using PairType::PairType;
