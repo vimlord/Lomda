@@ -6,6 +6,21 @@
 /**
  * A top-level operator expression that relies on the use of two expressions.
  */
+class UnaryOperatorExp : public Expression {
+    protected:
+        Exp exp;
+    public:
+        UnaryOperatorExp(Exp e) : exp(e) {}
+        ~UnaryOperatorExp() { delete exp; }
+
+        Val evaluate(Env env);
+        virtual Val op(Val) = 0;
+
+        virtual Exp optimize() { exp = exp->optimize(); return this; }
+        int opt_var_usage(std::string x) { return exp->opt_var_usage(x); }
+        bool postprocessor(Trie<bool> *vars);
+};
+
 class OperatorExp : public Expression {
     protected:
         Expression *left;

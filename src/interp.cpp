@@ -91,6 +91,17 @@ Val run(string program) {
         return NULL;
     }
 }
+
+Val UnaryOperatorExp::evaluate(Env env) {
+    Val x = exp->evaluate(env);
+    if (!x) return NULL;
+
+    Val y = op(x);
+    x->rem_ref();
+
+    return y;
+}
+
 Val AdtExp::evaluate(Env env) {
     // Determine the argument count.
     int argc;
@@ -1124,33 +1135,26 @@ Val ListSliceExp::evaluate(Env env) {
     return res;
 }
 
-Val MagnitudeExp::evaluate(Env env) {
-    Val v = exp->evaluate(env);
-    Val res = NULL;
-
-    if (!v) return NULL;
-    else if (isVal<IntVal>(v)) {
+Val MagnitudeExp::op(Val v) {
+    if (isVal<IntVal>(v)) {
         // Magnitude of number is its absolute value
         int val = ((IntVal*) v)->get();
-        res = new IntVal(val > 0 ? val : -val);
+        return new IntVal(val > 0 ? val : -val);
     } else if (isVal<RealVal>(v)) {
         // Magnitude of number is its absolute value
         float val = ((RealVal*) v)->get();
-        res = new RealVal(val > 0 ? val : -val);
+        return new RealVal(val > 0 ? val : -val);
     } else if (isVal<ListVal>(v)) {
         // Magnitude of list is its length
         int val = ((ListVal*) v)->size();
-        res = new IntVal(val);
+        return new IntVal(val);
     } else if (isVal<StringVal>(v)) {
-        res = new IntVal(v->toString().length());
+        return new IntVal(v->toString().length());
     } else if (isVal<BoolVal>(v)) {
-        res = new IntVal(((BoolVal*) v)->get() ? 1 : 0);
+        return new IntVal(((BoolVal*) v)->get() ? 1 : 0);
+    } else {
+        return NULL;
     }
-    
-    // Garbage collection
-    v->rem_ref();
-
-    return res;
 }
 
 Val MapExp::evaluate(Env env) { 
@@ -1233,7 +1237,7 @@ Val MapExp::evaluate(Env env) {
     }
 }
 
-Val sqnorm(Val v, Env env) {
+Val sqnorm(Val v) {
     if (isVal<IntVal>(v)) {
         // Magnitude of number is its absolute value
         int val = ((IntVal*) v)->get();
@@ -1249,7 +1253,7 @@ Val sqnorm(Val v, Env env) {
         float sum = 0;
         
         while (it->hasNext()) {
-            Val v = sqnorm(it->next(), env);
+            Val v = sqnorm(it->next());
 
             if (!v) return NULL;
 
@@ -1268,13 +1272,9 @@ Val sqnorm(Val v, Env env) {
         return NULL;
     }
 }
-Val NormExp::evaluate(Env env) {
-    Val val = exp->evaluate(env);
-    val = unpack_thunk(val);
-    if (!val) return NULL;
+Val NormExp::op(Val val) {
 
-    Val v = sqnorm(val, env);
-    val->rem_ref();
+    Val v = sqnorm(val);
     if (!v) return NULL;
 
     auto x = isVal<IntVal>(v)
@@ -1287,23 +1287,13 @@ Val NormExp::evaluate(Env env) {
 }
 
 
-Val NotExp::evaluate(Env env) {
-    Val v = exp->evaluate(env);
-    v = unpack_thunk(v);
-    
-    if (!v)
-        return NULL;
-    else if (!isVal<BoolVal>(v)) {
+Val NotExp::op(Val v) {
+    if (!isVal<BoolVal>(v)) {
         throw_type_err(exp, "boolean");
-        v->rem_ref(); // Garbage
         return NULL;
     } else {
         BoolVal *B = (BoolVal*) v;
         bool b = B->get();
-        
-        // Garbage
-        v->rem_ref();
-
         return new BoolVal(!b);
     }
 }
