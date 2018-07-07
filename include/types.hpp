@@ -74,7 +74,7 @@ class AlgebraicDataType : public Type {
 
         Type* clone();
         Type* unify(Type*, Tenv);
-        Type* subst(Tenv);
+        Type* simplify(Tenv);
         
         bool equals(Type*, Tenv);
         std::string toString();
@@ -107,7 +107,7 @@ class LambdaType : public PairType {
 
         Type* clone() { return new LambdaType(id, left->clone(), right->clone()); }
         Type* unify(Type*, Tenv);
-        Type* subst(Tenv tenv) { return new LambdaType(id, left->subst(tenv), right->subst(tenv)); }
+        Type* simplify(Tenv tenv) { return new LambdaType(id, left->simplify(tenv), right->simplify(tenv)); }
 
         std::string getX() { return id; }
 
@@ -124,7 +124,7 @@ class ListType : public Type {
         Type* subtype() { return type; }
 
         Type* unify(Type*, Tenv);
-        Type* subst(Tenv tenv) { return new ListType(type->subst(tenv)); }
+        Type* simplify(Tenv tenv) { return new ListType(type->simplify(tenv)); }
         bool isConstant(Tenv t) { return type->isConstant(t); }
 
         bool equals(Type*, Tenv);
@@ -138,7 +138,7 @@ class TupleType : public PairType {
 
         Type* clone() { return new TupleType(left->clone(), right->clone()); }
         Type* unify(Type*, Tenv);
-        Type* subst(Tenv tenv) { return new TupleType(left->subst(tenv), right->subst(tenv)); }
+        Type* simplify(Tenv tenv) { return new TupleType(left->simplify(tenv), right->simplify(tenv)); }
 
         bool equals(Type*, Tenv);
         std::string toString();
@@ -152,7 +152,7 @@ class SumType : public PairType {
         using PairType::PairType;
         Type* clone() { return new SumType(left->clone(), right->clone()); }
         Type* unify(Type*, Tenv);
-        Type* subst(Tenv tenv);
+        Type* simplify(Tenv tenv);
 
         bool equals(Type*, Tenv);
         std::string toString();
@@ -162,7 +162,7 @@ class MultType : public PairType {
         using PairType::PairType;
         Type* clone() { return new MultType(left->clone(), right->clone()); }
         Type* unify(Type*, Tenv);
-        Type* subst(Tenv tenv);
+        Type* simplify(Tenv tenv);
 
         bool equals(Type*, Tenv);
         std::string toString();
@@ -172,7 +172,7 @@ class DerivativeType : public PairType {
         using PairType::PairType;
         Type* clone() { return new DerivativeType(left->clone(), right->clone()); }
         Type* unify(Type*, Tenv);
-        Type* subst(Tenv);
+        Type* simplify(Tenv);
 
         std::string toString();
 
@@ -236,7 +236,7 @@ class DictType : public Type {
 
         Type* clone();
         Type* unify(Type*, Tenv);
-        Type* subst(Tenv);
+        Type* simplify(Tenv);
 
         bool equals(Type*, Tenv);
         bool depends_on_tvar(std::string, Tenv);
@@ -253,7 +253,7 @@ class VarType : public Type {
         VarType(std::string v) : name(v) {}
         Type* clone() { return new VarType(name); }
         Type* unify(Type*, Tenv);
-        Type* subst(Tenv tenv);
+        Type* simplify(Tenv tenv);
         bool isConstant(Tenv);
         bool equals(Type*, Tenv);
         bool depends_on_tvar(std::string, Tenv);

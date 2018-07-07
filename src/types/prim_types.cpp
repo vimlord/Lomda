@@ -6,7 +6,7 @@
 // Typing of primitives
 Type* VarExp::typeOf(Tenv tenv) {
     auto T = tenv->apply(id);
-    auto U = T->subst(tenv); // Attempt a reduction of the variable type
+    auto U = T->simplify(tenv); // Attempt a reduction of the variable type
 
     delete T;
     T = U;

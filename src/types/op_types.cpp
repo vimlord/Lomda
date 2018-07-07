@@ -2,9 +2,9 @@
 #include "expression.hpp"
 #include "proof.hpp"
 
-Type* MultType::subst(Tenv tenv) {
-    auto L = left->subst(tenv);
-    auto R = right->subst(tenv);
+Type* MultType::simplify(Tenv tenv) {
+    auto L = left->simplify(tenv);
+    auto R = right->simplify(tenv);
     delete left; delete right;
     left = L; right = R;
     
@@ -61,13 +61,13 @@ Type* MultType::subst(Tenv tenv) {
     
 }
 
-Type* SumType::subst(Tenv tenv) {
+Type* SumType::simplify(Tenv tenv) {
     // Reduce the left
-    auto L = left->subst(tenv);
+    auto L = left->simplify(tenv);
     if (!L) return NULL;
     
     // Reduce the right
-    auto R = right->subst(tenv);
+    auto R = right->simplify(tenv);
     if (!R) { delete L; return NULL; }
     
     // We can make certain reductions where necessary
@@ -82,14 +82,14 @@ Type* SumType::subst(Tenv tenv) {
         else delete T;
         
         // Simplify both sides again (they will both be lists)
-        auto L = (ListType*) left->subst(tenv);
-        auto R = (ListType*) right->subst(tenv);
+        auto L = (ListType*) left->simplify(tenv);
+        auto R = (ListType*) right->simplify(tenv);
         delete left; delete right;
         left = L; right = R;
         
         // Now, we reduce the newly formed list type
         l = new ListType(new SumType(L->subtype()->clone(), R->subtype()->clone()));
-        T = l->subst(tenv);
+        T = l->simplify(tenv);
         delete l;
 
         return T;
@@ -104,13 +104,13 @@ Type* SumType::subst(Tenv tenv) {
         return clone();
 }
 
-Type* DerivativeType::subst(Tenv tenv) {
+Type* DerivativeType::simplify(Tenv tenv) {
     // Reduce the left
-    auto L = left->subst(tenv);
+    auto L = left->simplify(tenv);
     if (!L) return NULL;
     
     // Reduce the right
-    auto R = right->subst(tenv);
+    auto R = right->simplify(tenv);
     if (!R) { delete L; return NULL; }
 
     delete left; delete right;
@@ -126,7 +126,7 @@ Type* DerivativeType::subst(Tenv tenv) {
     } else if (isType<ListType>(L)) {
         // d/dt [s] = [ds/dt]
         R = new DerivativeType(((ListType*) L)->subtype()->clone(), R->clone());
-        L = R->subst(tenv);
+        L = R->simplify(tenv);
         delete R;
 
         if (L) return new ListType(L);
@@ -138,7 +138,7 @@ Type* DerivativeType::subst(Tenv tenv) {
             return L->clone();
         else if (isType<ListType>(R)) {
             R = new DerivativeType(L->clone(), ((ListType*) R)->subtype()->clone());
-            L = R->subst(tenv);
+            L = R->simplify(tenv);
             delete R;
 
             if (L) return new ListType(L);
@@ -148,7 +148,7 @@ Type* DerivativeType::subst(Tenv tenv) {
                 new DerivativeType(L->clone(), ((TupleType*) R)->getLeft()->clone()),
                 new DerivativeType(L->clone(), ((TupleType*) R)->getRight()->clone()));
 
-            L = R->subst(tenv);
+            L = R->simplify(tenv);
             delete R;
             
             return L;
@@ -164,7 +164,7 @@ Type* DerivativeType::subst(Tenv tenv) {
             new DerivativeType(((TupleType*) L)->getLeft()->clone(), R->clone()),
             new DerivativeType(((TupleType*) L)->getRight()->clone(), R->clone()));
 
-        L = R->subst(tenv);
+        L = R->simplify(tenv);
         delete R;
         
         return L;
@@ -178,7 +178,7 @@ Type* DerivativeType::subst(Tenv tenv) {
 
         // Derive the output of the lambda wrt the input type of derivative
         R = new DerivativeType(F->getRight()->clone(), R->clone());
-        auto Y = R->subst(tenv);
+        auto Y = R->simplify(tenv);
         delete R;
          
         // Check the validity of the substitution generated.
@@ -194,7 +194,7 @@ Type* DerivativeType::subst(Tenv tenv) {
                 new DerivativeType(S->getLeft()->clone(), R->clone()),
                 new DerivativeType(S->getRight()->clone(), R->clone())
         );
-        auto U = T->subst(tenv);
+        auto U = T->simplify(tenv);
         delete T;
         
         return U;
@@ -212,7 +212,7 @@ Type* DerivativeType::subst(Tenv tenv) {
             new MultType(R->clone(), dL)
         );
 
-        auto U = T->subst(tenv);
+        auto U = T->simplify(tenv);
         delete T;
         
         return U;
@@ -235,7 +235,7 @@ Type* DerivativeType::subst(Tenv tenv) {
             }
             
             // Reduce our guess
-            auto T = dt->subst(tenv);
+            auto T = dt->simplify(tenv);
             delete dt;
             if (!T) {
                 delete dD;
@@ -269,7 +269,7 @@ Type* DiffExp::typeOf(Tenv tenv) {
     
     // We must unify the two types
     auto T = new SumType(A, B);
-    auto C = T->subst(tenv);
+    auto C = T->simplify(tenv);
     delete T;
     show_proof_therefore(type_res_str(tenv, this, C));
     return C;
@@ -291,7 +291,7 @@ Type* DivExp::typeOf(Tenv tenv) {
     
     // We must unify the two types
     Type *T = new MultType(A, B);
-    Type *C = T->subst(tenv);
+    Type *C = T->simplify(tenv);
     delete T;
 
     show_proof_therefore(type_res_str(tenv, this, C));
@@ -345,7 +345,7 @@ Type* ExponentExp::typeOf(Tenv tenv) {
     
     MultType *M = new MultType(L, R);
     show_proof_step("Hence, we define " + L->toString() + " ^ " + R->toString() + " as " + M->toString());
-    auto Y = M->subst(tenv);
+    auto Y = M->simplify(tenv);
     show_proof_step("Which simplifies to " + Y->toString());
     delete M;
 
@@ -369,7 +369,7 @@ Type* MultExp::typeOf(Tenv tenv) {
     
     // We must unify the two types
     Type *T = new MultType(A, B);
-    Type *C = T->subst(tenv);
+    Type *C = T->simplify(tenv);
     delete T;
 
     show_proof_therefore(type_res_str(tenv, this, C));
@@ -393,7 +393,7 @@ Type* ModulusExp::typeOf(Tenv tenv) {
     // Modulus is essentially a subcomponent of division. Hence, we treat it
     // as such when evaluating the type.
     Type *T = new MultType(A, B);
-    Type *C = T->subst(tenv);
+    Type *C = T->simplify(tenv);
     delete T;
 
     show_proof_therefore(type_res_str(tenv, this, C));
@@ -419,7 +419,7 @@ Type* SumExp::typeOf(Tenv tenv) {
     auto T = new SumType(A, B);
     show_proof_step("We suppose that " + type_res_str(tenv, this, T));
     show_proof_step("If we can reduce " + T->toString() + ", then this will hold.");
-    auto C = T->subst(tenv);
+    auto C = T->simplify(tenv);
     delete T;
     show_proof_therefore(type_res_str(tenv, this, C));
     return C;
