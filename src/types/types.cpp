@@ -54,11 +54,11 @@ Type* AlgebraicDataType::clone() {
 }
 // The type is constant, therefore cannot be reduced any further.
 bool AlgebraicDataType::depends_on_tvar(string, Tenv) { return false; }
-Type* AlgebraicDataType::subst(Tenv tenv) {
+Type* AlgebraicDataType::simplify(Tenv tenv) {
     if (argss) {
         for (int i = 0; argss[i]; i++)
         for (int j = 0; argss[i][j]; j++) {
-            auto T = argss[i][j]->subst(tenv);
+            auto T = argss[i][j]->simplify(tenv);
             if (!T) return NULL;
             else {
                 delete argss[i][j];
@@ -89,7 +89,7 @@ Type* DictType::clone() {
     
     return new DictType(ts);
 }
-Type* DictType::subst(Tenv tenv) {
+Type* DictType::simplify(Tenv tenv) {
     auto ts = new Trie<Type*>;
     auto T = new DictType(ts);
 
@@ -97,7 +97,7 @@ Type* DictType::subst(Tenv tenv) {
     while (tt->hasNext()) {
         // Compute the subtype
         string k = tt->next();
-        auto t = types->get(k)->subst(tenv);
+        auto t = types->get(k)->simplify(tenv);
         if (t)
             // Substitute if possible
             ts->add(k, t);
@@ -160,13 +160,13 @@ bool VarType::isConstant(Tenv tenv) {
         return T->isConstant(tenv);
 }
 
-Type* VarType::subst(Tenv tenv) {
+Type* VarType::simplify(Tenv tenv) {
     // Get the known value
     Type *T = tenv->get_tvar(name);
 
     // If we have some idea, we can simplify.
     if (T->toString() != name) {
-        T = T->subst(tenv);
+        T = T->simplify(tenv);
     
         // Set the new variable
         tenv->set_tvar(name, T);
@@ -371,7 +371,7 @@ Type* ApplyExp::typeOf(Tenv tenv) {
     show_proof_step("To type " + toString() + ", we must match the parameter type(s) of the function with its arguments.");
     auto T = op->typeOf(tenv);
     
-    auto Tmp = T->subst(tenv);
+    auto Tmp = T->simplify(tenv);
     delete T;
     T = Tmp;
 
@@ -517,7 +517,7 @@ Type* ApplyExp::typeOf(Tenv tenv) {
             // Thus, since X unifies w/ the argument of F as Z, the output
             // is based on reduction to the right side of T. We also
             // reduce it as far as possible.
-            T = F->getRight()->subst(tenv);
+            T = F->getRight()->simplify(tenv);
             delete F;
         }
         
@@ -595,7 +595,7 @@ Type* DerivativeExp::typeOf(Tenv tenv) {
         
         show_proof_step("Thus, " + type_res_str(tenv, this, S) + " if it simplifies");
 
-        auto T = S->subst(tenv);
+        auto T = S->simplify(tenv);
         delete S;
 
         show_proof_therefore(type_res_str(tenv, this, T));
@@ -718,7 +718,7 @@ Type* FoldExp::typeOf(Tenv tenv) {
 
     if (H) {
         delete H;
-        auto T = b->subst(tenv);
+        auto T = b->simplify(tenv);
         b = T;
     } else {
         delete b;
@@ -992,7 +992,7 @@ Type* LambdaExp::typeOf(Tenv tenv) {
             tenv->set(it.first, it.second);
 
         for (i = argc - 1; i >= 0; i--) {
-            T = new LambdaType(xs[i], tenv->get_tvar(Ts[i]->toString())->subst(tenv), T);
+            T = new LambdaType(xs[i], tenv->get_tvar(Ts[i]->toString())->simplify(tenv), T);
         }
     }
 
@@ -1330,7 +1330,7 @@ Type* MapExp::typeOf(Tenv tenv) {
     
     // Final simplifications
     if (b) {
-        a = b->subst(tenv);
+        a = b->simplify(tenv);
         delete b;
         b = a;
     }
@@ -1366,7 +1366,7 @@ Type* NormExp::typeOf(Tenv tenv) {
         return NULL;
     } else {
         T = new MultType(T, tenv->make_tvar());
-        auto U = T->subst(tenv);
+        auto U = T->simplify(tenv);
         delete T;
 
         show_proof_therefore(type_res_str(tenv, this, U));
