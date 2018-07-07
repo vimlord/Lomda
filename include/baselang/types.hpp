@@ -26,7 +26,7 @@ class Type : public Stringable {
          * Performs simplification on a type, creating a new Type
          * hierarchy in the process.
          */
-        virtual Type* subst(Tenv) { return clone(); }
+        virtual Type* simplify(Tenv) { return clone(); }
         
         // Whether or not some part of the type is still undefined.
         virtual bool isConstant(Tenv) { return true; }
