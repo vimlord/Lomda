@@ -9,6 +9,9 @@
 #include <initializer_list>
 #include <utility>
 
+/**
+ * Denotes an ADT.
+ */
 class AdtExp : public Expression {
     private:
         std::string name, kind;
@@ -32,7 +35,9 @@ class AdtExp : public Expression {
         bool postprocessor(Trie<bool> *vars);
 };
 
-// Dictionary generator
+/**
+ * Denotes a dictionary.
+ */
 class DictExp : public Expression {
     private:
         LinkedList<std::string> *keys;
@@ -69,7 +74,9 @@ class DictExp : public Expression {
         Exp opt_const_prop(opt_varexp_map&, opt_varexp_map&);
 };
 
-// Generates false
+/**
+ * Denotes false.
+ */
 class FalseExp : public Expression {
     public:
         FalseExp() {}
@@ -83,7 +90,9 @@ class FalseExp : public Expression {
         int opt_var_usage(std::string) { return 0; }
 };
 
-// Expression for an integer.
+/**
+ * Denotes a member of the set of 32 bit unsigned integers.
+ */
 class IntExp : public Expression {
     private:
         int val;
@@ -102,7 +111,9 @@ class IntExp : public Expression {
         int opt_var_usage(std::string) { return 0; }
 };
 
-// Expression that yields closures (lambdas)
+/**
+ * Expression that yields closures (lambdas)
+ */
 class LambdaExp : public Expression {
     private:
         std::string *xs;
@@ -125,6 +136,9 @@ class LambdaExp : public Expression {
         int opt_var_usage(std::string);
 };
 
+/**
+ * Expression that represents a list of expressions.
+ */
 class ListExp : public Expression, public ArrayList<Exp> {
     public:
         ListExp();
@@ -153,7 +167,9 @@ class ListExp : public Expression, public ArrayList<Exp> {
         int opt_var_usage(std::string);
 };
 
-// Expression for a real number.
+/**
+ * Expression that represents a 32-bit floating point real number.
+ */
 class RealExp : public Expression {
     private:
         float val;
@@ -170,6 +186,9 @@ class RealExp : public Expression {
         int opt_var_usage(std::string) { return 0; }
 };
 
+/**
+ * Denotes a string within the language.
+ */
 class StringExp : public Expression {
     private:
         std::string val;
@@ -186,7 +205,9 @@ class StringExp : public Expression {
         int opt_var_usage(std::string) { return 0; }
 };
 
-// Generates true
+/**
+ * Denotes true.
+ */
 class TrueExp : public Expression {
     public:
         TrueExp() {}
@@ -200,6 +221,9 @@ class TrueExp : public Expression {
         int opt_var_usage(std::string) { return 0; }
 };
 
+/**
+ * Denotes a tuple, which consists of two expressions.
+ */
 class TupleExp : public Expression {
     private:
         Exp left;

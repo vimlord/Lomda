@@ -17,7 +17,9 @@ inline bool isExp(const Exp t) {
     return t && dynamic_cast<const T*>(t) != nullptr;
 }
 
-// Defines an expression that declares ADTs.
+/**
+ * Defines an expression that declares ADTs.
+ */
 class AdtDeclarationExp : public Expression {
     private:
         // The name of the ADT class to define.
@@ -42,7 +44,9 @@ class AdtDeclarationExp : public Expression {
         std::string toString();
 };
 
-// Switch-case expression for extracting ADTs.
+/**
+ * Switch-case expression for extracting ADTs.
+ */
 class SwitchExp : public Expression {
     private:
         // The object to test
@@ -73,7 +77,9 @@ class SwitchExp : public Expression {
 
 };
 
-// Calling functions; {a->b, a} -> b
+/**
+ * Calling functions; {a->b, a} -> b
+ */
 class ApplyExp : public Expression {
     private:
         Exp op;
@@ -93,7 +99,9 @@ class ApplyExp : public Expression {
         int opt_var_usage(std::string);
 };
 
-// Casting values; {type t, a} -> t
+/**
+ * Casting values; {type t, a} -> t
+ */
 class CastExp : public Expression {
     private:
         Type *type;
@@ -112,6 +120,10 @@ class CastExp : public Expression {
         int opt_var_usage(std::string x) { return exp->opt_var_usage(x); }
 };
 
+/**
+ * Differential operator that takes the derivative of an expression.
+ * This can be symbolic (implicit) or explicit depending on the context.
+ */
 class DerivativeExp : public Expression {
     private:
         Exp func;
@@ -133,6 +145,9 @@ class DerivativeExp : public Expression {
         std::string toString();
 };
 
+/**
+ * Performs the higher order fold operation on an expression.
+ */
 class FoldExp : public Expression {
     private:
         Exp list;
@@ -157,6 +172,9 @@ class FoldExp : public Expression {
         int opt_var_usage(std::string x);
 };
 
+/**
+ * Performs a for loop over a given list.
+ */
 class ForExp : public Expression {
     private:
         std::string id;
@@ -180,6 +198,9 @@ class ForExp : public Expression {
         int opt_var_usage(std::string x);
 };
 
+/**
+ * Checks whether or not an item is present in a given data structure.
+ */
 class HasExp : public Expression {
     private:
         Exp item;
@@ -206,7 +227,9 @@ class HasExp : public Expression {
         Exp clone() { return new HasExp(item->clone(), set->clone()); }
 };
 
-// Condition expression that chooses paths
+/**
+ * Condition expression that chooses paths
+ */
 class IfExp : public Expression {
     private:
         Exp cond;
@@ -228,6 +251,10 @@ class IfExp : public Expression {
         int opt_var_usage(std::string x);
 };
 
+/**
+ * Imports a module into the program. Modules can be derived from standard
+ * libraries or from user created libraries.
+ */
 class ImportExp : public Expression {
     private:
         std::string module;
@@ -268,6 +295,9 @@ class ImportExp : public Expression {
         std::string toString();
 };
 
+/**
+ * Takes user input from stdin.
+ */
 class InputExp : public Expression {
     public:
         InputExp() {}
@@ -281,8 +311,10 @@ class InputExp : public Expression {
         int opt_var_usage(std::string x) { return 0; }
 };
 
-// Given an expression and a string denoting the type, decide
-// whether or not the types match.
+/**
+ * Given an expression and a string denoting the type, decide
+ * whether or not the types match.
+ */
 class IsaExp : public Expression {
     private:
         Exp exp;
@@ -304,7 +336,9 @@ class IsaExp : public Expression {
         int opt_var_usage(std::string x) { return exp->opt_var_usage(x); }
 };
 
-// Expression for defining variables
+/**
+ * Expression for defining variables
+ */
 class LetExp : public Expression {
     private:
         std::string *ids;
@@ -337,6 +371,9 @@ class LetExp : public Expression {
         int opt_var_usage(std::string x);
 };
 
+/**
+ * For lists, determine the size. For numbers, compute the absolute value.
+ */
 class MagnitudeExp : public Expression {
     private:
         Exp exp;
@@ -357,6 +394,10 @@ class MagnitudeExp : public Expression {
         int opt_var_usage(std::string x) { return exp->opt_var_usage(x); }
 };
 
+/**
+ * Performs the higher order map operation on a list given a function
+ * that transforms each element.
+ */
 class MapExp : public Expression {
     private:
         Exp func;
@@ -379,6 +420,9 @@ class MapExp : public Expression {
         int opt_var_usage(std::string x) { return func->opt_var_usage(x) | list->opt_var_usage(x); }
 };
 
+/**
+ * Determines th magnitude of a given expression.
+ */
 class NormExp : public Expression {
     private:
         Exp exp;
@@ -399,7 +443,9 @@ class NormExp : public Expression {
         int opt_var_usage(std::string x) { return exp->opt_var_usage(x); }
 };
 
-// Bool -> Bool expression that negates booleans
+/**
+ * Bool -> Bool expression that negates booleans
+ */
 class NotExp : public Expression {
     private:
         Exp exp;
@@ -419,6 +465,10 @@ class NotExp : public Expression {
         int opt_var_usage(std::string x) { return exp->opt_var_usage(x); }
 };
 
+/**
+ * Executes a sequence of expressions, preserving some elenents of environment
+ * in doing so.
+ */
 class SequenceExp : public Expression {
     private:
         LinkedList<Exp> *seq;
@@ -442,7 +492,9 @@ class SequenceExp : public Expression {
         int opt_var_usage(std::string x);
 };
 
-// Expression for redefining values in a store
+/**
+ * Expression for redefining values in a store
+ */
 class SetExp : public Expression {
     private:
         Exp tgt;
@@ -467,6 +519,10 @@ class SetExp : public Expression {
         int opt_var_usage(std::string x) { return exp->opt_var_usage(x) | (tgt->opt_var_usage(x) >> 1); }
 };
 
+/**
+ * Generates a thunk of the given expression, which will be evaluated
+ * in the future. The thunk will be vulnerable to side effects.
+ */
 class ThunkExp : public Expression {
     private:
         Exp exp;
@@ -503,6 +559,9 @@ class ValExp : public Expression {
         std::string toString();
 };
 
+/**
+ * Repeats a given operation while a condition holds.
+ */
 class WhileExp : public Expression {
     private:
         Exp cond;
