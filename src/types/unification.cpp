@@ -285,7 +285,7 @@ Type* VarType::unify(Type* t, Tenv tenv) {
     // Be super careful that the variable isn't itself
     Type *A;
     if (tenv->get_tvar(name)->toString() != name) {
-        A = tenv->get_tvar(name)->subst(tenv);
+        A = tenv->get_tvar(name)->simplify(tenv);
         tenv->set_tvar(name, A);
         A = A->clone();
     } else
@@ -298,7 +298,7 @@ Type* VarType::unify(Type* t, Tenv tenv) {
         VarType *v = (VarType*) t;
 
         // Simplify it
-        Type *B = tenv->get_tvar(v->name)->subst(tenv);
+        Type *B = tenv->get_tvar(v->name)->simplify(tenv);
         tenv->set_tvar(v->name, B);
 
         // Trivial equivalence test
@@ -344,7 +344,7 @@ Type* VarType::unify(Type* t, Tenv tenv) {
     } else { 
         
         // Simplify the other side
-        auto S = t->subst(tenv);
+        auto S = t->simplify(tenv);
 
         show_proof_step("The right hand simplifies to " + S->toString() + ".");
 
@@ -396,7 +396,7 @@ Type* VoidType::unify(Type* t, Tenv tenv) {
 
 // Unification rules for operational types
 Type* SumType::unify(Type* t, Tenv tenv) {
-    auto T = t->subst(tenv);
+    auto T = t->simplify(tenv);
 
     if (isType<SumType>(T)) {
         show_proof_step("We seek to unify " + toString() + " = " + T->toString() + " by unifying the two halves.");
@@ -516,7 +516,7 @@ Type* SumType::unify(Type* t, Tenv tenv) {
     } else if (isType<VarType>(T) || isType<ListType>(T)) {
         show_proof_step("We seek to unify " + toString() + " = " + T->toString() + " to a simpler form.");
         
-        Type *U = subst(tenv);
+        Type *U = simplify(tenv);
         show_proof_step("The left side simplifies to " + U->toString());
 
         Type *X = T->unify(U, tenv);
@@ -539,7 +539,7 @@ Type* SumType::unify(Type* t, Tenv tenv) {
 }
 
 Type* MultType::unify(Type* t, Tenv tenv) {
-    auto T = t->subst(tenv);
+    auto T = t->simplify(tenv);
 
     if (isType<MultType>(T)) {
         show_proof_step("We seek to unify " + toString() + " = " + T->toString() + " by unifying the two halves.");
@@ -569,13 +569,13 @@ Type* MultType::unify(Type* t, Tenv tenv) {
         right = y;
         M->right = y->clone();
 
-        auto z = subst(tenv);
+        auto z = simplify(tenv);
         delete T;
 
         return z;
 
     } else if (isType<VarType>(T)) {
-        auto U = subst(tenv);
+        auto U = simplify(tenv);
         auto V = T->unify(U,tenv);
 
         delete T;
@@ -585,7 +585,7 @@ Type* MultType::unify(Type* t, Tenv tenv) {
     } else if (isType<RealType>(T)) {
         show_proof_step("We seek to unify " + toString() + " = " + T->toString() + " to the fundamental form.");
         
-        auto U = subst(tenv);
+        auto U = simplify(tenv);
 
         show_proof_step("The left hand side simplifies to " + U->toString());
         show_proof_step("Now, we unify " + T->toString() + " = " + U->toString());
@@ -672,7 +672,7 @@ Type* MultType::unify(Type* t, Tenv tenv) {
 }
 
 Type* DerivativeType::unify(Type* t, Tenv tenv) {
-    auto T = t->subst(tenv);
+    auto T = t->simplify(tenv);
     
     if (isType<RealType>(right) || isType<IntType>(left)) {
         // Base case: derivative of type wrt number is the type
@@ -707,13 +707,13 @@ Type* DerivativeType::unify(Type* t, Tenv tenv) {
         right = y;
         D->right = y->clone();
 
-        auto z = subst(tenv);
+        auto z = simplify(tenv);
         delete T;
 
         return z;
 
     } else if (isType<VarType>(T)) {
-        auto U = subst(tenv);
+        auto U = simplify(tenv);
         auto V = T->unify(U,tenv);
 
         delete T;
