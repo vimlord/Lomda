@@ -3,6 +3,9 @@
 
 #include "expression.hpp"
 
+/**
+ * Accesses a dictionary given a key in the dictionary.
+ */
 class DictAccessExp : public Expression {
     private:
         Exp list;
@@ -24,7 +27,9 @@ class DictAccessExp : public Expression {
         Exp optimize();
 };
 
-// For accessing an element of an array (theoretically, can be used to get or set)
+/**
+ * For accessing an element of an array (theoretically, can be used to get or set)
+ */
 class ListAccessExp : public Expression {
     private:
         Exp list;
@@ -46,7 +51,9 @@ class ListAccessExp : public Expression {
         Exp optimize();
 };
 
-// For adding to a list
+/**
+ * For adding to a list
+ */
 class ListAddExp : public Expression {
     private:
         Exp list;
@@ -63,7 +70,9 @@ class ListAddExp : public Expression {
         std::string toString();
 };
 
-// For removing from a list
+/**
+ * For removing from a list
+ */
 class ListRemExp : public Expression {
     private:
         Exp list;
@@ -79,7 +88,9 @@ class ListRemExp : public Expression {
         std::string toString();
 };
 
-// For removing from a list
+/**
+ * For removing from a list
+ */
 class ListSliceExp : public Expression {
     private:
         Exp list;
