@@ -165,9 +165,7 @@ bool ForExp::postprocessor(Trie<bool> *vars) {
 }
 bool HasExp::postprocessor(Trie<bool> *vars) { return item->postprocessor(vars) && set->postprocessor(vars); }
 bool IsaExp::postprocessor(Trie<bool> *vars) { return exp->postprocessor(vars); }
-bool MagnitudeExp::postprocessor(Trie<bool> *vars) { return exp->postprocessor(vars); }
-bool NormExp::postprocessor(Trie<bool> *vars) { return exp->postprocessor(vars); }
-bool NotExp::postprocessor(Trie<bool> *vars) { return exp->postprocessor(vars); }
+bool UnaryOperatorExp::postprocessor(Trie<bool> *vars) { return exp->postprocessor(vars); }
 bool SetExp::postprocessor(Trie<bool> *vars) { return tgt->postprocessor(vars) && exp->postprocessor(vars); }
 bool ThunkExp::postprocessor(Trie<bool> *vars) { return exp->postprocessor(vars); }
 bool WhileExp::postprocessor(Trie<bool> *vars) { return cond->postprocessor(vars) && body->postprocessor(vars); }
