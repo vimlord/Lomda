@@ -76,6 +76,9 @@ Type* SumType::simplify(Tenv tenv) {
         auto l = new ListType(tenv->make_tvar());
         auto T = l->unify(isType<ListType>(L) ? L : R, tenv);
         delete l;
+
+        delete L;
+        delete R;
         
         // The cast could not be completed
         if (!T) return NULL;
@@ -96,12 +99,23 @@ Type* SumType::simplify(Tenv tenv) {
     } else if (L->isConstant(tenv) && R->isConstant(tenv)) {
         // In this scenario, given that neither side is a list, both
         // sides MUST be a number.
+        Type *T;
+
         if (isType<RealType>(L) && isType<RealType>(R))
-            return L->unify(R, tenv);
+            T = L->unify(R, tenv);
         else
-            return NULL;
-    } else
+            T = NULL;
+
+        delete L;
+        delete R;
+
+        return T;
+    } else {
+        delete L;
+        delete R;
+
         return clone();
+    }
 }
 
 Type* DerivativeType::simplify(Tenv tenv) {

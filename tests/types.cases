@@ -28,6 +28,9 @@ Z
 [1, 2, 3.0, 4]
 [R]
 
+(x) -> not x
+(B -> B)
+
 # Loops
 let x = 0; for i in [1, 2, 3] x = x + i; x
 Z

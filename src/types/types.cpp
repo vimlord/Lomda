@@ -749,10 +749,11 @@ Type* ForExp::typeOf(Tenv tenv) {
     delete L;
 
     if (!S) return NULL;
-    S = ((ListType*) S)->subtype();
+    T = ((ListType*) S)->subtype()->clone();
+    delete S;
     
-    show_proof_step("Thus, in the for body " + body->toString() + ", " + id + " : " + S->toString() + ".");
-    show_proof_step("Let " + id + " : " + S->toString() + ".");
+    show_proof_step("Thus, in the for body " + body->toString() + ", " + id + " : " + T->toString() + ".");
+    show_proof_step("Let " + id + " : " + T->toString() + ".");
     
     // Remove the variable name from scope.
     Type *X = tenv->hasVar(id)
@@ -760,10 +761,10 @@ Type* ForExp::typeOf(Tenv tenv) {
         : NULL;
 
     // Add the var
-    tenv->set(id, S);
+    tenv->set(id, T);
     
     // Evaluate the body type
-    T = body->typeOf(tenv);
+    S = body->typeOf(tenv);
 
     // Clean out the types
     if (X)
@@ -772,13 +773,13 @@ Type* ForExp::typeOf(Tenv tenv) {
         tenv->remove(id);
     
     // We now know the answer
-    if (T) {
-        delete T;
-        T = new VoidType;
+    if (S) {
+        delete S;
+        S = new VoidType;
     }
 
-    show_proof_therefore(type_res_str(tenv, this, T));
-    return T;
+    show_proof_therefore(type_res_str(tenv, this, S));
+    return S;
 }
 Type* HasExp::typeOf(Tenv tenv) {
     auto X = item->typeOf(tenv);
@@ -981,8 +982,6 @@ Type* LambdaExp::typeOf(Tenv tenv) {
     if (argc == 0) {
         T = new LambdaType("", new VoidType, T);
     } else {
-        auto env = tenv->clone();
-
         // Reset the environment
         for (int i = 0; i < argc; i++)
             // Remove the stuff
@@ -993,6 +992,7 @@ Type* LambdaExp::typeOf(Tenv tenv) {
 
         for (i = argc - 1; i >= 0; i--) {
             T = new LambdaType(xs[i], tenv->get_tvar(Ts[i]->toString())->simplify(tenv), T);
+            delete Ts[i];
         }
     }
 
