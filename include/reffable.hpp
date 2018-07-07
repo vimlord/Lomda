@@ -3,12 +3,18 @@
 
 #include "config.hpp"
 
+/**
+ * A custom implementation of a unique pointer scheme that will handle
+ * garbage collection as long as it is handled correctly.
+ */
 class Reffable {
     private:
+        // Initially, the object will be unique.
         int refs = 1;
 
     public:
         virtual ~Reffable() {}
+
         /**
          * Increments the reference count of the object.
          *

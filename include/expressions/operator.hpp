@@ -3,6 +3,9 @@
 
 #include "baselang/expression.hpp"
 
+/**
+ * A top-level operator expression that relies on the use of two expressions.
+ */
 class OperatorExp : public Expression {
     protected:
         Expression *left;
@@ -22,6 +25,9 @@ class OperatorExp : public Expression {
         int opt_var_usage(std::string x) { return left->opt_var_usage(x) | right->opt_var_usage(x); }
 };
 
+/**
+ * Computes the boolean AND operation.
+ */
 class AndExp : public OperatorExp {
     public:
         using OperatorExp::OperatorExp;
@@ -34,6 +40,9 @@ class AndExp : public OperatorExp {
         std::string toString();
 };
 
+/**
+ * Computes the boolean OR operation.
+ */
 class OrExp : public OperatorExp {
     public:
         using OperatorExp::OperatorExp;
@@ -46,6 +55,9 @@ class OrExp : public OperatorExp {
         std::string toString();
 };
 
+/**
+ * Performs the subtraction (difference) operation on two expressions.
+ */
 class DiffExp : public OperatorExp {
     public:
         using OperatorExp::OperatorExp;
@@ -73,9 +85,16 @@ class DivExp : public OperatorExp {
         std::string toString();
 };
 
+/**
+ * Denotes types of comparison operations that can be used.
+ */
 enum CompOp {
     EQ, NEQ, GT, LT, LEQ, GEQ
 };
+
+/**
+ * Performs a comparison between two expressions.
+ */
 class CompareExp : public OperatorExp {
     private:
         CompOp operation;
@@ -91,6 +110,9 @@ class CompareExp : public OperatorExp {
         std::string toString();
 };
 
+/**
+ * Performs exponentiation between two expressions.
+ */
 class ExponentExp : public OperatorExp {
     public:
         using OperatorExp::OperatorExp;
@@ -103,7 +125,9 @@ class ExponentExp : public OperatorExp {
         std::string toString();
 };
 
-// Expression for multiplying numbers.
+/**
+ * Expression for multiplying numbers.
+ */
 class MultExp : public OperatorExp {
     public:
         using OperatorExp::OperatorExp;
@@ -118,7 +142,9 @@ class MultExp : public OperatorExp {
         std::string toString();
 };
 
-// Expression for adding numbers.
+/**
+ * Expression for adding numbers.
+ */
 class SumExp : public OperatorExp {
     public:
         using OperatorExp::OperatorExp;
@@ -133,7 +159,9 @@ class SumExp : public OperatorExp {
         std::string toString();
 };
 
-// Expression for modulus
+/**
+ * Expression for modulus.
+ */
 class ModulusExp : public OperatorExp {
     public:
         using OperatorExp::OperatorExp;

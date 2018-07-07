@@ -22,7 +22,9 @@ class PrintExp : public Expression {
         int opt_var_usage(std::string x);
 };
 
-// An expression that wraps a number of math functions
+/**
+ * An expression that wraps a number of math functions
+ */
 class StdMathExp : public Expression {
     public:
         enum MathFn {
@@ -59,7 +61,9 @@ class StdMathExp : public Expression {
         Exp opt_const_prop(opt_varexp_map&, opt_varexp_map&);
 };
 
-// An expression that calls a function
+/**
+ * An expression that calls a function
+ */
 class ImplementExp : public Expression {
     private:
         Val (*f)(Env); // The function

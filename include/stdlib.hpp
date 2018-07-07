@@ -4,9 +4,19 @@
 #include "types.hpp"
 #include "baselang/value.hpp"
 
-// Loads a standard library with a given name, if possible
-Type* type_stdlib(std::string);
-Val load_stdlib(std::string);
+/**
+ * Defines the type of a standard library if possible.
+ * @param name The name of the standard library.
+ * @return A dictionary type containing the types of library functions, or NULL on failure.
+ */
+Type* type_stdlib(std::string name);
+
+/**
+ * Loads a standard library with a given name, if possible
+ * @param name The name of the standard library.
+ * @return The library stored in a dictionary, or NULL if it does not exist.
+ */
+Val load_stdlib(std::string name);
 
 // File system libearies
 Type* type_stdlib_fs();
