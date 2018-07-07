@@ -374,24 +374,17 @@ class LetExp : public Expression {
 /**
  * For lists, determine the size. For numbers, compute the absolute value.
  */
-class MagnitudeExp : public Expression {
-    private:
-        Exp exp;
+class MagnitudeExp : public UnaryOperatorExp {
     public:
-        MagnitudeExp(Exp e) : exp(e) {}
-        ~MagnitudeExp() { delete exp; }
+        using UnaryOperatorExp::UnaryOperatorExp;
+
         Exp clone() { return new MagnitudeExp(exp->clone()); }
         Type* typeOf(Tenv);
 
-        Val evaluate(Env);
+        Val op(Val);
         Val derivativeOf(std::string, Env, Env);
 
         std::string toString();
-
-        bool postprocessor(Trie<bool> *vars);
-        
-        Exp optimize() { exp = exp->optimize(); return this; }
-        int opt_var_usage(std::string x) { return exp->opt_var_usage(x); }
 };
 
 /**
@@ -423,46 +416,33 @@ class MapExp : public Expression {
 /**
  * Determines th magnitude of a given expression.
  */
-class NormExp : public Expression {
-    private:
-        Exp exp;
+class NormExp : public UnaryOperatorExp {
     public:
-        NormExp(Exp e) : exp(e) {}
-        ~NormExp() { delete exp; }
+        using UnaryOperatorExp::UnaryOperatorExp;
+
         Exp clone() { return new NormExp(exp->clone()); }
 
-        Val evaluate(Env);
+        Val op(Val);
         //Val derivativeOf(std::string, Env, Env);
         Type* typeOf(Tenv);
 
         std::string toString();
-
-        bool postprocessor(Trie<bool> *vars);
-
-        Exp optimize() { exp = exp->optimize(); return this; }
-        int opt_var_usage(std::string x) { return exp->opt_var_usage(x); }
 };
 
 /**
  * Bool -> Bool expression that negates booleans
  */
-class NotExp : public Expression {
-    private:
-        Exp exp;
+class NotExp : public UnaryOperatorExp {
     public:
-        NotExp(Exp e) { exp = e; }
-        ~NotExp() { delete exp; }
+        using UnaryOperatorExp::UnaryOperatorExp;
 
-        Val evaluate(Env);
+        Val op(Val);
         Type* typeOf(Tenv);
         
         Exp clone() { return new NotExp(exp->clone()); }
         std::string toString();
 
-        bool postprocessor(Trie<bool> *vars);
-
         Exp optimize();
-        int opt_var_usage(std::string x) { return exp->opt_var_usage(x); }
 };
 
 /**
