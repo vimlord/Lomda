@@ -405,8 +405,6 @@ result<Expression> parse_pemdas(string str, int order) {
                 base.reset();
                 return base;
             }
-
-            base = parse_pemdas(str, 2);
             
             // Build the result if possible
             base = parse_pemdas(str.substr(i+j), 2);
