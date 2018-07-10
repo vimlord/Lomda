@@ -1,6 +1,10 @@
 #include "math.hpp"
 #include "expression.hpp"
+
 #include <cmath>
+#include <string>
+
+using namespace std;
 
 int is_vector(Val v) {
     if (!isVal<ListVal>(v))
@@ -61,6 +65,48 @@ int* is_matrix(Val v) {
     size[1] = cols;
 
     return size;
+}
+
+// Perform Gaussian elimination on an n x n matrix
+bool mtrx_inv(float** mtrx, int n) {
+    // First, we aim to make the initial matrix upper triangular.
+    // This is the only stage in which we will discover whether or
+    // not our matrix is singular.
+    for (int i = 0; i < n; i++) {
+        int k = i;
+        while (!mtrx[k][i] && ++k < n);
+        
+        if (k == n) return false;
+        else if (k > i) {
+            // Perform a row swap
+            auto tmp = mtrx[i];
+            mtrx[i] = mtrx[k];
+            mtrx[k] = tmp;
+        }
+
+        for (int j = i+1; j < 2*n; j++)
+            mtrx[i][j] /= mtrx[i][i];
+        mtrx[i][i] = 1;
+
+        for (int j = i+1; j < n; j++) {
+            for (int k = i; k < 2*n; k++)
+                mtrx[j][k] -= mtrx[i][k] * mtrx[j][i];
+        }
+    }
+
+    // Now, we have assurances that there must exist an inverse.
+    // Complete the inverse.
+    for (int i = n-1; i >= 0; i--) {
+        for (int j = 0; j < i; j++) {
+            for (int k = n; k < 2*n; k++)
+                mtrx[j][k] -= mtrx[i][k] * mtrx[j][i];
+            
+            mtrx[j][i] = 0;
+        }
+    }
+
+    return true;
+
 }
 
 // For building representations of vectors and matrices
@@ -129,14 +175,14 @@ Val exp(Val v) {
         }
 
         Val S = Xn->clone();
-        MultExp mult(NULL, NULL);
-        DivExp div(NULL, NULL);
-        SumExp sum(NULL, NULL);
+        
+        
+        
         
         // Now, we compute the Taylor polynomial
         for (int n = 1; !is_negligible_mtrx((ListVal*) Xn); n++) {
             // Raise Xn by a power
-            auto Xn1 = mult.op(Xn,v);
+            auto Xn1 = mult(Xn,v);
 
             Xn->rem_ref();
             if (!Xn1) {
@@ -147,7 +193,7 @@ Val exp(Val v) {
 
             auto N = new IntVal(n);
 
-            Xn1 = div.op(Xn,N);
+            Xn1 = div(Xn,N);
             N->rem_ref();
             Xn->rem_ref();
             
@@ -157,7 +203,7 @@ Val exp(Val v) {
             } else
                 Xn = (ListVal*) Xn1;
 
-            auto Su = sum.op(S, Xn);
+            auto Su = add(S, Xn);
             
             S->rem_ref();
             if (!Su) {
@@ -208,8 +254,8 @@ Val log(Val v) {
             }
         }
 
-        DivExp div(NULL, NULL);
-        SumExp sum(NULL, NULL);
+        
+        
 
         if (norm >= 1) {
             // If the norm is too large, we must scale back our matrix to stay
@@ -255,7 +301,7 @@ Val log(Val v) {
 
             //std::cout << "log(aI) = I log a = " << *I << "\n";
 
-            auto Y = sum.op(I, logA);
+            auto Y = add(I, logA);
 
             I->rem_ref();
             logA->rem_ref();
@@ -264,13 +310,10 @@ Val log(Val v) {
         }
 
         delete[] dim;
-
-        MultExp mult(NULL, NULL);
-        DiffExp diff(NULL, NULL);
         
         // 1-x
-        auto Xn = diff.op(v, I);
-        auto X = diff.op(I, v);
+        Val Xn = sub(v, I);
+        auto X = sub(I, v);
         
         Val S = Xn->clone();
 
@@ -280,7 +323,7 @@ Val log(Val v) {
         for (int n = 2; !is_negligible_mtrx((ListVal*) term); n++) {
 
             // Raise Xn by a power
-            auto Xn1 = mult.op(Xn, X);
+            auto Xn1 = mult(Xn, X);
 
             Xn->rem_ref();
             if (!Xn1) {
@@ -291,9 +334,9 @@ Val log(Val v) {
             } else
                 Xn = Xn1;
 
-            auto N = new RealVal(n);
+            Val N = new RealVal(n);
 
-            Xn1 = div.op(Xn, N);
+            Xn1 = div(Xn, N);
             N->rem_ref();
             term->rem_ref();
 
@@ -305,7 +348,7 @@ Val log(Val v) {
                 term = Xn1;
             }
             
-            auto Su = sum.op(S, Xn1);
+            auto Su = add(S, Xn1);
             S->rem_ref();
 
             if (!Su) {
@@ -339,7 +382,7 @@ Val identity_matrix(int n) {
 Val pow(Val b, Val p) {
     if (!b || !p) return NULL;
     else if (isVal<IntVal>(p)) {
-        MultExp mult(NULL, NULL);
+        
         
         int n = ((IntVal*) p)->get();
 
@@ -363,6 +406,9 @@ Val pow(Val b, Val p) {
 
             return I;
 
+        } else if (n == 1) {
+            // Identity
+            return b->clone();
         } else if (n > 0) {
             Val v;
             
@@ -370,12 +416,6 @@ Val pow(Val b, Val p) {
             if (isVal<ListVal>(b)) {
                 auto dta = is_matrix((ListVal*) b);
                 if (dta && dta[0] == dta[1]) {
-                    if (n == 1) {
-                        // Anything to the 1st power is itself.
-                        delete dta;
-                        return b->clone();
-                    }
-
                     v = identity_matrix(dta[0]);
                     delete dta;
 
@@ -392,13 +432,13 @@ Val pow(Val b, Val p) {
                 Val u;
                 if (n & 1) {
                     // Raise v up by the base
-                    u = mult.op(v, b);
+                    u = mult(v, b);
                     v->rem_ref();
                     v = u;
                 }
 
                 // Now, we progress the base
-                u = mult.op(b, b);
+                u = mult(b, b);
                 b->rem_ref();
                 b = u;
 
@@ -410,19 +450,19 @@ Val pow(Val b, Val p) {
             return v;
 
         } else {
-            DivExp div(NULL, NULL);
+            
             RealVal I(1);
             
             // Invert b
-            b = div.op(&I, b);
+            b = inv(b);
             if (!b) {
                 return NULL;
             }
             
             // Special handling for the minimum integer
             if (n-1 > n) {
-                MultExp mult(NULL, NULL);
-                auto B = mult.op(b, b);
+                
+                auto B = mult(b, b);
                 delete b;
                 b = B;
                 p = new IntVal(-(n/2));
@@ -437,14 +477,14 @@ Val pow(Val b, Val p) {
         }
 
     } else {
-        MultExp mult(NULL, NULL);
+        
         auto lnb = log(b);
         
         if (!lnb) {
             return NULL;
         }
 
-        auto plnb = mult.op(p, lnb);
+        auto plnb = mult(p, lnb);
 
         lnb->rem_ref();
 
@@ -455,6 +495,421 @@ Val pow(Val b, Val p) {
         delete plnb;
 
         return y;
+    }
+}
+
+Val add(Val a, Val b) {
+    if (val_is_list(a)) {
+        if (val_is_list(b)) {
+            // We will do an element-wise addition
+            List<Val> *A = ((ListVal*) a);
+            List<Val> *B = ((ListVal*) b);
+            if (A->size() != B->size()) {
+                throw_err("runtime", "cannot add lists " + a->toString() + " and " + b->toString() + " of differing lengths");
+                return NULL;
+            }
+
+            auto C = new ListVal;
+            
+            auto ait = A->iterator();
+            auto bit = B->iterator();
+            for (int i = 0; ait->hasNext(); i++) {
+                Val c = add(ait->next(), bit->next());
+                if (!c) {
+                    while (!C->isEmpty()) C->remove(0)->rem_ref();
+                    return NULL;
+                }
+                C->add(i, c);
+            }
+            delete ait;
+            delete bit;
+            
+            return C;
+
+        } else  {
+            throw_err("runtime", "addition is not defined between " + a->toString() + " and " + b->toString());
+            return NULL;
+        }
+    } else if (val_is_number(a) && val_is_number(b)) {
+
+        auto x = val_is_integer(a) ? ((IntVal*) a)->get() : ((RealVal*) a)->get();
+        auto y = val_is_integer(b) ? ((IntVal*) b)->get() : ((RealVal*) b)->get();
+
+        // Compute the result
+        auto z = x + y;
+        if (isVal<RealVal>(a) || isVal<RealVal>(b))
+            return new RealVal(z);
+        else
+            return new IntVal(z);
+
+    } else {
+        throw_err("runtime", "addition is not defined between " + a->toString() + " and " + b->toString());
+        return NULL;
+    }
+}
+
+Val sub(Val a, Val b) {
+    if (val_is_list(a)) {
+        if (val_is_list(b)) {
+            // We will do an element-wise subtraction
+            List<Val> *A = ((ListVal*) a);
+            List<Val> *B = ((ListVal*) b);
+            if (A->size() != B->size()) {
+                throw_err("runtime", "cannot subtract lists " + a->toString() + " and " + b->toString() + " of differing lengths");
+                return NULL;
+            }
+
+            auto C = new ListVal;
+            
+            auto ait = A->iterator();
+            auto bit = B->iterator();
+            for (int i = 0; ait->hasNext(); i++) {
+                Val c = sub(ait->next(), bit->next());
+                if (!c) {
+                    while (!C->isEmpty()) C->remove(0)->rem_ref();
+                    return NULL;
+                }
+                C->add(i, c);
+            }
+            delete ait;
+            delete bit;
+            
+            return C;
+
+        } else  {
+            throw_err("runtime", "subtraction is not defined between " + a->toString() + " and " + b->toString());
+            return NULL;
+        }
+    } else if (val_is_number(a) && val_is_number(b)) {
+
+        auto x = val_is_integer(a) ? ((IntVal*) a)->get() : ((RealVal*) a)->get();
+        auto y = val_is_integer(b) ? ((IntVal*) b)->get() : ((RealVal*) b)->get();
+
+        // Compute the result
+        auto z = x - y;
+        if (isVal<RealVal>(a) || isVal<RealVal>(b))
+            return new RealVal(z);
+        else
+            return new IntVal(z);
+
+    } else {
+        throw_err("runtime", "subtraction is not defined between " + a->toString() + " and " + b->toString());
+        return NULL;
+    }
+}
+
+Val mult(Val a, Val b) {
+    if (isVal<ListVal>(a)) {
+        if (isVal<ListVal>(b)) {
+            //std::cout << "compute " << *a << " * " << *b << "\n";
+
+            if (((ListVal*) a)->size() == 0) {
+                throw_err("runtime", "multiplication is not defined on empty lists");
+                return NULL;
+            } else if (((ListVal*) b)->size() == 0) {
+                throw_err("runtime", "multiplication is not defined on empty lists");
+                return NULL;
+            }
+
+            int ordA = 0, ordB = 0;
+            for (Val A = a; isVal<ListVal>(A); ordA++)
+                A = ((ListVal*) A)->get(0);
+
+            for (Val B = b; isVal<ListVal>(B); ordB++)
+                B = ((ListVal*) B)->get(0);
+            
+            // The restriction imposed is that multiplication restricts the
+            // domain such that at least one of the arguments must be bounded
+            // to the second order (matrices).
+            if (ordA > 2 && ordB > 2) {
+                throw_err("runtime", "multiplication is not defined on tensors of rank " + to_string(ordA) + " and " + to_string(ordB));
+                return NULL;
+            } else if (ordB > 2 && ordA > 2) {
+                throw_err("runtime", "multiplication is not defined on tensors of rank " + to_string(ordA) + " and " + to_string(ordB));
+                return NULL;
+            }
+
+            Val res = NULL;
+            
+            if (ordA > 1) {
+                auto lst = new ListVal;
+                res = lst;
+
+                
+
+                if (ordB == 1) {
+                    //std::cout << "2 by 1\n";
+                    // Matrix by vector
+                    auto it = ((ListVal*) a)->iterator();
+
+                    while (res && it->hasNext()) {
+                        Val v = it->next();
+                        v = mult(v, b);
+                        
+                        if (!v) {
+                            res->rem_ref();
+                            res = NULL;
+                        } else
+                            lst->add(lst->size(), v);
+                    }
+                    delete it;
+                } else {
+                    // Matrix by matrix
+                    //std::cout << "2 by 2\n";
+                    
+                    auto it = ((ListVal*) a)->iterator();
+                    while (res && it->hasNext()) {
+                        Val v = mult(it->next(), b);
+                        if (!v) {
+                            res->rem_ref();
+                            res = NULL;
+                        } else
+                            lst->add(lst->size(), v);
+                    }
+
+                    delete it;
+                }
+
+            } else if (ordB > 1) {
+                //std::cout << "1 by 2\n";
+                // List by matrix
+                auto ait = ((ListVal*) a)->iterator();
+                auto bit = ((ListVal*) b)->iterator();
+
+                
+                
+
+                res = mult(ait->next(), bit->next());
+                if (res)
+                    //std::cout << "init: " << *res << "\n";
+                
+                while (res && ait->hasNext() && bit->hasNext()) {
+                    Val u = mult(ait->next(), bit->next());
+                    if (u) {
+                        Val v = add(res, u);
+                        u->rem_ref();
+
+                        res->rem_ref();
+                        res = v;
+                    } else {
+                        res->rem_ref();
+                        res = NULL;
+                    }
+                }
+
+                if (ait->hasNext() || bit->hasNext()) {
+                    if (res) res->rem_ref();
+                    res = NULL;
+                }
+
+            } else {
+                //std::cout << "1 by 1\n";
+                // Dot product
+                res = new IntVal;
+                
+                auto ait = ((ListVal*) a)->iterator();
+                auto bit = ((ListVal*) b)->iterator();
+
+                
+                
+                while (res && ait->hasNext() && bit->hasNext()) {
+                    Val A = ait->next();
+                    Val B = bit->next();
+                    Val v = mult(A, B);
+                    if (!v) {
+                        res->rem_ref();
+                        res = NULL;
+                    } else {
+                        Val s = add(res, v);
+                        v->rem_ref();
+
+                        res->rem_ref();
+                        res = s;
+                    }
+                }
+
+                if (ait->hasNext() || bit->hasNext()) {
+                    if (res) res->rem_ref();
+                    res = NULL;
+                }
+
+                delete ait;
+                delete bit;
+
+            }
+
+            if (!res) {
+                throw_err("runtime", "multiplication is not defined on non-matching lists (see: " + a->toString() + " * " + b->toString() + ")");
+            }
+
+            return res;
+        } else {
+            ListVal *res = new ListVal;
+
+            auto it = ((ListVal*) a)->iterator();
+            while (res && it->hasNext()) {
+                Val x = mult(it->next(), b);
+                if (!x) {
+                    res->rem_ref();
+                    res = NULL;
+                } else
+                    res->add(res->size(), x);
+            }
+
+            delete it;
+            return res;
+        }
+    } else if (val_is_list(b)) {
+        return mult(b, a);
+    } else if (isVal<AdtVal>(a)) {
+        AdtVal *A = (AdtVal*) a;
+        
+        // Get the arg count
+        int argc;
+        for (argc = 0; A->getArgs()[argc]; argc++);
+        
+        // Generate an argument list
+        Val *args = new Val[argc+1];
+
+        for (int i = 0; i < argc; i++) {
+            // Compute the element-wise product
+            args[i] = mult(A->getArgs()[i], b);
+            if (!args[i]) {
+                // The product is non-computable
+                while (i--) args[i]->rem_ref();
+                delete[] args;
+                return NULL;
+            }
+        }
+        args[argc] = NULL;
+        
+        return new AdtVal(A->getType(), A->getKind(), args);
+
+
+    } else if (isVal<AdtVal>(b)) {
+        return mult(b, a);
+    } else if (val_is_number(a) && val_is_number(b)) {
+
+        // The lhs is numerical
+        auto x = 
+            isVal<IntVal>(a)
+            ? ((IntVal*) a)->get() :
+              ((RealVal*) a)->get();
+        
+        if (isVal<ListVal>(b)) {
+            return mult(b, a);
+        } else {
+            // rhs is numerical
+            auto y = 
+                isVal<IntVal>(b)
+                ? ((IntVal*) b)->get() :
+                  ((RealVal*) b)->get();
+
+            // Compute the result
+            auto z = x * y;
+            if (isVal<RealVal>(a) || isVal<RealVal>(b))
+                return new RealVal(z);
+            else
+                return new IntVal(z);
+        }
+    } else {
+        throw_err("runtime", "multiplication is not defined between " + a->toString() + " and " + b->toString());
+        return NULL;
+    }
+}
+
+Val inv(Val b) {
+    
+    // Primitive cases
+    if (isVal<IntVal>(b)) return new IntVal(1 / ((IntVal*) b)->get());
+    if (isVal<RealVal>(b)) return new RealVal(1 / ((RealVal*) b)->get());
+
+    int *dta = isVal<ListVal>(b) ? is_matrix(((ListVal*) b)) : NULL;
+    if (!dta || dta[0] != dta[1]) {
+        throw_err("runtime", "value " + b->toString() + " is not an square matrix");
+        return NULL;
+    }
+
+    // Thus, b is a matrix. We can now see if we can invert it via Gaussian reduction.
+    int n = dta[0];
+    delete dta;
+
+    float **mtrx = new float*[n];
+    for (int i = 0; i < n; i++) {
+        mtrx[i] = new float[2*n];
+        for (int j = 0; j < n; j++) {
+            auto ij = (((ListVal*) ((ListVal*) b)->get(i)))->get(j);
+            mtrx[i][j] = isVal<IntVal>(ij) ? ((IntVal*) ij)->get() : ((RealVal*) ij)->get();
+            mtrx[i][j+n] = i == j;
+        }
+    }
+
+    bool nsing = mtrx_inv(mtrx, n);
+
+    if (!nsing) {
+        delete mtrx;
+        throw_err("runtime", "matrix defined by " +  b->toString() + " is singular!");
+        return NULL;
+    }
+
+    auto L = new ListVal;
+    for (int i = 0; i < n; i++) {
+        auto R = new ListVal;
+        L->add(i, R);
+        for (int j = 0; j < n; j++)
+            R->add(j, new RealVal(mtrx[i][j+n]));
+        delete[] mtrx[i];
+    }
+    delete[] mtrx;
+
+    return L;
+}
+
+Val div(Val a, Val b) {
+
+    if (val_is_number(b)) {
+        auto y = val_is_integer(b) ? ((IntVal*) b)->get() : ((RealVal*) b)->get();
+
+        if (val_is_number(a)) {
+            auto x = val_is_integer(a) ? ((IntVal*) a)->get() : ((RealVal*) a)->get();
+
+            // Compute the result
+            auto z = x / y;
+            if (isVal<RealVal>(a) || isVal<RealVal>(b))
+                return new RealVal(z);
+            else
+                return new IntVal(z);
+        } else if (val_is_list(a)) {
+            ListVal *c = new ListVal;
+            auto it = ((ListVal*) a)->iterator();
+
+            while (c && it->hasNext()) {
+                auto d = div(it->next(), b);
+                if (!d) {
+                    c->rem_ref();
+                    c = NULL;
+                } else
+                    c->add(c->size(), d);
+            }
+
+            delete it;
+            return c;
+        } else {
+            throw_err("runtime", "division is not defined between " +  a->toString() + " and " + b->toString());
+            return NULL;
+        }
+    } else {
+        // Replace b with its inverse, reducing to multiplication.
+        b = inv(b);
+        
+        // Multiply the two values.
+        Val c = mult(a, b);
+        
+        // Garbage colletion
+        b->rem_ref();
+        
+        return c;
+
     }
 }
 
