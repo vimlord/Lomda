@@ -7,38 +7,6 @@
 
 using namespace std;
 
-Exp reexpress(Val v) {
-    if (!v) return NULL;
-    else if (isVal<IntVal>(v))
-        return new IntExp(((IntVal*) v)->get());
-    else if (isVal<RealVal>(v))
-        return new RealExp(((RealVal*) v)->get());
-    else if (isVal<BoolVal>(v))
-        return ((BoolVal*) v)->get() 
-                ? (Exp) new TrueExp
-                : (Exp) new FalseExp;
-    else if (isVal<ListVal>(v)) {
-        ListVal *lv = (ListVal*) v;
-        LinkedList<Exp> *list = new LinkedList<Exp>;
-
-        auto it = lv->iterator();
-        while (it->hasNext()) list->add(list->size(), reexpress(it->next()));
-
-        return new ListExp(list);
-    } else if (isVal<LambdaVal>(v)) {
-        LambdaVal *lv = (LambdaVal*) v;
-
-        int argc = 0;
-        while (lv->getArgs()[argc] != "");
-
-        std::string *xs = new std::string[argc+1];
-        xs[argc] = "";
-        while (argc--) xs[argc] = lv->getArgs()[argc];
-
-        return new LambdaExp(xs, lv->getBody());
-    } else
-        return NULL;
-}
 
 void throw_warning(string form, string mssg) {
     if (WERROR()) throw_err(form, mssg);

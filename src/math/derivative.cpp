@@ -451,8 +451,10 @@ Val DivExp::derivativeOf(string x, Env env, Env denv) {
     Val dr = right->derivativeOf(x, env, denv);
     if (!dr) { dl->rem_ref(); return NULL; }
 
-    Exp a = reexpress(dl);
-    Exp b = reexpress(dr);
+    Exp a = new ValExp(dl);
+    Exp b = new ValExp(dr);
+    dl->rem_ref();
+    dr->rem_ref();
 
     // d/dx a/b = (ba' - ab') / (b^2)
     Exp exp = new DivExp(
@@ -929,8 +931,8 @@ Val FoldExp::derivativeOf(string x, Env env, Env denv) {
         
         // We will construct an expression to handle the ordeal
         Expression *cell = new SumExp(
-            new MultExp(reexpress(fa), reexpress(dc)),
-            new MultExp(reexpress(fb), reexpress(v))
+            new MultExp(new ValExp(fa), new ValExp(dc)),
+            new MultExp(new ValExp(fb), new ValExp(v))
         );
 
         //std::cout << "must compute " << *cell << "\n";
@@ -1075,8 +1077,8 @@ Val MapExp::derivativeOf(string x, Env env, Env denv) {
 
         if (v) {
             Exp cell = new MultExp(
-                reexpress(v),
-                reexpress(dvs)
+                new ValExp(v),
+                new ValExp(dvs)
             );
             v->rem_ref();
 

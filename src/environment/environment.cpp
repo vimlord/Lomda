@@ -62,8 +62,9 @@ void Environment::rem(string x) {
 
 Env Environment::clone() {
     Env env = new Environment(subenv ? subenv->clone() : NULL);
-    for (auto it : store)
+    for (auto it : store) {
         env->store[it.first] = it.second;
+    }
 
     return env;
 }
