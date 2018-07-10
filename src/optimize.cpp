@@ -16,11 +16,9 @@ bool is_const_list(ListExp *exp) {
 }
 
 inline bool is_const_exp(Exp exp) {
-    
     if (isExp<ListExp>(exp))
         return is_const_list((ListExp*) exp);
-
-    return
+    else return
         isExp<FalseExp>(exp) ||
         isExp<IntExp>(exp) ||
         isExp<RealExp>(exp) ||

@@ -496,11 +496,11 @@ Val ExponentExp::derivativeOf(string x, Env env, Env denv) {
     if (val_is_number(r)) {
 
         // Compute B = gf' + f log f g'
-        SumExp sum(NULL, NULL);
-        MultExp mult(NULL, NULL);
+        
+        
         
         // g f'
-        Val gf = mult.op(r, dl);
+        Val gf = mult(r, dl);
         if (!gf) {
             l->rem_ref();
             r->rem_ref();
@@ -521,14 +521,14 @@ Val ExponentExp::derivativeOf(string x, Env env, Env denv) {
         }
         
         // f log f
-        Val flf = mult.op(l, logf);
+        Val flf = mult(l, logf);
         logf->rem_ref();
         
         // f log(f) g'
-        Val flfg = mult.op(flf, dr);
+        Val flfg = mult(flf, dr);
         flf->rem_ref();
 
-        Val B = sum.op(gf, flfg);
+        Val B = add(gf, flfg);
         flfg->rem_ref();
         gf->rem_ref();
         if (!B) {
@@ -553,7 +553,7 @@ Val ExponentExp::derivativeOf(string x, Env env, Env denv) {
             return NULL;
         }
         
-        auto y = mult.op(A, B);
+        auto y = mult(A, B);
         A->rem_ref();
         B->rem_ref();
 
@@ -1032,8 +1032,8 @@ Val MapExp::derivativeOf(string x, Env env, Env denv) {
                 return NULL;
             } else {
                 // Compute the other part
-                MultExp mult(NULL, NULL);
-                Val y = mult.op(elem, dv);
+                
+                Val y = mult(elem, dv);
 
                 elem->rem_ref();
 
@@ -1101,10 +1101,9 @@ Val ModulusExp::derivativeOf(string x, Env env, Env denv) {
         a->rem_ref();
         return NULL;
     }
-     
-    DiffExp diff(NULL, NULL);
+    
     DivExp div(left->clone(), right->clone());
-    MultExp mult(NULL, NULL);
+    
     
     Val aOb = div.evaluate(env);
     if (val_is_real(aOb)) {
@@ -1119,8 +1118,8 @@ Val ModulusExp::derivativeOf(string x, Env env, Env denv) {
         return NULL;
     }
 
-    Val baOb = mult.op(b, aOb);
-    Val c = diff.op(a, baOb);
+    Val baOb = mult(b, aOb);
+    Val c = sub(a, baOb);
 
     baOb->rem_ref();
     a->rem_ref();
@@ -1150,10 +1149,10 @@ Val MultExp::derivativeOf(string x, Env env, Env denv) {
     throw_debug("calculus", "d/d" + x + " r = " + dr->toString());
     
     // Utility object
-    SumExp sum(NULL, NULL);
-    MultExp mult(NULL, NULL);
+    
+    
 
-    Val a = mult.op(l, dr);
+    Val a = mult(l, dr);
     l->rem_ref();
     dr->rem_ref();
 
@@ -1165,7 +1164,7 @@ Val MultExp::derivativeOf(string x, Env env, Env denv) {
 
     throw_debug("calculus", "l r' = " + a->toString());
 
-    Val b = mult.op(r, dl);/*(dl, r)*/;
+    Val b = mult(r, dl);/*(dl, r)*/;
     r->rem_ref();
     dl->rem_ref();
 
@@ -1177,7 +1176,7 @@ Val MultExp::derivativeOf(string x, Env env, Env denv) {
 
     throw_debug("calculus", "r l' = " + b->toString());
     
-    Val c = sum.op(a, b);
+    Val c = add(a, b);
 
     a->rem_ref();
     b->rem_ref();
@@ -1206,11 +1205,6 @@ Val StdMathExp::derivativeOf(string x, Env env, Env denv) {
     Val dv = e->derivativeOf(x, env, denv);
     if (!dv) return NULL;
     
-    DiffExp diff(NULL, NULL);
-    DivExp div(NULL, NULL);
-    ExponentExp exp(NULL, NULL);
-    MultExp mult(NULL, NULL);
-    SumExp sum(NULL, NULL);
     Val y;
 
     RealVal half(0.5);
@@ -1294,7 +1288,7 @@ Val StdMathExp::derivativeOf(string x, Env env, Env denv) {
                 if (!y) break;
                 
                 // 1 - x^2
-                auto dz = diff.op(&one, y);
+                auto dz = sub(&one, y);
                 y->rem_ref();
                 y = dz;
                 if (!y) break;
@@ -1306,7 +1300,7 @@ Val StdMathExp::derivativeOf(string x, Env env, Env denv) {
                 if (!y) break;
                 
                 // dx / sqrt(1 - x^2)
-                dz = div.op(dv, y);
+                dz = div(dv, y);
                 y->rem_ref();
                 y = dz;
 
@@ -1319,7 +1313,7 @@ Val StdMathExp::derivativeOf(string x, Env env, Env denv) {
                 if (!y) break;
                 
                 // 1 - x^2
-                auto dz = diff.op(&one, y);
+                auto dz = sub(&one, y);
                 y->rem_ref();
                 y = dz;
                 if (!y) break;
@@ -1331,14 +1325,14 @@ Val StdMathExp::derivativeOf(string x, Env env, Env denv) {
                 if (!y) break;
                 
                 // dx / sqrt(1 - x^2)
-                dz = div.op(dv, y);
+                dz = div(dv, y);
                 y->rem_ref();
                 y = dz;
                 if (!y) break;
                 
                 // -dx / sqrt(1 - x^2)
                 IntVal neg(-1);
-                dz = mult.op(&neg, y);
+                dz = mult(&neg, y);
                 y->rem_ref();
                 y = dz;
 
@@ -1351,13 +1345,13 @@ Val StdMathExp::derivativeOf(string x, Env env, Env denv) {
                 if (!y) break;
                 
                 // 1 + x^2
-                auto dz = sum.op(&one, y);
+                auto dz = add(&one, y);
                 y->rem_ref();
                 y = dz;
                 if (!y) break;
                 
                 // dx / (1 + x^2)
-                dz = div.op(dv, y);
+                dz = div(dv, y);
                 y->rem_ref();
                 y = dz;
             } else
@@ -1404,7 +1398,7 @@ Val StdMathExp::derivativeOf(string x, Env env, Env denv) {
                 if (!y) break;
                 
                 // 1 + x^2
-                auto dz = sum.op(&one, y);
+                auto dz = add(&one, y);
                 y->rem_ref();
                 y = dz;
                 if (!y) break;
@@ -1416,7 +1410,7 @@ Val StdMathExp::derivativeOf(string x, Env env, Env denv) {
                 if (!y) break;
                 
                 // dx / sqrt(1 + x^2)
-                dz = div.op(dv, y);
+                dz = div(dv, y);
                 y->rem_ref();
                 y = dz;
 
@@ -1429,7 +1423,7 @@ Val StdMathExp::derivativeOf(string x, Env env, Env denv) {
                 if (!y) break;
                 
                 // 1 - x^2
-                auto dz = diff.op(&one, y);
+                auto dz = sub(&one, y);
                 y->rem_ref();
                 y = dz;
                 if (!y) break;
@@ -1441,7 +1435,7 @@ Val StdMathExp::derivativeOf(string x, Env env, Env denv) {
                 if (!y) break;
                 
                 // dx / sqrt(1 - x^2)
-                dz = div.op(dv, y);
+                dz = div(dv, y);
                 y->rem_ref();
                 y = dz;
 
@@ -1454,29 +1448,29 @@ Val StdMathExp::derivativeOf(string x, Env env, Env denv) {
                 if (!y) break;
                 
                 // 1 - x^2
-                auto dz = diff.op(&one, y);
+                auto dz = sub(&one, y);
                 y->rem_ref();
                 y = dz;
                 if (!y) break;
                 
                 // dx / (1 - x^2)
-                dz = div.op(dv, y);
+                dz = div(dv, y);
                 y->rem_ref();
                 y = dz;
             } else
                 throw_err("type", "arctanh is undefined for inputs outside of R");
         case LOG:
-            y = div.op(dv, v);
+            y = div(dv, v);
         case SQRT:
             y = pow(v, &half);
             if (!y) break;
 
-            v = mult.op(&two, y);
+            v = mult(&two, y);
             y->rem_ref();
 
-            y = div.op(dv, v);
+            y = div(dv, v);
         case EXP:
-            y = mult.op(v, dv);
+            y = mult(v, dv);
     }
 
     v->rem_ref();
