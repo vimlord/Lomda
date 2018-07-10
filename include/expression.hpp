@@ -10,8 +10,6 @@
 
 #include <map>
 
-Exp reexpress(Val);
-
 template<typename T>
 inline bool isExp(const Exp t) {
     return t && dynamic_cast<const T*>(t) != nullptr;
@@ -96,7 +94,6 @@ class ApplyExp : public Expression {
         
         Exp clone();
         std::string toString();
-        int opt_var_usage(std::string);
 };
 
 /**
@@ -117,7 +114,6 @@ class CastExp : public Expression {
         std::string toString();
 
         Exp optimize() { exp->optimize(); return this; }
-        int opt_var_usage(std::string x) { return exp->opt_var_usage(x); }
 };
 
 /**
@@ -168,8 +164,6 @@ class FoldExp : public Expression {
         bool postprocessor(Trie<bool> *vars);
 
         Exp optimize();
-        Exp opt_const_prop(opt_varexp_map&, opt_varexp_map&);
-        int opt_var_usage(std::string x);
 };
 
 /**
@@ -194,8 +188,6 @@ class ForExp : public Expression {
         bool postprocessor(Trie<bool> *vars);
 
         Exp optimize();
-        Exp opt_const_prop(opt_varexp_map&, opt_varexp_map&);
-        int opt_var_usage(std::string x);
 };
 
 /**
@@ -221,8 +213,6 @@ class HasExp : public Expression {
             set = set->optimize();
             return this;
         }
-        int opt_var_usage(std::string x) { return item->opt_var_usage(x) | set->opt_var_usage(x); }
-        Exp opt_const_prop(opt_varexp_map&, opt_varexp_map&);
 
         Exp clone() { return new HasExp(item->clone(), set->clone()); }
 };
@@ -247,8 +237,6 @@ class IfExp : public Expression {
         std::string toString();
 
         Exp optimize();
-        Exp opt_const_prop(opt_varexp_map&, opt_varexp_map&);
-        int opt_var_usage(std::string x);
 };
 
 /**
@@ -308,7 +296,6 @@ class InputExp : public Expression {
         Exp clone() { return new InputExp; }
         std::string toString() { return "input"; }
 
-        int opt_var_usage(std::string x) { return 0; }
 };
 
 /**
@@ -332,8 +319,6 @@ class IsaExp : public Expression {
         bool postprocessor(Trie<bool> *vars);
 
         Exp optimize() { exp = exp->optimize(); return this; }
-        Exp opt_const_prop(opt_varexp_map& a, opt_varexp_map& b) { exp = exp->opt_const_prop(a, b); return this; }
-        int opt_var_usage(std::string x) { return exp->opt_var_usage(x); }
 };
 
 /**
@@ -367,8 +352,6 @@ class LetExp : public Expression {
         bool postprocessor(Trie<bool> *vars);
 
         Exp optimize();
-        Exp opt_const_prop(opt_varexp_map&, opt_varexp_map&);
-        int opt_var_usage(std::string x);
 };
 
 /**
@@ -409,8 +392,6 @@ class MapExp : public Expression {
         bool postprocessor(Trie<bool> *vars) { return func->postprocessor(vars) && list->postprocessor(vars); }
 
         Exp optimize() { func = func->optimize(); list = list->optimize(); return this; }
-        Exp opt_const_prop(opt_varexp_map&, opt_varexp_map&);
-        int opt_var_usage(std::string x) { return func->opt_var_usage(x) | list->opt_var_usage(x); }
 };
 
 /**
@@ -468,8 +449,6 @@ class SequenceExp : public Expression {
         bool postprocessor(Trie<bool> *vars);
 
         Exp optimize();
-        Exp opt_const_prop(opt_varexp_map&, opt_varexp_map&);
-        int opt_var_usage(std::string x);
 };
 
 /**
@@ -495,8 +474,6 @@ class SetExp : public Expression {
         bool postprocessor(Trie<bool> *vars);
 
         Exp optimize();
-        Exp opt_const_prop(opt_varexp_map&, opt_varexp_map&);
-        int opt_var_usage(std::string x) { return exp->opt_var_usage(x) | (tgt->opt_var_usage(x) >> 1); }
 };
 
 /**
@@ -530,12 +507,12 @@ class ValExp : public Expression {
     private:
         Val val;
     public:
-        ValExp(Val v) : val(v) {}
+        ValExp(Val v) : val(v) { val->add_ref(); }
         ~ValExp() { val->rem_ref(); }
 
         Val evaluate(Env) { val->add_ref(); return val; }
 
-        Exp clone() { val->add_ref(); return new ValExp(val); }
+        Exp clone() { return new ValExp(val); }
         std::string toString();
 };
 
@@ -562,8 +539,6 @@ class WhileExp : public Expression {
         bool postprocessor(Trie<bool> *vars);
 
         Exp optimize();
-        Exp opt_const_prop(opt_varexp_map&, opt_varexp_map&);
-        int opt_var_usage(std::string x) { return cond->opt_var_usage(x) | body->opt_var_usage(x); }
 };
 
 #endif

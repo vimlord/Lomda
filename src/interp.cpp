@@ -438,10 +438,12 @@ Val DerivativeExp::evaluate(Env env) {
             string *ids = new string[i+1];
             ids[i] = "";
             while (i--) ids[i] = lv->getArgs()[i];
-
+            
             LambdaVal *dv = new LambdaVal(ids, 
                             lv->getBody()->symb_diff(var)
-                            , lv->getEnv()->clone());
+                            , lv->getEnv());
+
+            lv->getEnv()->add_ref();
 
             // Lambda derivative: d/dx lambda (x) f(x) = lambda (x) d/dx f(x)
             // We will need the derivative for this

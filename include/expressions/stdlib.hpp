@@ -18,8 +18,6 @@ class PrintExp : public Expression {
         std::string toString();
 
         Exp optimize();
-        Exp opt_const_prop(opt_varexp_map&, opt_varexp_map&);
-        int opt_var_usage(std::string x);
 };
 
 /**
@@ -57,8 +55,6 @@ class StdMathExp : public Expression {
         std::string toString();
 
         Exp optimize();
-        int opt_var_usage(std::string x) { return e->opt_var_usage(x); }
-        Exp opt_const_prop(opt_varexp_map&, opt_varexp_map&);
 };
 
 /**
