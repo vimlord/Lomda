@@ -41,4 +41,10 @@ int* is_matrix(Val v);
  */
 int is_vector(Val v);
 
+Val add(Val, Val);
+Val sub(Val, Val);
+Val mult(Val, Val);
+Val div(Val, Val);
+Val inv(Val);
+
 #endif

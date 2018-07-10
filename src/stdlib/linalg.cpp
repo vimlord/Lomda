@@ -3,6 +3,7 @@
 #include "expressions/stdlib.hpp"
 #include "expression.hpp"
 
+#include "math.hpp"
 #include <cmath>
 
 Val std_transpose(Env env) {
@@ -74,10 +75,6 @@ Val std_transpose(Env env) {
  * Computes a QR decomposition using the Gram-Schmidt process.
  */
 Val std_qr(Env env) {
-    static DiffExp diff(NULL, NULL);
-    static DivExp div(NULL, NULL);
-    static MultExp mult(NULL, NULL);
-
     Val x = env->apply("x");
 
     if (!isVal<ListVal>(x)) {
@@ -123,12 +120,12 @@ Val std_qr(Env env) {
             auto e = jt->next();
 
             // proj a onto v = a*e * e
-            auto n = mult.op(a, e);
-            e = mult.op(n, e);
+            auto n = mult(a, e);
+            e = mult(n, e);
             n->rem_ref();
             
             // Subtract the projection
-            n = diff.op(u, e);
+            n = sub(u, e);
             u->rem_ref();
             e->rem_ref();
 
@@ -161,7 +158,7 @@ Val std_qr(Env env) {
         
         // Update Q
         RealVal N(norm);
-        auto e = div.op(u, &N);
+        auto e = div(u, &N);
         u->rem_ref();
 
         Q->add(Q->size(), e);
@@ -180,7 +177,7 @@ Val std_qr(Env env) {
 
             if (compute) {
                 // Apply the dot product.
-                y = mult.op(y, e);
+                y = mult(y, e);
                 if (!y) {
                     delete it;
                     delete jt;
