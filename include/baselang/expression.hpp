@@ -77,34 +77,6 @@ class Expression : public Stringable {
          * @return An expression that is at least as efficient as the original.
          */
         virtual Expression* optimize() { return this; };
-
-        /**
-         * Performs constant propagation on an expression.
-         *
-         * Optimization operation that performs 'constant propagation', in which
-         * constant variables are replaced with constants to reduce computation
-         * time. This operation is used in LetExp::optimize() in order to reduce
-         * the need for a given LetExp in an syntax tree. The default behavior is
-         * to assume that the variables cannot be propagated any further.
-         *
-         * @param vals A collection of values to propagate through the tree.
-         * @param ends A collection of values to reassign following propagation.
-
-         * @return An expression modified with the new constants.
-         */
-        virtual Expression* opt_const_prop(
-                std::unordered_map<std::string, Expression*>& vals,
-                std::unordered_map<std::string, Expression*>& ends
-        ) { for (auto x : vals) { delete vals[x.first]; vals.erase(x.first); } return this; };
-
-        /**
-         * Returns combined variable usage, in form 00...00rw (ex: 3 means reads and writes).
-         *
-         * @param x The variable to find usages of.
-         *
-         * @return The usage of the variable.
-         */
-        virtual int opt_var_usage(std::string x) { return 3; }
 };
 typedef Expression* Exp;
 
