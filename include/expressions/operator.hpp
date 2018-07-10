@@ -17,7 +17,6 @@ class UnaryOperatorExp : public Expression {
         virtual Val op(Val) = 0;
 
         virtual Exp optimize() { exp = exp->optimize(); return this; }
-        int opt_var_usage(std::string x) { return exp->opt_var_usage(x); }
         bool postprocessor(Trie<bool> *vars);
 };
 
@@ -36,8 +35,6 @@ class OperatorExp : public Expression {
                 { return left->postprocessor(vars) && right->postprocessor(vars); }
 
         Exp optimize();
-        Exp opt_const_prop(std::unordered_map<std::string, Exp>&, opt_varexp_map&);
-        int opt_var_usage(std::string x) { return left->opt_var_usage(x) | right->opt_var_usage(x); }
 };
 
 /**
