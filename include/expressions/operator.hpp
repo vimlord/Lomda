@@ -34,7 +34,10 @@ class OperatorExp : public Expression {
         bool postprocessor(Trie<bool> *vars)
                 { return left->postprocessor(vars) && right->postprocessor(vars); }
 
-        Exp optimize();
+        Exp getLeft() { return left; }
+        Exp getRight() { return right; }
+
+        virtual Exp optimize();
 };
 
 /**
@@ -95,6 +98,8 @@ class DivExp : public OperatorExp {
         
         Exp clone() { return new DivExp(left->clone(), right->clone()); }
         std::string toString();
+
+        Exp optimize();
 };
 
 /**
@@ -152,6 +157,8 @@ class MultExp : public OperatorExp {
         
         Exp clone() { return new MultExp(left->clone(), right->clone()); }
         std::string toString();
+
+        Exp optimize();
 };
 
 /**
@@ -169,6 +176,8 @@ class SumExp : public OperatorExp {
         
         Exp clone() { return new SumExp(left->clone(), right->clone()); }
         std::string toString();
+
+        Exp optimize();
 };
 
 /**

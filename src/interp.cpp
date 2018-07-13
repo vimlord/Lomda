@@ -74,8 +74,17 @@ Val run(string program) {
 
         // If optimization is requested, grant it.
         if (OPTIMIZE()) {
-            exp = exp->optimize();
-            throw_debug("postprocessor", "program '" + program + "' optimized to '" + exp->toString() + "'");
+            try {
+                exp = exp->optimize();
+                throw_debug("postprocessor", "program '" + program + "' optimized to '" + exp->toString() + "'");
+            } catch (std::string err) {
+                throw_err("postprocessor", err);
+                
+                // We will not attempt to evaluate the expression, as the
+                // optimizer already found a fault.
+                delete exp;
+                return NULL;
+            }
         }
 
         Env env = new Environment;
