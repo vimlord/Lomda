@@ -412,7 +412,24 @@ result<Expression> parse_pemdas(string str, int order) {
                 base.value = new TupleAccessExp(base.value, true);
                 base.strlen += i + j;
             }
-        }
+        } else if ((i = starts_with(str, "d/d")) > 0) {
+            // Attempt to extract the variable
+            string x = extract_identifier(str.substr(index_of_char(str, 'd') + 3));
+
+            if (x == "") {
+                base.reset();
+                return base;
+            } else {
+                i += x.length();
+            }
+            
+            // Evaluate for a derivative
+            base = parse_pemdas(str.substr(i), order);
+            if (base.value) {
+                base.value = new DerivativeExp(base.value, x);
+                base.strlen += i;
+            }
+        } 
         
         // If we found a unary expression, progress the string
         if (base.strlen > 0) {
@@ -1582,22 +1599,6 @@ Exp parse_statement(string str) {
 
         return new PrintExp(items);
         
-    } else if ((i = starts_with(str, "d/d")) > 0) {
-        // Attempt to extract the variable
-        string x = extract_identifier(str.substr(index_of_char(str, 'd') + 3));
-
-        if (x == "") {
-            return NULL;
-        }
-        
-        str = str.substr(i + x.length());
-        
-        Exp Y = parse_statement(str);
-        if (Y)
-            Y = new DerivativeExp(Y, x);
-
-        return Y;
-
     } else if ((i = starts_with(str, "remove")) > 0) {
         str = str.substr(i);
         
