@@ -54,6 +54,9 @@ class StdMathExp : public Expression {
         Exp clone() { return new StdMathExp(fn, e->clone()); }
         std::string toString();
 
+        Exp getArg() { return e; }
+        MathFn getFn() { return fn; }
+
         Exp optimize();
 };
 

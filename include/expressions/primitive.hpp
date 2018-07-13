@@ -9,6 +9,11 @@
 #include <initializer_list>
 #include <utility>
 
+class PrimitiveExp : public Expression {
+    public:
+        Exp optimize();
+};
+
 /**
  * Denotes an ADT.
  */
@@ -75,7 +80,7 @@ class DictExp : public Expression {
 /**
  * Denotes false.
  */
-class FalseExp : public Expression {
+class FalseExp : public PrimitiveExp {
     public:
         FalseExp() {}
         Val evaluate(Env);
@@ -89,7 +94,7 @@ class FalseExp : public Expression {
 /**
  * Denotes a member of the set of 32 bit unsigned integers.
  */
-class IntExp : public Expression {
+class IntExp : public PrimitiveExp {
     private:
         int val;
     public:
@@ -102,7 +107,6 @@ class IntExp : public Expression {
         
         Exp clone() { return new IntExp(val); }
         std::string toString();
-
 };
 
 /**
@@ -161,7 +165,7 @@ class ListExp : public Expression, public ArrayList<Exp> {
 /**
  * Expression that represents a 32-bit floating point real number.
  */
-class RealExp : public Expression {
+class RealExp : public PrimitiveExp {
     private:
         float val;
     public:
@@ -178,7 +182,7 @@ class RealExp : public Expression {
 /**
  * Denotes a string within the language.
  */
-class StringExp : public Expression {
+class StringExp : public PrimitiveExp {
     private:
         std::string val;
     public:
@@ -195,7 +199,7 @@ class StringExp : public Expression {
 /**
  * Denotes true.
  */
-class TrueExp : public Expression {
+class TrueExp : public PrimitiveExp {
     public:
         TrueExp() {}
         Val evaluate(Env);
@@ -258,7 +262,7 @@ class VarExp : public Expression {
          */
 };
 
-class VoidExp : public Expression {
+class VoidExp : public PrimitiveExp {
     public:
         VoidExp() {}
 

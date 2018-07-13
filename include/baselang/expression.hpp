@@ -55,7 +55,12 @@ class Expression : public Stringable {
             return NULL;
         }
         virtual Expression* symb_diff(std::string x);
-
+        
+        /**
+         * Performs postprocessing on the expression to verify its safety.
+         * @param vars The set of already defined variables.
+         * @return Whether or not the expression is valid (ex: no re-declarations of vars)
+         */
         virtual bool postprocessor(Trie<bool> *vars = new Trie<bool>) { return true; };
         
         /**

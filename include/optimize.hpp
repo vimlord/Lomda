@@ -3,7 +3,7 @@
 
 #include "expression.hpp"
 
-inline bool is_const_exp(Exp exp);
-bool is_const_list(ListExp *exp);
+//inline bool is_const_exp(Exp exp);
+//bool is_const_list(ListExp *exp);
 
 #endif
