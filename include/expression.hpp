@@ -501,7 +501,7 @@ class ThunkExp : public Expression {
 };
 
 /**
- * An anti-thunk. Evaluates to the stored value.
+ * An anti-thunk expression. Evaluates to the stored value.
  */
 class ValExp : public Expression {
     private:
