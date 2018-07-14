@@ -21,7 +21,7 @@ result<Expression> parse_pemdas(string str, int order) {
     result<Expression> base;
     base.value = NULL;
     base.strlen = -1;
-
+    
     // We will first attempt to derive a unary expression
     // from the front of the expression.
     if (order >= 3) {
@@ -43,6 +43,76 @@ result<Expression> parse_pemdas(string str, int order) {
                 base.strlen += i;
             } else
                 return base;
+    } else if ((i = starts_with(str, "fold")) > 0) {
+            result<Expression> lst = parse_pemdas(str.substr(i));
+            if (!lst.value) {
+                return base;
+            } else
+                i += lst.strlen;
+
+            int j;
+            
+            if ((j = starts_with(str.substr(i), "into")) < 0) {
+                delete lst.value;
+                return base;
+            } else
+                i += j;
+            
+            result<Expression> func = parse_body(str.substr(i));
+            if (!func.value) {
+                delete lst.value;
+                return base;
+            } else
+                i += func.strlen;
+
+            if ((j = starts_with(str.substr(i), "from")) < 0) {
+                delete lst.value;
+                delete func.value;
+                return base;
+            } else
+                i += j;
+
+            result<Expression> init = parse_body(str.substr(i), true);
+            if (!init.value) {
+                delete lst.value;
+                delete func.value;
+                return base;
+            } else
+                i += init.strlen;
+
+            // Build the end result
+            base.value =  new FoldExp(lst.value, func.value, init.value);
+            base.strlen = i;
+
+        } else if ((i = starts_with(str, "map")) > 0) {
+            // Parse the conditional
+            result<Expression> func = parse_pemdas(str.substr(i));
+            if (!func.value)
+                return base;
+            else
+                i += func.strlen;
+
+            int j;
+            
+            // Then keyword
+            if ((j = starts_with(str.substr(i), "over")) < 0) {
+                delete func.value;
+                return base;
+            } else
+                i += j;
+            
+            // Parse the first body
+            result<Expression> lst = parse_body(str.substr(i));
+            if (!lst.value) {
+                delete func.value;
+                return base;
+            } else
+                i += lst.strlen;
+
+            // Build the end result
+            base.value =  new MapExp(func.value, lst.value);
+            base.strlen = i;
+
         } else if ((i = starts_with(str, "left")) > 0) {
             // Parse for the 'of' keyword
             int j = starts_with(str.substr(i), "of");
@@ -73,6 +143,110 @@ result<Expression> parse_pemdas(string str, int order) {
                 base.value = new TupleAccessExp(base.value, true);
                 base.strlen += i + j;
             }
+        } else if ((i = starts_with(str, "switch")) > 0) {
+            // Extract an ADT
+            result<Expression> adt = parse_pemdas(str.substr(i), 1); // Identification is limited to low level definitions
+            if (!adt.value) return base;
+            else i += adt.strlen;
+
+            int j;
+
+            if ((j = starts_with(str.substr(i), "in")) == -1) {
+                delete adt.value;
+                return base;
+            } else
+                i += j;
+            
+            // Extract a statement list
+            list<string> states = extract_statements(str.substr(i), '|', false);
+            
+            // Build argument sets
+            list<string> names;
+            list<string*> idss;
+            list<Exp> bodies;
+
+            while (states.size()) {
+                // Parse the front
+                string state = states.front();
+                
+                state = trim_whitespace(state);
+                
+                // Parse the name and then trim following whitespace
+                string name = extract_identifier(state);
+                if (name == "") break;
+                else state = trim_whitespace(state.substr(name.length()));
+                
+                // Record the kind.
+                names.push_back(name);
+                
+                if (state[0] != '(') break;
+                
+                // Extract arguments
+                int j = index_of_closure(state, '(', ')');
+                if (j == -1) break;
+                string argstr = state.substr(1, j-1);
+                state = state.substr(j+1);
+                
+                if (!is_all_whitespace(argstr)) {
+                    // Parse through the arguments; they should all be identifiers.
+                    list<string> args = extract_statements(argstr, ',', false);
+                    string *ids = new string[args.size()+1];
+                    ids[args.size()] = "";
+                    for (i = 0; args.size(); i++) {
+                        // Pull out and scrape the string down
+                        string id = trim_whitespace(args.front());
+                        
+                        // Check to see that the entire string is an identifier.
+                        if (id.length() == 0 || extract_identifier(id) != id) break;
+                        else ids[i] = id;
+
+                        args.pop_front();
+                    }
+                    
+                    // Proper or not, add to the list of arguments.
+                    idss.push_back(ids);
+                    
+                    // If some items were not processed, parsing failed.
+                    if (args.size()) break;
+                } else {
+                    // Establish the empty case
+                    string *ids = new string[1];
+                    ids[0] = "";
+                    idss.push_back(ids);
+                }
+
+                // Make sure the arrow can be parsed.
+                if ((i = starts_with(state, "->")) < 0) break;
+                else state = state.substr(i);
+                
+                // Parse the body. It only needs to terminate inside,
+                // as the delimiter '|' completely encapsulates.
+                result<Expression> body = parse_body(state, states.size() > 1);
+                if (!body.value) break;
+                else bodies.push_back(body.value);
+
+                // Mark as complete
+                states.pop_front();
+                
+                // If we reached the end, then we can set the true length of the expression
+                i = str.length() - (state.length() - body.strlen);
+            }
+
+            if (!states.empty()) {
+                // The evaluation failed
+                delete adt.value;
+                while (bodies.size()) { delete bodies.front(); bodies.pop_front(); }
+                while (idss.size()) { delete[] idss.front(); idss.pop_front(); }
+                return base;
+            }
+
+            base.value = new SwitchExp(
+                    adt.value,
+                    store_in_list<string>(names, ""),
+                    store_in_list<string*>(idss, NULL),
+                    store_in_list<Exp>(bodies, NULL)
+            );
+            base.strlen = i;
         } else if ((i = starts_with(str, "d/d")) > 0) {
             // Attempt to extract the variable
             string x = extract_identifier(str.substr(index_of_char(str, 'd') + 3));
