@@ -88,6 +88,14 @@ int starts_with(string str, string lit) {
     return i;
 }
 
+int starts_with_any(string str, list<string> lits) {
+    for (auto lit : lits) {
+        int i = starts_with(str, lit);
+        if (i != -1) return i;
+    }
+    return -1;
+}
+
 list<string> extract_statements(string str, char delim, bool trim_empty) {
     list<string> result;
 

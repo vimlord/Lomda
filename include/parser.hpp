@@ -47,6 +47,7 @@ int index_of_char(std::string str, char c);
  * over the literal and clear whitespace, or -1 if not present.
  */
 int starts_with(std::string str, std::string lit);
+int starts_with_any(std::string str, std::list<std::string> lit);
 
 /**
  * We know that a program is a series of expressions split by semicolons.

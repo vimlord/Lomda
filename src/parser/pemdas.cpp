@@ -1051,16 +1051,19 @@ result<Expression> parse_pemdas(string str, int order) {
         int i;
         CompOp op;
 
-        if (
-            (i = starts_with(str, "==")) > 0
-            ||
-            (i = starts_with(str, "is")) > 0
-            ||
-            (i = starts_with(str, "equals")) > 0
-        )
+        if ((i = starts_with_any(str, {"==", "equals"})) > 0)
             op = EQ;
         else if ((i = starts_with(str, "!=")) > 0)
             op = NEQ;
+        else if ((i = starts_with(str, "is")) > 0) {
+            int j;
+            if ((j = starts_with(str.substr(i), "not")) > 0) {
+                op = NEQ;
+                i += j;
+            } else {
+                op = EQ;
+            }
+        }
         
         if (i > 0) {
             str = str.substr(i);

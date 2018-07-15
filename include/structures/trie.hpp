@@ -299,8 +299,8 @@ V Trie<V>::remove(std::string key) {
                 }
             }
 
-            return res;
         }
+        return res;
     } else
         throw std::out_of_range(key);
 }
