@@ -72,7 +72,8 @@ class SwitchExp : public Expression {
 
         Exp clone();
         std::string toString();
-
+        
+        Exp optimize();
 };
 
 /**

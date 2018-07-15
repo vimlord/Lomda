@@ -213,10 +213,10 @@ Exp ListAccessExp::optimize() {
             Exp e = lst->remove(i);
             delete this;
             return e;
-        } else {
-            return this;
         }
     }
+
+    return this;
 }
 
 Exp MultExp::optimize() {
@@ -347,10 +347,60 @@ Exp DictExp::optimize() {
 
 Exp DictAccessExp::optimize() {
     list = list->optimize();
+    
+    if (isExp<ValExp>(list)) {
+        // We should be able to compute the expression.
+        Val v = evaluate(NULL);
+
+        if (!v)
+            throw "execution failure";
+        else
+            return new ValExp(v);
+    }
+
+    return this;
 }
 
 Exp SetExp::optimize() {
-    tgt->optimize();
+    // We will preserve the assignment in order to ensure proper behavior.
+    if (isExp<ListAccessExp>(tgt)) {
+        auto acc = (ListAccessExp*) tgt;
+        auto lst = acc->getList()->clone();
+        auto idx = acc->getIdx()->clone();
+
+        // Compute a better list
+        try {
+            lst = lst->optimize();
+            idx = idx->optimize();
+        } catch (std::string x) {
+            delete lst;
+            delete idx;
+            throw x;
+        }
+
+        delete tgt;
+        tgt = new ListAccessExp(lst, idx);
+
+    } else if (isExp<DictAccessExp>(tgt)) {
+        auto acc = (DictAccessExp*) tgt;
+        auto lst = acc->getList()->clone();
+        auto idx = acc->getIdx();
+
+        // Compute a better list
+        try {
+            lst = lst->optimize();
+        } catch (std::string x) {
+            delete lst;
+            throw x;
+        }
+
+        delete tgt;
+        tgt = new DictAccessExp(lst, idx);
+
+    } else {
+        tgt->optimize();
+    }
+
     exp->optimize();
     return this;
 }
@@ -457,11 +507,10 @@ Exp StdMathExp::optimize() {
         if (x != e) {
             // It was reduced, therefore we should search for better optima.
             return optimize();
-        } else {
-            // We are done>
-            return this;
         }
     }
+
+    return this;
 }
 
 Exp SumExp::optimize() {
@@ -512,6 +561,15 @@ Exp SumExp::optimize() {
         }
     }
 
+    return this;
+}
+
+Exp SwitchExp::optimize() {
+    adt = adt->optimize();
+
+    for (int i = 0; bodies[i]; i++)
+        bodies[i] = bodies[i]->optimize();
+    
     return this;
 }
 
