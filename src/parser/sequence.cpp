@@ -27,18 +27,6 @@ Exp parse_sequence(string str, list<string> future) {
             int i = index_of_char(*p, '=');
             string nam = p->substr(0, i);
             string val = p->substr(i+1);
- 
-            // Make an attempt to parse the expression on the right side.
-            // Exactly nothing should be left over during the search.
-            auto exp = parse_pemdas(val);
-            if (!exp.value || !is_all_whitespace(val.substr(exp.strlen))) {
-                // Perform garbage collection.
-                free_all_in_list(vals);
-                exp.reset();
-
-                // Fail
-                return NULL;
-            }
 
             // Trim spaces off of the name variable
             for (i = 0; nam[i] == ' ' || nam[i] == '\n' || nam[i] == '\t'; i++);
@@ -49,6 +37,19 @@ Exp parse_sequence(string str, list<string> future) {
             nam = nam.substr(id.length());
 
             if (!is_all_whitespace(nam)) {
+                // Make an attempt to parse the expression on the right side.
+                // Exactly nothing should be left over during the search.
+                // Use the body form.
+                auto exp = parse_body(val, true);
+                if (!exp.value || !is_all_whitespace(val.substr(exp.strlen))) {
+                    // Perform garbage collection.
+                    free_all_in_list(vals);
+                    exp.reset();
+
+                    // Fail
+                    return NULL;
+                }
+
                 i = starts_with(nam, "(");
                 if (i == -1) {
                     free_all_in_list(vals);
@@ -105,6 +106,19 @@ Exp parse_sequence(string str, list<string> future) {
                 vals.push_back(new LambdaExp(args, exp.value));
                 recs.push_back(true);
             } else {
+                // Make an attempt to parse the expression on the right side.
+                // Exactly nothing should be left over during the search.
+                // Use the one-liner anonymous form.
+                auto exp = parse_pemdas(val);
+                if (!exp.value || !is_all_whitespace(val.substr(exp.strlen))) {
+                    // Perform garbage collection.
+                    free_all_in_list(vals);
+                    exp.reset();
+
+                    // Fail
+                    return NULL;
+                }
+
                 // Push everything as is
                 ids.push_back(id);
                 vals.push_back(exp.value);
