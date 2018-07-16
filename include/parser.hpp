@@ -28,7 +28,7 @@ struct result {
     }
 };
 
-result<Expression> parse_pemdas(std::string str, int = 12);
+result<Expression> parse_pemdas(std::string str, int = 13);
 result<Expression> parse_body(std::string, bool = false);
 
 /**

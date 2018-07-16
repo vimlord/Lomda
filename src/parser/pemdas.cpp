@@ -1133,12 +1133,47 @@ result<Expression> parse_pemdas(string str, int order) {
             }
         }
     }
-    
+
     if (order >= 11) {
+        int i;
+        if ((i = starts_with(str, "if")) > 0) {
+            result<Expression> cond = parse_pemdas(str.substr(i));
+            if (!cond.value) {
+                base.reset();
+                return base;
+            }
+            
+            base.strlen += i + cond.strlen;
+            str = str.substr(i + cond.strlen);
+
+            if ((i = starts_with(str, "else")) == -1) {
+                cond.reset();
+                base.reset();
+                return base;
+            } else {
+                base.strlen += i;
+                str = str.substr(i);
+            }
+
+            result<Expression> other = parse_pemdas(str);
+            if (!other.value) {
+                cond.reset();
+                base.reset();
+                return base;
+            } else {
+                base.strlen += other.strlen;
+                str = str.substr(other.strlen);
+            }
+
+            base.value = new IfExp(cond.value, base.value, other.value);
+        }
+    }
+    
+    if (order >= 12) {
         // Assignment
         int i;
         if ((i = starts_with(str, "=")) > 0) {
-            result<Expression> next = parse_pemdas(str.substr(i), 11);
+            result<Expression> next = parse_pemdas(str.substr(i), order);
             if (!next.value) {
                 base.reset();
                 return base;
@@ -1151,10 +1186,10 @@ result<Expression> parse_pemdas(string str, int order) {
         }
     }
 
-    if (order >= 12) {
+    if (order >= 13) {
         int i;
         if ((i = starts_with(str, ",")) > 0) {
-            result<Expression> next = parse_pemdas(str.substr(i), 12);
+            result<Expression> next = parse_pemdas(str.substr(i), order);
             if (!next.value) {
                 base.reset();
                 return base;
