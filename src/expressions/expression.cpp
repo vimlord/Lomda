@@ -9,7 +9,7 @@ using namespace std;
 
 
 void throw_warning(string form, string mssg) {
-    if (WERROR()) throw_err(form, mssg);
+    if (configuration.werror) throw_err(form, mssg);
     else std::cerr << "\x1b[33m\x1b[1m" << (form == "" ? "" : (form + " "))
                    << "warning:\x1b[0m " << mssg << "\n";
 }
@@ -18,7 +18,7 @@ void throw_err(string form, string mssg) {
             << "error:\x1b[0m " << mssg << "\n";
 }
 void throw_debug(string form, string mssg) {
-    if (VERBOSITY())
+    if (configuration.verbosity)
         std::cout << "\x1b[34m\x1b[1m" << (form == "" ? "debug" : form)
                   << ":\x1b[0m " << mssg << "\n";
 }
