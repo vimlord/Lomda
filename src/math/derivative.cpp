@@ -1060,7 +1060,7 @@ Val MapExp::derivativeOf(string x, Env env, Env denv) {
         
         return res;
 
-    } else if (WERROR()) {
+    } else if (configuration.werror) {
         throw_type_err(list, "list");
         vs->rem_ref();
         dvs->rem_ref();
@@ -1540,7 +1540,7 @@ Val VarExp::derivativeOf(string x, Env env, Env denv) {
     Val dv = denv->apply(id);
     if (!dv) {
         throw_err("calculus", "derivative of variable '" + id + "' is not known within this context");
-        if (VERBOSITY()) throw_debug("runtime error", "error ocurred w/ scope:\n" + denv->toString());
+        if (configuration.verbosity) throw_debug("runtime error", "error ocurred w/ scope:\n" + denv->toString());
     } else
         dv->add_ref();
 

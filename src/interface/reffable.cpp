@@ -8,7 +8,7 @@ using namespace std;
 void Reffable::add_ref() {
     ++refs;
     
-    if (VERBOSITY()) {
+    if (configuration.verbosity) {
         std::cout << "\x1b[34m\x1b[1mmem_mgt:\x1b[0m "
                   << "ref count of " << this
                   << " up to "
@@ -25,7 +25,7 @@ void Reffable::rem_ref() {
 
     --refs;
     
-    if (VERBOSITY()) {
+    if (configuration.verbosity) {
         std::cout << "\x1b[34m\x1b[1mmem_mgt:\x1b[0m "
                   << "ref count of " << this
                   << " down to "
