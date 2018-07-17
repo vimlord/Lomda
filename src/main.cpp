@@ -20,7 +20,7 @@ void execute(string program) {
     v = unpack_thunk(v);
 
     if (v) {
-        if (VERBOSITY()) cout << "(" << v << ")\n==> ";
+        if (configuration.verbosity) cout << "(" << v << ")\n==> ";
         cout << *v << "\n";
         v->rem_ref();
     }
@@ -36,11 +36,11 @@ void print_version() {
 
 void display_config() {
     std::cout << "The following configuration is in use:\n";
-    std::cout << "mod cache: " << OPTIMIZE() << " (default: 0)\n";
-    std::cout << "optimize:  " << OPTIMIZE() << " (default: 0)\n";
-    std::cout << "use_types: " << USE_TYPES() << " (default: 0)\n";
-    std::cout << "verbosity: " << VERBOSITY() << " (default: 0)\n";
-    std::cout << "werror:    " << WERROR() << " (default: 0)\n";
+    std::cout << "mod cache: " << configuration.optimization << " (default: 0)\n";
+    std::cout << "optimize:  " << configuration.optimization << " (default: 0)\n";
+    std::cout << "use_types: " << configuration.types << " (default: 0)\n";
+    std::cout << "verbosity: " << configuration.verbosity << " (default: 0)\n";
+    std::cout << "werror:    " << configuration.werror << " (default: 0)\n";
 }
 
 /**
@@ -50,7 +50,7 @@ void display_config() {
 int interpret() {
     // Print relevant information (only print the config data if in verbose mode)
     print_version();
-    if (VERBOSITY()) display_config();
+    if (configuration.verbosity) display_config();
 
     cout << "Enter a program and press <enter> to execute, or one of the following:\n";
     cout << "'exit' - exit the interpreter\n";
@@ -81,27 +81,27 @@ int interpret() {
 }
 
 int main(int argc, char *argv[]) { 
-    set_argv(argv);
+    configuration.argv = argv;
 
     string filename = "";
 
     int i;
     for (i = 1; argv[i]; i++) {
         if (!strcmp(argv[i], "--use-types"))
-            set_use_types(WERROR() ? 2 : 1);
+            configuration.types = configuration.werror ? 2 : 1;
         else if (!strcmp(argv[i], "--use-module-caching"))
-            set_use_module_caching(true);
+            configuration.module_caching = true;
         else if (!strcmp(argv[i], "--version")) {
             print_version(); return 0;
         } else if (!strcmp(argv[i], "-v") || !strcmp(argv[i], "--verbose")) {
-            set_verbosity(true);
+            configuration.verbosity = true;
         } else if (!strcmp(argv[i], "--werror")) {
-            set_werror(true);
+            configuration.werror = true;
             // If we treat warnings as errors, then we will require typing to pass
-            if (USE_TYPES())
-                set_use_types(2);
+            if (configuration.types)
+                configuration.types = 2;
         } else if (!strcmp(argv[i], "-O") || !strcmp(argv[i], "--optimize")) {
-            set_optimize(true);
+            configuration.optimization = true;
         } else if (!strcmp(argv[i], "-t")) {
             // Run the lang tests
             int n = test();

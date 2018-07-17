@@ -117,7 +117,7 @@ int test_cases(string title, string (*run)(Exp)) {
         // Evaluate the test case
         Exp exp = it.first;
 
-        if (VERBOSITY()) std::cout << "Testing " << *exp << "\n"; 
+        if (configuration.verbosity) std::cout << "Testing " << *exp << "\n"; 
 
         string res = run(exp);
         
