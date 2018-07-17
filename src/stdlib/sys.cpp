@@ -27,7 +27,7 @@ Type* type_stdlib_sys() {
 Val load_stdlib_sys() {
     
     // Argument vector
-    char **args = get_argv();
+    char **args = configuration.argv;
     ListVal *argv = new ListVal;
 
     // Assign items to the list

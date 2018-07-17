@@ -306,7 +306,7 @@ Val Thunk::get(Env e) {
 
         val = exp->evaluate(e);
 
-        if (val && VERBOSITY()) std::cout << "\x1b[34m\x1b[1mthunk:\x1b[0m created new ref " << val << "\n";
+        if (val && configuration.verbosity) std::cout << "\x1b[34m\x1b[1mthunk:\x1b[0m created new ref " << val << "\n";
     }
 
     // Debug print the outcome

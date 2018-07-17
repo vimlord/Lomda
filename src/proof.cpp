@@ -1,7 +1,7 @@
 #include "proof.hpp"
 
 void show_proof_step(std::string x) {
-    if (VERBOSITY()) std::cout << "\x1b[3m" << x << "\x1b[0m\n";
+    if (configuration.verbosity) std::cout << "\x1b[3m" << x << "\x1b[0m\n";
 }
 void show_proof_therefore(std::string x) {
     show_proof_step("Therefore, " + x + ".");

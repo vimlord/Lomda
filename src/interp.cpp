@@ -39,7 +39,7 @@ Val run(string program) {
         if (!valid)
             return NULL;
         
-        if (USE_TYPES()) {
+        if (configuration.types) {
             // Use the type system.
             show_proof_step("We seek to find t such that {} ⊢ " + exp->toString() + " : t");
 
@@ -60,7 +60,7 @@ Val run(string program) {
                 show_proof_step("Reductio ad absurdum.");
                 
                 auto s = tenv->toString() + " ⊢ " + exp->toString() + " is untypable";
-                if (USE_TYPES() > 1)
+                if (configuration.types > 1)
                     throw_err("type", s);
                 else
                     std::cout << s << "\n";
@@ -68,12 +68,12 @@ Val run(string program) {
 
             delete tenv;
 
-            if (!type && USE_TYPES() > 1)
+            if (!type && configuration.types > 1)
                 return NULL;
         }
 
         // If optimization is requested, grant it.
-        if (OPTIMIZE()) {
+        if (configuration.optimization) {
             try {
                 exp = exp->optimize();
                 throw_debug("postprocessor", "program '" + program + "' optimized to '" + exp->toString() + "'");
@@ -753,7 +753,7 @@ Val ImportExp::evaluate(Env env) {
         throw_debug("module", "module " + module + " := " + mod->toString());
 
         // Store the module in the cache if need be
-        if (USE_MODULE_CACHING() && module_cache.find(module) == module_cache.end()) {
+        if (configuration.module_caching && module_cache.find(module) == module_cache.end()) {
             throw_debug("module", "caching module " + module);
             module_cache[module] = mod;
         }
@@ -1228,7 +1228,7 @@ Val MapExp::evaluate(Env env) {
 
         return res;
 
-    } else if (WERROR()) {
+    } else if (configuration.werror) {
         throw_err("runtime", "expression '" + list->toString() + " does not evaluate as list");
         vs->rem_ref();
         fn->rem_ref();
@@ -1474,7 +1474,7 @@ Val SetExp::evaluate(Env env) {
         
         env->set(var->toString(), v);
 
-    } else if (WERROR()) {
+    } else if (configuration.werror) {
         throw_err("runtime", "assigning to right-handish expression '" + tgt->toString() + "' is unsafe");
         return NULL;
     } else {
@@ -1722,7 +1722,7 @@ Val VarExp::evaluate(Env env) {
     Val res = env->apply(id);
     if (!res) {
         throw_err("runtime", "variable '" + id + "' was not recognized");
-        if (VERBOSITY()) throw_debug("runtime error", "error ocurred w/ scope:\n" + env->toString());
+        if (configuration.verbosity) throw_debug("runtime error", "error ocurred w/ scope:\n" + env->toString());
         return NULL;
     } else {
         res->add_ref(); // This necessarily creates a new reference. So, we must track it.

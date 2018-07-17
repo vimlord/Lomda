@@ -53,7 +53,7 @@ Exp parse_program(string str) {
 
     if (!program)
         throw_err("parser", "the given program could not be converted to an AST via BNF parsing");
-    else if (VERBOSITY())
+    else if (configuration.verbosity)
         throw_debug("parsed", program->toString());
     
     return program;
