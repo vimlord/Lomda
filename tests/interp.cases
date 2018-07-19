@@ -30,11 +30,17 @@ true
 1 - 2 + 3
 2
 
+[1, 2] * [[3, 4], [5, 6]]
+[13, 16]
+
 [1,2] * [3, 4]
 11
 
 [[1, 2], [3, 4]] * [1, 2]
 [5, 11]
+
+[[1, 2], [-1, -2]] * [1, -1]
+[-1, 1]
 
 # Simple function
 () -> 1
@@ -139,4 +145,21 @@ Num<Real>(1)
 
 type Num = Int(Z) | Real(R); let x = 4; d/dx switch Num.Int(x) in Int(z) -> x*z | Real(z) -> -1
 8
+
+# Other cases
+let f(x) = { let y = x*x; x + y }; f(4)
+20
+
+let factorial(n) = 1 if n < 2 else n * factorial(n-1); factorial(4)
+24
+
+exp(log(16)) equals 16
+true
+
+import sort; let L = [9,6,8,5,3,2,1,4,7]; sort.quicksort(L); sort.is_sorted(L)
+true
+
+import sort; let L = [9,6,8,5,3,2,1,4,7]; sort.mergesort(L); sort.is_sorted(L)
+true
+
 

@@ -262,6 +262,7 @@ class ImportExp : public Expression {
                     // Default behavior: return the expression
                     if (!e) exp = new VarExp(m);
         }
+        ~ImportExp() { delete exp; }
 
         bool postprocessor(Trie<bool> *vars) {
             if (vars->hasKey(name)) {
