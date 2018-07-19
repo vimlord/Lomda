@@ -57,6 +57,8 @@ bool mergesort(Val *vs, int i, int j) {
         for (x = 0; x < j - i; x++)
             vs[x+i] = xs[x];
 
+        delete[] xs;
+
     }
 
     return true;
@@ -121,6 +123,8 @@ bool quicksort(Val *vs, int i, int j) {
         if (!B) return false;
         else if (B->get())
             swap(vs, i, i+1);
+
+        B->rem_ref();
     }
 
     return true;
@@ -147,6 +151,8 @@ Val std_sort(Env env, bool (*sort)(Val*, int, int)) {
     // Then, we put everything in
     for (int i = 0; i < L->size(); i++)
         L->set(i, vs[i]);
+
+    delete[] vs;
 
     return res ? new VoidVal : NULL;
 
@@ -177,8 +183,11 @@ Val std_is_sorted(Env env) {
             delete it;
             return NULL;
         } else if (!b->get()) {
+            b->rem_ref();
             delete it;
             return new BoolVal(false);
+        } else {
+            b->rem_ref();
         }
     }
 

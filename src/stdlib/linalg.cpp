@@ -6,6 +6,98 @@
 #include "math.hpp"
 #include <cmath>
 
+/**
+ * Divide a polynomial by a first order polynomial; P(x) / (x - c)
+ */
+inline float* synthetic_division(float *P, float c, int n) {
+    float *Q = new float[n];
+
+    float d = 0;
+
+    for (int i = n; i > 0; i--) {
+        d = P[i] + d*c;
+        Q[i-1] = d;
+    }
+
+    return Q;
+}
+
+inline float* derivative(float *F, int n) {
+    float *G = new float[n];
+    for (int i = 0; i < n; i++)
+        G[i] = F[i+1] / (i+1);
+    return G;
+}
+
+inline float apply(float *F, int n, float x) {
+    float y = 0;
+    for (int i = n; i >= 0; i--)
+        y += F[i] * pow(x, i);
+
+    return y;
+}
+
+float* factorize(float *F, int n) {
+    float *xs = new float[n];
+
+    float R = 0;
+    for (int i = 0; i < n; i++)
+        R += F[i] > 0 ? F[i] : -F[i];
+    if (R < 1) R = 1;
+
+    for (int i = 0; n > 0; i++) {
+        // Perform a Newton-Raphson estimation. We wil use a random
+        // initial point to estimate.
+        float x = fmod(rand(), 2*R) - R;
+        float y;
+        float *dF = derivative(F, n);
+
+        bool complete = false;
+        while (true) {
+            // Compute y
+            y = apply(F, n, x);
+            if (y == 0) {
+                complete = true;
+                break;
+            } else if (std::isinf(y))
+                break;
+
+            float dy = apply(dF, n-1, x);
+            if (dy == 0) {
+                break;
+            }
+
+            x -= y/dy;
+        }
+
+        delete[] dF;
+
+        if (!complete) {
+            // Start over
+            i--;
+            continue;
+        }
+
+        // Store the answer.
+        xs[i] = x;
+
+        // Modify the polynomial.
+        if (i) {
+            delete[] F;
+
+            if (i < n-1) {
+                float *G = synthetic_division(F, x, n);
+                F = G;
+            }
+        } else
+            F = synthetic_division(F, x, n);
+
+        n--;
+    }
+
+    return xs;
+}
+
 Val std_transpose(Env env) {
     Val x = env->apply("x");
 
@@ -497,6 +589,100 @@ Val std_determinant(Env env) {
 
 }
 
+Val std_eig(Env env) {
+    Val x = env->apply("x");
+
+    if (!isVal<ListVal>(x)) {
+        throw_err("type", "linalg.gaussian : [[R]] -> [[R]] cannot be applied to argument " + x->toString());
+        return NULL;
+    }
+
+    ListVal *A = (ListVal*) x;
+    
+    // Should be a non-empty list
+    int n = A->size();
+    if (n == 0) {
+        throw_err("type", "linalg.gaussian : [[R]] -> [[R]] cannot be applied to argument " + x->toString());
+        return NULL;
+    }
+
+    // We will ensure that M is rectangular and consisting exclusively of numbers.
+    for (int i = 0; i < n; i++) {
+        Val row = A->get(i);
+        if (!isVal<ListVal>(row) || ((ListVal*) row)->size() != n) {
+            throw_err("type", "linalg.gaussian : [[R]] -> [[R]] cannot be applied to argument " + x->toString());
+            return NULL;
+        }
+        
+        auto it = ((ListVal*) row)->iterator();
+        while (it->hasNext()) {
+            auto v = it->next();
+            if (!isVal<RealVal>(v) && !isVal<IntVal>(v)) {
+                delete it;
+                throw_err("type", "linalg.gaussian : [[R]] -> [[R]] cannot be applied to argument " + x->toString());
+                return NULL;
+            }
+        }
+        delete it;
+    }
+
+    // We will need to generate a characteristic polynomial.
+    // Start with the coefficients.
+    float *c = new float[n+1];
+    c[n] = 1;
+
+    auto AM = new ListVal;
+    for (int i = 0; i < n; i++) {
+        auto row = new ListVal;
+        AM->add(i, row);
+        for (int j = 0; j < n; j++)
+            row->add(j, new IntVal);
+    }
+
+    for (int k = 1; k <= n; k++) {
+        // First, we update M
+
+        auto I = new ListVal;
+        for (int i = 0; i < n; i++) {
+            auto row = new ListVal;
+            I->add(i, row);
+            for (int j = 0; j < n; j++)
+                row->add(j, i == j ? new RealVal(c[n-k+1]) : new RealVal);
+        }
+
+        auto M = (ListVal*) add(AM, I);
+        AM->rem_ref();
+        I->rem_ref();
+
+        // Then, we update AM
+        AM = (ListVal*) mult(A, M);
+        M->rem_ref();
+
+        // Then, we will calculate the trace.
+        float tr = 0;
+        for (int i = 0; i < n; i++)
+            tr += ((RealVal*) ((ListVal*) AM->get(i))->get(i))->get();
+
+        // And from it, we compute the coefficient.
+        c[n-k] = -tr / k;
+    }
+
+    AM->rem_ref();
+
+    // Then, we will find the solutions to the polynomial.
+    float *eigs = factorize(c, n);
+
+    auto res = new ListVal;
+    for (int i = 0; i < n; i++) {
+        res->add(i, new RealVal(eigs[i]));
+    }
+    
+    delete[] c;
+    delete[] eigs;
+    
+    return res;
+}
+
 Type* type_stdlib_linalg() {
     return new DictType {
         {
@@ -504,6 +690,11 @@ Type* type_stdlib_linalg() {
             new LambdaType("x",
                 new ListType(new ListType(new RealType)),
                 new RealType)
+        }, {
+            "eig",
+            new LambdaType("x",
+                new ListType(new ListType(new RealType)),
+                new ListType(new RealType))
         }, {
             "gaussian",
             new LambdaType("x",
@@ -534,6 +725,10 @@ Val load_stdlib_linalg() {
             "det",
             new LambdaVal(new std::string[2]{"x", ""},
                 new ImplementExp(std_determinant, NULL))
+        }, {
+            "eig",
+            new LambdaVal(new std::string[2]{"x", ""},
+                new ImplementExp(std_eig, NULL))
         }, {
             "gaussian",
             new LambdaVal(new std::string[2]{"x", ""},
