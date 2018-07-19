@@ -676,9 +676,6 @@ Val mult(Val a, Val b) {
                 auto ait = ((ListVal*) a)->iterator();
                 auto bit = ((ListVal*) b)->iterator();
 
-                
-                
-
                 res = mult(ait->next(), bit->next());
                 if (res)
                     //std::cout << "init: " << *res << "\n";
@@ -701,6 +698,9 @@ Val mult(Val a, Val b) {
                     if (res) res->rem_ref();
                     res = NULL;
                 }
+
+                delete ait;
+                delete bit;
 
             } else {
                 //std::cout << "1 by 1\n";

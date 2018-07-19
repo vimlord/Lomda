@@ -756,6 +756,7 @@ Val ImportExp::evaluate(Env env) {
         if (configuration.module_caching && module_cache.find(module) == module_cache.end()) {
             throw_debug("module", "caching module " + module);
             module_cache[module] = mod;
+            mod->add_ref();
         }
         
         // We will extend the environment with the newly found module
@@ -773,6 +774,7 @@ Val ImportExp::evaluate(Env env) {
             env->set(name, tmp);
             tmp->rem_ref();
         }
+        mod->rem_ref();
 
         return v;
     } else {
