@@ -34,6 +34,8 @@ Val pow(Val, Val);
  */
 int* is_matrix(Val v);
 
+int is_square_matrix(Val v);
+
 /**
  * Determines whether or not a given value is a vector.
  * @param v The value to check.

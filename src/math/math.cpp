@@ -30,14 +30,12 @@ int* is_matrix(Val v) {
         return 0;
     ListVal *list = (ListVal*) v;
 
-    auto it = list->iterator();
-
     int cols = 0;
 
     // Empty lists are not matrices
     int i;
-    for (i = 0; it->hasNext(); i++) {
-        auto v = it->next();
+    for (i = 0; i < list->size(); i++) {
+        auto v = list->get(i);
 
         if (isVal<ListVal>(v)) {
             int c = is_vector((ListVal*) v);
@@ -45,26 +43,44 @@ int* is_matrix(Val v) {
                 if (c) {
                     cols = c;
                 } else {
-                    delete it;
                     return NULL;
                 }
             } else if (!c || c != cols) {
-                delete it;
                 return NULL;
             }
         } else {
-            delete it;
             return NULL;
         }
     }
-    
-    delete it;
 
     int *size = new int[2];
     size[0] = i;
     size[1] = cols;
 
     return size;
+}
+
+int is_square_matrix(Val v) {
+    if (!isVal<ListVal>(v))
+        return 0;
+    ListVal *list = (ListVal*) v;
+
+    // Empty lists are not matrices
+    int i;
+    for (i = 0; i < list->size(); i++) {
+        Val row =list->get(i);
+
+        if (isVal<ListVal>(row)) {
+            int c = is_vector((ListVal*) row);
+            if (!c || c != list->size()) {
+                return 0;
+            }
+        } else {
+            return 0;
+        }
+    }
+
+    return list->size();
 }
 
 // Perform Gaussian elimination on an n x n matrix
