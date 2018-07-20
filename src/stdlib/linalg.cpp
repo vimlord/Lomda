@@ -32,7 +32,7 @@ inline float* derivative(float *F, int n) {
 inline float apply(float *F, int n, float x) {
     float y = 0;
     for (int i = n; i >= 0; i--)
-        y += F[i] * pow(x, i);
+        y = x*y + F[i];
 
     return y;
 }
@@ -98,6 +98,55 @@ float* factorize(float *F, int n) {
     return xs;
 }
 
+float* characteristic_poly(ListVal *A) {
+    int n = A->size();
+
+    // We will need to generate a characteristic polynomial.
+    // Start with the coefficients.
+    float *c = new float[n+1];
+    c[n] = 1;
+
+    auto AM = new ListVal;
+    for (int i = 0; i < n; i++) {
+        auto row = new ListVal;
+        AM->add(i, row);
+        for (int j = 0; j < n; j++)
+            row->add(j, new IntVal);
+    }
+
+    for (int k = 1; k <= n; k++) {
+        // First, we update M
+
+        auto I = new ListVal;
+        for (int i = 0; i < n; i++) {
+            auto row = new ListVal;
+            I->add(i, row);
+            for (int j = 0; j < n; j++)
+                row->add(j, i == j ? new RealVal(c[n-k+1]) : new RealVal);
+        }
+
+        auto M = (ListVal*) add(AM, I);
+        AM->rem_ref();
+        I->rem_ref();
+
+        // Then, we update AM
+        AM = (ListVal*) mult(A, M);
+        M->rem_ref();
+
+        // Then, we will calculate the trace.
+        float tr = 0;
+        for (int i = 0; i < n; i++)
+            tr += ((RealVal*) ((ListVal*) AM->get(i))->get(i))->get();
+
+        // And from it, we compute the coefficient.
+        c[n-k] = -tr / k;
+    }
+
+    AM->rem_ref();
+
+    return c;
+}
+
 Val std_transpose(Env env) {
     Val x = env->apply("x");
 
@@ -160,7 +209,6 @@ Val std_transpose(Env env) {
     }
 
     return yss;
-
 }
 
 /**
@@ -323,13 +371,11 @@ Val std_trace(Env env) {
 
     float tr = 0;
     
-    auto it = xss->iterator();
-    for (int n = 0; it->hasNext(); n++) {
+    for (int n = 0; n < xss->size(); n++) {
         // Check that the item is a list
-        Val v = it->next();
+        Val v = xss->get(n);
         if (!isVal<ListVal>(v)) {
             throw_err("type", "linalg.trace : [[R]] -> R cannot be applied to argument " + x->toString());
-            delete it;
             return NULL;
         }
         
@@ -337,7 +383,6 @@ Val std_trace(Env env) {
         ListVal *xs = (ListVal*) v;
         if (n < xss->size()) {
             throw_err("type", "linalg.trace : [[R]] -> R cannot be applied to argument " + x->toString());
-            delete it;
             return NULL;
         }
 
@@ -351,15 +396,11 @@ Val std_trace(Env env) {
             tr += ((RealVal*) v)->get();
         else {
             throw_err("type", "linalg.trace : [[R]] -> R cannot be applied to argument " + x->toString());
-            delete it;
             return NULL;
         }
     }
-
-    delete it;
    
     return new RealVal(tr);
-
 }
 
 Val std_gaussian(Env env) {
@@ -489,45 +530,15 @@ Val std_gaussian(Env env) {
 Val std_determinant(Env env) {
     Val x = env->apply("x");
 
-    if (!isVal<ListVal>(x)) {
-        throw_err("type", "linalg.gaussian : [[R]] -> [[R]] cannot be applied to argument " + x->toString());
-        return NULL;
-    }
-
-    ListVal *M = (ListVal*) x;
-    
-    // Should be a non-empty list
-    int n = M->size();
+    // Should be a square matrix
+    int n = is_square_matrix(x);
     if (n == 0) {
-        throw_err("type", "linalg.gaussian : [[R]] -> [[R]] cannot be applied to argument " + x->toString());
+        throw_err("type", "linalg.determinant : [[R]] -> [[R]] cannot be applied to argument " + x->toString());
         return NULL;
     }
-
-    // We will ensure that M is rectangular and consisting exclusively of numbers.
-    for (int i = 0; i < n; i++) {
-        Val r = M->get(i);
-        if (!isVal<ListVal>(r)) {
-            throw_err("type", "linalg.gaussian : [[R]] -> [[R]] cannot be applied to argument " + x->toString());
-            return NULL;
-        }
-        
-        ListVal *row = (ListVal*) r;
-        if (row->size() != n) {
-            throw_err("type", "linalg.gaussian : [[R]] -> [[R]] cannot be applied to argument " + x->toString());
-            return NULL;
-        }
-
-        auto it = row->iterator();
-        while (it->hasNext()) {
-            auto v = it->next();
-            if (!isVal<RealVal>(v) && !isVal<IntVal>(v)) {
-                delete it;
-                throw_err("type", "linalg.gaussian : [[R]] -> [[R]] cannot be applied to argument " + x->toString());
-                return NULL;
-            }
-        }
-        delete it;
-    }
+    
+    // Acquire the matrix in list form.
+    ListVal *M = (ListVal*) x;
 
     // We will build a 2D array
     float **mtrx = new float*[n];
@@ -592,82 +603,16 @@ Val std_determinant(Env env) {
 Val std_eig(Env env) {
     Val x = env->apply("x");
 
-    if (!isVal<ListVal>(x)) {
-        throw_err("type", "linalg.gaussian : [[R]] -> [[R]] cannot be applied to argument " + x->toString());
-        return NULL;
-    }
-
-    ListVal *A = (ListVal*) x;
-    
-    // Should be a non-empty list
-    int n = A->size();
+    int n = is_square_matrix(x);
     if (n == 0) {
-        throw_err("type", "linalg.gaussian : [[R]] -> [[R]] cannot be applied to argument " + x->toString());
+        throw_err("type", "linalg.determinant : [[R]] -> [[R]] cannot be applied to argument " + x->toString());
         return NULL;
     }
+    
+    // Acquire the matrix in list form.
+    ListVal *A = (ListVal*) x; 
 
-    // We will ensure that M is rectangular and consisting exclusively of numbers.
-    for (int i = 0; i < n; i++) {
-        Val row = A->get(i);
-        if (!isVal<ListVal>(row) || ((ListVal*) row)->size() != n) {
-            throw_err("type", "linalg.gaussian : [[R]] -> [[R]] cannot be applied to argument " + x->toString());
-            return NULL;
-        }
-        
-        auto it = ((ListVal*) row)->iterator();
-        while (it->hasNext()) {
-            auto v = it->next();
-            if (!isVal<RealVal>(v) && !isVal<IntVal>(v)) {
-                delete it;
-                throw_err("type", "linalg.gaussian : [[R]] -> [[R]] cannot be applied to argument " + x->toString());
-                return NULL;
-            }
-        }
-        delete it;
-    }
-
-    // We will need to generate a characteristic polynomial.
-    // Start with the coefficients.
-    float *c = new float[n+1];
-    c[n] = 1;
-
-    auto AM = new ListVal;
-    for (int i = 0; i < n; i++) {
-        auto row = new ListVal;
-        AM->add(i, row);
-        for (int j = 0; j < n; j++)
-            row->add(j, new IntVal);
-    }
-
-    for (int k = 1; k <= n; k++) {
-        // First, we update M
-
-        auto I = new ListVal;
-        for (int i = 0; i < n; i++) {
-            auto row = new ListVal;
-            I->add(i, row);
-            for (int j = 0; j < n; j++)
-                row->add(j, i == j ? new RealVal(c[n-k+1]) : new RealVal);
-        }
-
-        auto M = (ListVal*) add(AM, I);
-        AM->rem_ref();
-        I->rem_ref();
-
-        // Then, we update AM
-        AM = (ListVal*) mult(A, M);
-        M->rem_ref();
-
-        // Then, we will calculate the trace.
-        float tr = 0;
-        for (int i = 0; i < n; i++)
-            tr += ((RealVal*) ((ListVal*) AM->get(i))->get(i))->get();
-
-        // And from it, we compute the coefficient.
-        c[n-k] = -tr / k;
-    }
-
-    AM->rem_ref();
+    float *c = characteristic_poly(A);
 
     // Then, we will find the solutions to the polynomial.
     float *eigs = factorize(c, n);
@@ -683,9 +628,56 @@ Val std_eig(Env env) {
     return res;
 }
 
+Val std_characteristic_polynomial(Env env) {
+    Val x = env->apply("x");
+
+    int n = is_square_matrix(x);
+    if (n == 0) {
+        throw_err("type", "linalg.determinant : [[R]] -> [[R]] cannot be applied to argument " + x->toString());
+        return NULL;
+    }
+    
+    // Acquire the matrix in list form.
+    ListVal *A = (ListVal*) x; 
+
+    float *c = characteristic_poly(A);
+    
+    // Construct the polynomial
+    Exp poly = NULL;
+    for (int i = 0; i <= n; i++) {
+        if (c[i] != 0) {
+            // Compute the element of the polynomial.
+            Exp arg = i > 0
+                    ? (Exp) new MultExp(
+                        new RealExp(c[i]),
+                        new ExponentExp(new VarExp("x"), new IntExp(i)))
+                    : (Exp) new RealExp(c[i]);
+
+            if (poly) {
+                poly = new SumExp(arg, poly);
+            } else {
+                poly = arg;
+            }
+        }
+    }
+
+    if (!poly) {
+        // Because all of the coefficients are zero, the polynomial should also yield zero.
+        poly = new RealExp;
+    }
+    
+    // Generate the function.
+    return new LambdaVal(new std::string[2]{"x", ""}, poly);
+}
+
 Type* type_stdlib_linalg() {
     return new DictType {
         {
+            "characteristic_polynomial",
+            new LambdaType("x",
+                new ListType(new ListType(new RealType)),
+                new LambdaType("x", new RealType, new RealType))
+        }, {
             "det",
             new LambdaType("x",
                 new ListType(new ListType(new RealType)),
@@ -722,6 +714,10 @@ Type* type_stdlib_linalg() {
 Val load_stdlib_linalg() {
     return new DictVal {
         {
+            "characteristic_polynomial",
+            new LambdaVal(new std::string[2]{"x", ""},
+                new ImplementExp(std_characteristic_polynomial, NULL))
+        },{
             "det",
             new LambdaVal(new std::string[2]{"x", ""},
                 new ImplementExp(std_determinant, NULL))
