@@ -7,25 +7,25 @@
 
 using namespace std;
 
-Val std_strcat(Env env) {
+auto std_strcat = [](Env env) {
     Val A = env->apply("a");
     Val B = env->apply("b");
-    return new StringVal(A->toString() + B->toString());
-}
+    return (Val) new StringVal(A->toString() + B->toString());
+};
 
-Val std_substring(Env env) {
+auto std_substring = [](Env env) {
     Val S = env->apply("str");
     int i = ((IntVal*) env->apply("i"))->get();
     int j = ((IntVal*) env->apply("j"))->get();
-    return new StringVal(S->toString().substr(i, j));
-}
+    return (Val) new StringVal(S->toString().substr(i, j));
+};
 
-Val std_strstr(Env env) {
+auto std_strstr = [](Env env) {
     Val S = env->apply("a");
     Val T = env->apply("b");
     
-    return new IntVal(S->toString().find(T->toString()));
-}
+    return (Val) new IntVal(S->toString().find(T->toString()));
+};
 
 Type* type_stdlib_string() {
     return new DictType {

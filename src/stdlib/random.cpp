@@ -8,17 +8,17 @@
 #include <cstdlib>
 #include <cmath>
 
-Val std_rand_uniform(Env env) {
+auto std_rand_uniform = [](Env env) {
     Val A = env->apply("a");
     if (!val_is_number(A)) {
         throw_err("type", "random.uniform : R -> R -> R cannot take parameter " + A->toString());
-        return NULL;
+        return (Val) NULL;
     }
 
     Val B = env->apply("b");
     if (!val_is_number(B)) {
         throw_err("type", "random.uniform : R -> R -> R cannot take parameter " + B->toString());
-        return NULL;
+        return (Val) NULL;
     }
 
     float x = (1.0 * rand()) / RAND_MAX;
@@ -36,20 +36,20 @@ Val std_rand_uniform(Env env) {
         ? ((IntVal*) A)->get()
         : ((RealVal*) A)->get();
     
-    return new RealVal(x);
-}
+    return (Val) new RealVal(x);
+};
 
-Val std_rand_normal(Env env) {
+auto std_rand_normal = [](Env env) {
     Val A = env->apply("a");
     if (!val_is_number(A)) {
         throw_err("type", "random.uniform : R -> R -> R cannot take parameter " + A->toString());
-        return NULL;
+        return (Val) NULL;
     }
 
     Val B = env->apply("b");
     if (!val_is_number(B)) {
         throw_err("type", "random.uniform : R -> R -> R cannot take parameter " + B->toString());
-        return NULL;
+        return (Val) NULL;
     }
 
     // Two uniform variables.
@@ -69,8 +69,8 @@ Val std_rand_normal(Env env) {
         ? ((IntVal*) A)->get()
         : ((RealVal*) A)->get();
     
-    return new RealVal(x);
-}
+    return (Val) new RealVal(x);
+};
 
 Type* type_stdlib_random() {
     return new DictType {

@@ -4,7 +4,7 @@
 using namespace std;
 
 LambdaVal* make_fn(string *xs, std::string name, Val (*f)(Env), Type *t, Val (*df)(string, Env, Env) = NULL) {
-    auto I = new ImplementExp(f, t, df);
+    auto I = (new ImplementExp(f, t))->setDerivative(df);
     I->setName(name);
     return new LambdaVal(xs, I);
 }
