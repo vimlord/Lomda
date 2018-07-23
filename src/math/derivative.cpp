@@ -241,6 +241,123 @@ Val deriveConstVal(string id, Val y, Val x, int c) {
         return NULL;
 }
 
+Val dot(Val A, Val B) {
+    if ((isVal<IntVal>(A) || isVal<RealVal>(A)) || (isVal<IntVal>(B) || isVal<RealVal>(B))) {
+        return mult(A, B);
+    } else if (isVal<ListVal>(A) || isVal<ListVal>(B)) {
+        ListVal *lA = (ListVal*) A;
+        ListVal *lB = (ListVal*) B;
+        if (lA->size() != lB->size()) {
+            throw_err("runtime", "cannot compute arbitrary dot product of " + A->toString() + " and " + B->toString());
+            return NULL;
+        }
+
+        Val v = NULL;
+        for (int i = 0; i < lA->size(); i++) {
+            Val d = dot(lA->get(i), lB->get(i));
+            if (!d) {
+                throw_err("runtime", "cannot compute arbitrary dot product of " + A->toString() + " and " + B->toString());
+                v->rem_ref();
+            }
+
+            if (v) {
+                Val s = add(v, d);
+                d->rem_ref();
+                d = s;
+                v->rem_ref();
+            }
+
+            v = d;
+        }
+
+        if (!v) {
+            throw_err("runtime", "cannot compute arbitrary dot product of " + A->toString() + " and " + B->toString());
+        }
+
+        return v;
+    } else {
+        throw_err("runtime", "cannot compute arbitrary dot product of " + A->toString() + " and " + B->toString());
+        return NULL;
+    }
+}
+
+/**
+ * Computes chain rule; f'(g(x))g'(x)
+ * @param dzdy f'(g(x))
+ * @param dydx g'(x)
+ * @param z
+ * @return (f(g(x)))' = f'(g(x))g'(x)
+ */
+Val chain_product(Val dzdy, Val dydx, Val z) {
+    if (val_is_number(z)) {
+        // dz/dy is the same dimensions as y
+        Val dzdx = dot(dydx, dzdy);
+        return dzdx;
+    } else if (isVal<ListVal>(z)) {
+        auto lst = (ListVal*) dzdy;
+        auto Z = (ListVal*) z;
+        auto dzdx = new ListVal;
+
+        for (int i = 0; i < Z->size(); i++) {
+            Val v = chain_product(lst->get(i), dydx, Z->get(i));
+
+            // Error check
+            if (!v) {
+                dzdx->rem_ref();
+                return NULL;
+            }
+
+            dzdx->add(i, v);
+        }
+
+        return dzdx;
+    } else if (isVal<DictVal>(z)) {
+        auto dct = (DictVal*) dzdy;
+        auto Z = (DictVal*) z;
+        auto dzdx = new DictVal;
+        
+        auto it = Z->getVals()->iterator();
+        while (it->hasNext()) {
+            string i = it->next();
+            Val v = chain_product(dct->getVals()->get(i), dydx, Z->getVals()->get(i));
+
+            if (!v) {
+                dzdx->rem_ref();
+                return NULL;
+            }
+
+            dzdx->getVals()->add(i, v);
+        }
+
+        return dzdx;
+    } else if (isVal<AdtVal>(z)) {
+        auto adt = (AdtVal*) dzdy;
+        auto Z = (AdtVal*) z;
+
+        int argc = 0;
+        for (argc = 0; Z->getArgs()[argc]; argc++);
+
+        Val *args = new Val[argc+1];
+        for (int i = 0; i < argc; i++) {
+            args[i] = chain_product(adt->getArgs()[i], dydx, Z->getArgs()[i]);
+
+            if (!args[i]) {
+                while (i--) args[i]->rem_ref();
+                delete[] args;
+                return NULL;
+            }
+
+        }
+        args[argc] = NULL;
+
+        return new AdtVal(Z->getType(), Z->getKind(), args);
+    
+    } else {
+        throw_err("runtime", "cannot apply chain rule through " + dydx->toString() + " and " + dzdy->toString());
+        return NULL;
+    }
+}
+
 Val AndExp::derivativeOf(string x, Env env, Env denv) {
     throw_calc_err(this);
     return NULL;
@@ -343,16 +460,37 @@ Val SwitchExp::derivativeOf(string x, Env env, Env denv) {
     return dy;
 }
 
+LambdaVal* derive(LambdaVal *func, string x) {
+    // Generate the derivative of the body wrt the ith parameter.
+    Exp dbody = func->getBody()->symb_diff(x);
+
+    int argc;
+    for (argc = 0; func->getArgs()[argc] != ""; argc++);
+    
+    // Generate the parameter set.
+    string *inputs = new string[argc+1];
+    for (int j = 0; j < argc; j++)
+        inputs[j] = func->getArgs()[j];
+    inputs[argc] = "";
+    
+    // Build a lambda to compute the partial derivative.
+    func->getEnv()->add_ref();
+    return new LambdaVal(inputs, dbody, func->getEnv());
+}
+
 Val ApplyExp::derivativeOf(string x, Env env, Env denv) {
     // d/dx f(u1(x), u2(x), ...) = df/du1 * du1/dx + df/du2 * du2/dx + ...
 
     Val o = op->evaluate(env);
+    
     if (!o) return NULL;
     else if (!isVal<LambdaVal>(o)) {
         throw_type_err(op, "lambda");
         o->rem_ref();
         return NULL;
     }
+    
+    if (o) throw_debug("calc", "Given " + env->toString() + ", " + op->toString() + " = " + o->toString());
 
     int argc;
     for (argc = 0; args[argc]; argc++);
@@ -360,43 +498,130 @@ Val ApplyExp::derivativeOf(string x, Env env, Env denv) {
     // We will utilize the function to perform the calculations
     LambdaVal *func = (LambdaVal*) o;
     
-    // Compute the derivative. init cond: d/dx f = 0
-    Exp deriv = new IntExp;
+    // Evaluate the arguments
+    Val *vals = new Val[argc+1];
+    for (int i = 0; i < argc; i++) {
+        vals[i] = args[i]->evaluate(env);
+        if (!vals[i]) {
+            // Garbage collect
+            while (i--) vals[i]->rem_ref();
+            delete[] vals;
+            func->rem_ref();
+            return NULL;
+        } else
+            throw_debug("calc", func->getArgs()[i] + " = " + vals[i]->toString());
+    }
+    vals[argc] = NULL;
+
+    Val y = func->apply(vals);
     
-    for (int i = 0; args[i]; i++) {
+    // We aim to figure out if the variable is one of the arguments.
+    Val deriv = NULL;
+    bool var_caught = false;
+    for (int i = 0; i < argc && !var_caught; i++)
+        var_caught = func->getArgs()[i] == x;
+    
+    // If the variable is not outscoped by the function, then it
+    // could have an impact on the expression itself.
+    if (!var_caught) {
+        // If this variable is known in the function's scope, we take the derivative
+        if (func->getEnv()->apply(x)) {
+            // Compute the initial derivative
+            LambdaVal *df = derive(func, x);
+            
+            // df/dx
+            Val dy = df->apply(vals);
+            df->rem_ref();
 
-        // For the purposes of garbage collection, we will duplicate the
-        // functional arguments.
-        Exp *xs = new Exp[argc+1];
-        xs[argc] = NULL;
-        for (int j = 0; j < argc; j++) {
-            xs[j] = args[j]->clone();
-        }
+            // dx/dx
+            Val dx = denv->apply(x);
+            
+            deriv = chain_product(dy, dx, y);
+            dy->rem_ref();
 
-        // We must apply the ith argument to the derivative
-        Exp comp = new MultExp(
-            new ApplyExp(
-                op->symb_diff(func->getArgs()[i]),
-                xs
-            ),
-            new DerivativeExp(args[i]->clone(), x)
-        );
-
-        if (i) deriv = new SumExp(deriv, comp);
-        else {
-            delete deriv;
-            deriv = comp;
+            if (!deriv) {
+                func->rem_ref();
+                y->rem_ref();
+                return NULL;
+            }
+        } else {
+            // The derivative is definitely "zero". We must compute it.
+            Val dy = func->apply(vals);
+            
+            // Generate zero.
+            deriv = deriveConstVal(x, env->apply(x), y, 0);
+            
+            // GC
+            dy->rem_ref();
         }
     }
     
-    throw_debug("calculus", "d/d" + x + " " + toString() + " = " + deriv->toString());
-    Val v = deriv->evaluate(env);
+    for (int i = 0; args[i]; i++) {
+        // Compute f'(x)
+        LambdaVal *df = derive(func, func->getArgs()[i]);
 
+        // Compute f'(g(x))
+        Val dy = df->apply(vals);
+        df->rem_ref();
+        if (!dy) {
+            if (deriv) {
+                deriv->rem_ref();
+                deriv = NULL;
+            }
+            break;
+        }
+
+        // Compute g'(x)
+        Val dx = args[i]->derivativeOf(x, env, denv);
+        if (!dx) {
+            dy->rem_ref();
+            if (deriv) {
+                deriv->rem_ref();
+                deriv = NULL;
+            }
+            break;
+        }
+        
+        // Compute f'(g(x)) * g'(x)
+        Val dydx = chain_product(dy, dx, y);
+        dy->rem_ref();
+        dx->rem_ref();
+        if (!dydx) {
+            if (deriv) {
+                deriv->rem_ref();
+                deriv = NULL;
+            }
+            break;
+        }
+        
+        // Update the derivative.
+        if (deriv) {
+            Val v = add(deriv, dydx);
+            dydx->rem_ref();
+            deriv->rem_ref();
+
+            deriv = v;
+
+            if (!deriv) break;
+        } else {
+            deriv = dydx;
+        }
+
+        
+    }
+     
+    if (deriv) throw_debug("calculus", "d/d" + x + " " + toString() + " = " + deriv->toString());
+
+    // GC artifacts
     o->rem_ref();
+    y->rem_ref();
 
-    delete deriv;
+    // GC the argument list
+    for (int i = 0; i < argc; i++)
+        vals[i]->rem_ref();
+    delete[] vals;
 
-    return v;
+    return deriv;
 }
 
 Val DictExp::derivativeOf(string x, Env env, Env denv) {
@@ -740,7 +965,7 @@ Val DictAccessExp::derivativeOf(string x, Env env, Env denv) {
     Val lst = list->derivativeOf(x, env, denv);
     if (!lst) return NULL;
     else if (!isVal<DictVal>(lst)) {
-        throw_type_err(list, "list");
+        throw_type_err(list, "dict");
         lst->rem_ref();
         return NULL;
     }
@@ -757,6 +982,15 @@ Val DictAccessExp::derivativeOf(string x, Env env, Env denv) {
     lst->rem_ref();
 
     return v;
+}
+
+Val ImplementExp::derivativeOf(std::string x, Env env, Env denv) {
+    if (df) {
+        return df(x, env, denv);
+    } else {
+        throw_err("calculus", "expression '" + toString() + "' is non-differentiable");
+        return NULL;
+    }
 }
 
 Val ListAccessExp::derivativeOf(string x, Env env, Env denv) {

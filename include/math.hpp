@@ -49,4 +49,6 @@ Val mult(Val, Val);
 Val div(Val, Val);
 Val inv(Val);
 
+Val identity_matrix(int);
+
 #endif

@@ -7,13 +7,13 @@
 
 using namespace std;
 
-Val std_fclose(Env env) {
+auto std_fclose = [](Env env) {
     Val f = env->apply("fd");
     
     int fd;
     if (!isVal<IntVal>(f)) {
         throw_err("type", "fs.close : S -> Z -> Z cannot be applied to argument " + f->toString());
-        return NULL;
+        return (Val) NULL;
     } else
         fd = ((IntVal*) f)->get();
 
@@ -22,10 +22,10 @@ Val std_fclose(Env env) {
     // Get a file descriptor
     int n = close(fd);
 
-    return new IntVal(n);
-}
+    return (Val) new IntVal(n);
+};
 
-Val std_fopen(Env env) {
+auto std_fopen = [](Env env) {
     Val n = env->apply("path");
     Val f = env->apply("flags");
 
@@ -33,7 +33,7 @@ Val std_fopen(Env env) {
     int flags;
     if (!isVal<IntVal>(f)) {
         throw_err("type", "fs.open : S -> Z -> Z cannot be applied to argument " + f->toString());
-        return NULL;
+        return (Val) NULL;
     } else
         flags = ((IntVal*) f)->get();
     
@@ -44,19 +44,19 @@ Val std_fopen(Env env) {
             ? "failed to open file at " + path
             : "opened file at " + path + " (fd=" + to_string(fd) + ")");
 
-    return new IntVal(fd);
-}
+    return (Val) new IntVal(fd);
+};
 
-Val std_fread(Env env) {
+auto std_fread = [](Env env) {
     Val file = env->apply("fd");
     Val size = env->apply("n");
 
     if (!isVal<IntVal>(file)) {
         throw_err("type", "fs.read : Z -> Z -> S cannot be applied to argument " + file->toString());
-        return NULL;
+        return (Val) NULL;
     } else if (!isVal<IntVal>(size)) { 
         throw_err("type", "fs.read : Z -> Z -> S cannot be applied to argument " + size->toString());
-        return NULL;
+        return (Val) NULL;
     }
 
     // Get a file descriptor
@@ -70,16 +70,16 @@ Val std_fread(Env env) {
     string str = buff;
     delete[] buff;
 
-    return new StringVal(str);
-}
+    return (Val) new StringVal(str);
+};
 
-Val std_fwrite(Env env) {
+auto std_fwrite = [](Env env) {
     Val file = env->apply("fd");
     Val buff = env->apply("buff");
 
     if (!isVal<IntVal>(file)) {
         throw_err("type", "fs.read : Z -> Z -> S cannot be applied to argument " + file->toString());
-        return NULL;
+        return (Val) NULL;
     }
     
     int fd = ((IntVal*) file)->get();
@@ -87,8 +87,8 @@ Val std_fwrite(Env env) {
 
     int n = write(fd, str.c_str(), str.length());
     
-    return new IntVal(n);
-}
+    return (Val) new IntVal(n);
+};
 
 Type* type_stdlib_fs() {
     return new DictType {

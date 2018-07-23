@@ -3,16 +3,16 @@
 
 #include "expression.hpp"
 
-Val stdlib_exit(Env env) {
+auto stdlib_exit = [](Env env) {
     Val v = env->apply("x");
 
     if (isVal<IntVal>(v))
         exit(((IntVal*) v)->get());
     else {
         throw_err("type", "sys.exit : Z -> void cannot be applied to " + v->toString());
-        return NULL;
+        return (Val) NULL;
     }
-}
+};
 
 Type* type_stdlib_sys() {
     return new DictType {
