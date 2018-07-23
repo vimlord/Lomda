@@ -65,19 +65,27 @@ class StdMathExp : public Expression {
  */
 class ImplementExp : public Expression {
     private:
-        Val (*f)(Env); // The function
-        Val (*df)(std::string, Env, Env); // The derivative of the function
+        Val (*f)(Env) = NULL; // The function
+        Val (*df)(std::string, Env, Env) = NULL; // The derivative of the function
         Type *type;
         std::string name = "";
     public:
-        ImplementExp(Val (*fn)(Env), Type *t, Val (*dfn)(std::string, Env, Env) = NULL) : f(fn), df(dfn), type(t) {}
+        ImplementExp(Val (*fn)(Env), Type *t = NULL) : f(fn), type(t) {}
 
-        Exp clone() { return new ImplementExp(f, type ? type->clone() : NULL, df); }
+        Exp clone() {
+            return (new ImplementExp(f, type ? type->clone() : NULL))
+                    ->setName(name)
+                    ->setDerivative(df);
+        }
 
         Val evaluate(Env env) { return f(env); }
-        Val derivativeOf(std::string x, Env env, Env denv) { return df(x, env, denv); }
+        Val derivativeOf(std::string x, Env env, Env denv);
 
-        void setName(std::string n) { name = n; }
+        
+        ImplementExp* setEvaluator(std::string n) { name = n; return this; }
+        ImplementExp* setDerivative(Val (*f)(std::string, Env, Env)) { df = f; return this; }
+        ImplementExp* setName(std::string n) { name = n; return this; }
+
         std::string toString() { return name.length() == 0 ? "<c-program>" : name; }
 };
 

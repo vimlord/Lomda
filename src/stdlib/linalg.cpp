@@ -147,12 +147,12 @@ float* characteristic_poly(ListVal *A) {
     return c;
 }
 
-Val std_transpose(Env env) {
+auto std_transpose = [](Env env) {
     Val x = env->apply("x");
 
     if (!isVal<ListVal>(x)) {
         throw_err("type", "linalg.transpose : [[R]] -> [[R]] cannot be applied to argument " + x->toString());
-        return NULL;
+        return (Val) NULL;
     }
 
     ListVal *xss = (ListVal*) x;
@@ -165,7 +165,7 @@ Val std_transpose(Env env) {
         if (!isVal<ListVal>(xs)) {
             throw_err("type", "linalg.transpose : [[R]] -> [[R]] cannot be applied to argument " + x->toString());
             delete it;
-            return NULL;
+            return (Val) NULL;
         }
 
         int c = 0;
@@ -176,7 +176,7 @@ Val std_transpose(Env env) {
                 throw_err("type", "linalg.transpose : [[R]] -> [[R]] cannot be applied to argument " + x->toString());
                 delete it;
                 delete jt;
-                return NULL;
+                return (Val) NULL;
             }
             c++;
         }
@@ -185,7 +185,7 @@ Val std_transpose(Env env) {
         if (rows && c != cols) {
             throw_err("type", "linalg.transpose : [[R]] -> [[R]] cannot be applied to argument " + x->toString());
             delete it;
-            return NULL;
+            return (Val) NULL;
         } else
             cols = c;
 
@@ -208,13 +208,47 @@ Val std_transpose(Env env) {
         }
     }
 
-    return yss;
-}
+    return (Val) yss;
+};
+
+auto std_d_transpose = [](std::string x, Env env, Env denv) {
+    Val z = env->apply(x);
+    if (!isVal<ListVal>(z)) {
+        throw_err("type", "linalg.transpose : [[R]] -> [[R]] cannot be applied to argument " + z->toString());
+        return (Val) NULL;
+    }
+
+    // Verify that the input was a transposable matrix
+    int *dims = is_matrix((ListVal*) z);
+    if (!dims) {
+        throw_err("type", "linalg.transpose : [[R]] -> [[R]] cannot be applied to argument " + z->toString());
+        return (Val) NULL;
+    }
+
+    int rs = dims[0];
+    int cs = dims[1];
+    delete[] dims;
+
+    // Compute the derivative.
+    ListVal *dx = (ListVal*) denv->apply(x);
+
+    ListVal *dT = new ListVal;
+    for (int i = 0; i < cs; i++)
+        dT->add(i, new ListVal);
+    
+    for (int i = 0; i < rs; i++)
+    for (int j = 0; j < cs; j++) {
+        Val v = ((ListVal*) dx->get(i))->get(j)->clone();
+        ((ListVal*) dT->get(j))->add(i, v);
+    }
+
+    return (Val) dT;
+};
 
 /**
  * Computes a QR decomposition using the Gram-Schmidt process.
  */
-Val std_qr(Env env) {
+auto std_qr = [](Env env) {
     Val x = env->apply("x");
 
     if (!isVal<ListVal>(x)) {
@@ -224,7 +258,7 @@ Val std_qr(Env env) {
     
     // We want the column matrix form
     auto A = (ListVal*) std_transpose(env);
-    if (!A) return NULL;
+    if (!A) return (Val) NULL;
     
     auto Q = new ListVal;
     auto R = new ListVal;
@@ -236,7 +270,7 @@ Val std_qr(Env env) {
                 + env->apply("x")->toString());
         delete it;
         Q->rem_ref();
-        return NULL;
+        return (Val) NULL;
     }
 
     while (it->hasNext()) {
@@ -246,7 +280,7 @@ Val std_qr(Env env) {
                     + env->apply("x")->toString());
             delete it;
             Q->rem_ref();
-            return NULL;
+            return (Val) NULL;
         }
         
         // The current col of A
@@ -289,7 +323,7 @@ Val std_qr(Env env) {
                 delete it;
                 Q->rem_ref();
                 R->rem_ref();
-                return NULL;
+                return (Val) NULL;
             }
         }
         
@@ -323,7 +357,7 @@ Val std_qr(Env env) {
                     delete jt;
                     Q->rem_ref();
                     R->rem_ref();
-                    return NULL;
+                    return (Val) NULL;
                 }
                 r->add(r->size(), y);
             } else {
@@ -355,16 +389,15 @@ Val std_qr(Env env) {
     QR->add(0, Q);
     QR->add(1, R);
 
-    return QR;
+    return (Val) QR;
+};
 
-}
-
-Val std_trace(Env env) {
+auto std_trace = [](Env env) {
     Val x = env->apply("x");
 
     if (!isVal<ListVal>(x)) {
         throw_err("type", "linalg.trace : [[R]] -> R cannot be applied to argument " + x->toString());
-        return NULL;
+        return (Val) NULL;
     }
 
     ListVal *xss = (ListVal*) x;
@@ -376,18 +409,19 @@ Val std_trace(Env env) {
         Val v = xss->get(n);
         if (!isVal<ListVal>(v)) {
             throw_err("type", "linalg.trace : [[R]] -> R cannot be applied to argument " + x->toString());
-            return NULL;
+            return (Val) NULL;
         }
         
-        // Acquire the row
+        // Get the row.
         ListVal *xs = (ListVal*) v;
-        if (n < xss->size()) {
-            throw_err("type", "linalg.trace : [[R]] -> R cannot be applied to argument " + x->toString());
-            return NULL;
-        }
 
-        // Get the item
-        v = xs->get(n);
+        if (n >= xs->size()) {
+            throw_err("type", "linalg.trace : [[R]] -> R cannot be applied to argument " + x->toString());
+            return (Val) NULL;
+        } else {
+            // Get the item
+            v = xs->get(n);
+        }
         
         // Process it
         if (isVal<IntVal>(v))
@@ -396,19 +430,61 @@ Val std_trace(Env env) {
             tr += ((RealVal*) v)->get();
         else {
             throw_err("type", "linalg.trace : [[R]] -> R cannot be applied to argument " + x->toString());
-            return NULL;
+            return (Val) NULL;
         }
     }
    
-    return new RealVal(tr);
-}
+    return (Val) new RealVal(tr);
+};
 
-Val std_gaussian(Env env) {
+auto std_d_trace = [](std::string x, Env env, Env denv) {
+    Val A = env->apply("x");
+
+    int n = is_square_matrix(A);
+    if (n > 0) {
+        Val dx = denv->apply(x);
+        IntVal zero;
+
+        if (x == "x") {
+            // The derivative of trace is based on the elements of the diagonal.
+            Val dy = NULL;
+            for (int i = 0; i < n; i++) {
+                Val v = ((ListVal*) ((ListVal*) dx)->get(i))->get(i);
+                
+                if (!dy) dy = v->clone();
+                else {
+                    v = add(dy, v);
+                    dy->rem_ref();
+                    dy = (ListVal*) v;
+
+                    if (!dy) break;
+                }
+            }
+
+            return (Val) dy;
+        } else {
+            ListVal *dy = new ListVal;
+            for (int i = 0; i < n; i++) {
+                ListVal *row = new ListVal;
+                dy->add(i, row);
+                for (int j = 0; j < n; j++)
+                    row->add(j, new IntVal);
+            }
+            return (Val) dy;
+        }
+
+    } else {
+        throw_err("type", "d/d" + x + " linalg.trace : [[R]] -> [[R]] cannot be applied to argument " + A->toString());
+        return (Val) NULL;
+    }
+};
+
+auto std_gaussian = [](Env env) {
     Val x = env->apply("x");
 
     if (!isVal<ListVal>(x)) {
         throw_err("type", "linalg.gaussian : [[R]] -> [[R]] cannot be applied to argument " + x->toString());
-        return NULL;
+        return (Val) NULL;
     }
 
     ListVal *M = (ListVal*) x;
@@ -417,7 +493,7 @@ Val std_gaussian(Env env) {
     int rows = M->size();
     if (rows == 0) {
         throw_err("type", "linalg.gaussian : [[R]] -> [[R]] cannot be applied to argument " + x->toString());
-        return NULL;
+        return (Val) NULL;
     }
 
     // We will ensure that M is rectangular and consisting exclusively of numbers.
@@ -426,7 +502,7 @@ Val std_gaussian(Env env) {
         Val row = M->get(i);
         if (!isVal<ListVal>(row)) {
             throw_err("type", "linalg.gaussian : [[R]] -> [[R]] cannot be applied to argument " + x->toString());
-            return NULL;
+            return (Val) NULL;
         }
         
         auto it = ((ListVal*) row)->iterator();
@@ -436,7 +512,7 @@ Val std_gaussian(Env env) {
             if (!isVal<RealVal>(v) && !isVal<IntVal>(v)) {
                 delete it;
                 throw_err("type", "linalg.gaussian : [[R]] -> [[R]] cannot be applied to argument " + x->toString());
-                return NULL;
+                return (Val) NULL;
             }
             j++;
         }
@@ -445,12 +521,12 @@ Val std_gaussian(Env env) {
         if (!i) {
             if (!j) {
                 throw_err("type", "linalg.gaussian : [[R]] -> [[R]] cannot be applied to argument " + x->toString());
-                return NULL;
+                return (Val) NULL;
             } else
                 cols = j;
         } else if (cols != j) {
             throw_err("type", "linalg.gaussian : [[R]] -> [[R]] cannot be applied to argument " + x->toString());
-            return NULL;
+            return (Val) NULL;
         }
     }
 
@@ -523,18 +599,18 @@ Val std_gaussian(Env env) {
     }
     delete[] mtrx;
 
-    return M;
-}
+    return (Val) M;
+};
 
 
-Val std_determinant(Env env) {
+auto std_determinant = [](Env env) {
     Val x = env->apply("x");
 
     // Should be a square matrix
     int n = is_square_matrix(x);
     if (n == 0) {
         throw_err("type", "linalg.determinant : [[R]] -> [[R]] cannot be applied to argument " + x->toString());
-        return NULL;
+        return (Val) NULL;
     }
     
     // Acquire the matrix in list form.
@@ -596,17 +672,16 @@ Val std_determinant(Env env) {
         delete[] mtrx[i];
     delete[] mtrx;
 
-    return new RealVal(det);
+    return (Val) new RealVal(det);
+};
 
-}
-
-Val std_eig(Env env) {
+auto std_eig = [](Env env) {
     Val x = env->apply("x");
 
     int n = is_square_matrix(x);
     if (n == 0) {
         throw_err("type", "linalg.determinant : [[R]] -> [[R]] cannot be applied to argument " + x->toString());
-        return NULL;
+        return (Val) NULL;
     }
     
     // Acquire the matrix in list form.
@@ -625,16 +700,16 @@ Val std_eig(Env env) {
     delete[] c;
     delete[] eigs;
     
-    return res;
-}
+    return (Val) res;
+};
 
-Val std_characteristic_polynomial(Env env) {
+auto std_characteristic_polynomial = [](Env env) {
     Val x = env->apply("x");
 
     int n = is_square_matrix(x);
     if (n == 0) {
         throw_err("type", "linalg.determinant : [[R]] -> [[R]] cannot be applied to argument " + x->toString());
-        return NULL;
+        return (Val) NULL;
     }
     
     // Acquire the matrix in list form.
@@ -667,8 +742,8 @@ Val std_characteristic_polynomial(Env env) {
     }
     
     // Generate the function.
-    return new LambdaVal(new std::string[2]{"x", ""}, poly);
-}
+    return (Val) new LambdaVal(new std::string[2]{"x", ""}, poly);
+};
 
 Type* type_stdlib_linalg() {
     return new DictType {
@@ -716,31 +791,40 @@ Val load_stdlib_linalg() {
         {
             "characteristic_polynomial",
             new LambdaVal(new std::string[2]{"x", ""},
-                new ImplementExp(std_characteristic_polynomial, NULL))
+                (new ImplementExp(std_characteristic_polynomial, NULL))
+                    ->setName("characteristic_polynomial"))
         },{
             "det",
             new LambdaVal(new std::string[2]{"x", ""},
-                new ImplementExp(std_determinant, NULL))
+                (new ImplementExp(std_determinant, NULL))
+                    ->setName("det(x)"))
         }, {
             "eig",
             new LambdaVal(new std::string[2]{"x", ""},
-                new ImplementExp(std_eig, NULL))
+                (new ImplementExp(std_eig, NULL))
+                    ->setName("eig(x)"))
         }, {
             "gaussian",
             new LambdaVal(new std::string[2]{"x", ""},
-                new ImplementExp(std_gaussian, NULL))
+                (new ImplementExp(std_gaussian, NULL))
+                    ->setName("gaussian(x)"))
         }, {
             "qr",
             new LambdaVal(new std::string[2]{"x", ""},
-                new ImplementExp(std_qr, NULL))
+                (new ImplementExp(std_qr, NULL))
+                    ->setName("qr(x)"))
         }, {
             "trace",
             new LambdaVal(new std::string[2]{"x", ""},
-                new ImplementExp(std_trace, NULL))
+                (new ImplementExp(std_trace, NULL))
+                    ->setDerivative(std_d_trace)
+                    ->setName("tr(x)"))
         }, {
             "transpose",
             new LambdaVal(new std::string[2]{"x", ""},
-                new ImplementExp(std_transpose, NULL))
+                (new ImplementExp(std_transpose, NULL))
+                    ->setDerivative(std_d_transpose)
+                    ->setName("transpose(x)"))
         }
     };
 }
