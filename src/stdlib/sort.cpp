@@ -128,14 +128,14 @@ bool quicksort(Val *vs, int i, int j) {
     }
 
     return true;
-}
+};
 
-Val std_sort(Env env, bool (*sort)(Val*, int, int)) {
+auto std_sort = [](Env env, bool (*sort)(Val*, int, int)) {
     Val A = env->apply("L");
     if (!isVal<ListVal>(A)) {
         // Illegal argument.
         throw_err("type", "sort.mergesort : [R] -> void cannot be applied to invalid argument " + A->toString());
-        return NULL;
+        return (Val) NULL;
     }
 
     auto L = (ListVal*) A;
@@ -154,24 +154,23 @@ Val std_sort(Env env, bool (*sort)(Val*, int, int)) {
 
     delete[] vs;
 
-    return res ? new VoidVal : NULL;
+    return (Val) (res ? new VoidVal : NULL);
+};
 
-}
+auto std_mergesort = [](Env env) { return std_sort(env, mergesort); };
+auto std_quicksort = [](Env env) { return std_sort(env, quicksort); };
 
-Val std_mergesort(Env env) { return std_sort(env, mergesort); }
-Val std_quicksort(Env env) { return std_sort(env, quicksort); }
-
-Val std_is_sorted(Env env) {
+auto std_is_sorted = [](Env env) {
     Val L = env->apply("L");
     if (!isVal<ListVal>(L)) {
         throw_err("type", "sort.is_sorted : [R] -> B cannot be applied to invalid argument " + L->toString());
-        return NULL;
+        return (Val) NULL;
     }
 
     CompareExp comp(NULL, NULL, CompOp::GT);
 
     ListVal *list = (ListVal*) L;
-    if (list->size() < 2) return new BoolVal(true);
+    if (list->size() < 2) return (Val) new BoolVal(true);
 
     auto it = list->iterator();
     Val v = it->next();
@@ -181,20 +180,19 @@ Val std_is_sorted(Env env) {
         BoolVal *b = (BoolVal*) comp.op(u, v);
         if (!b) {
             delete it;
-            return NULL;
+            return (Val) NULL;
         } else if (!b->get()) {
             b->rem_ref();
             delete it;
-            return new BoolVal(false);
+            return (Val) new BoolVal(false);
         } else {
             b->rem_ref();
         }
     }
 
     delete it;
-    return new BoolVal(true);
-
-}
+    return (Val) new BoolVal(true);
+};
 
 Type* type_stdlib_sort() {
     return new DictType {

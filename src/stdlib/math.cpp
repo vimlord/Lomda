@@ -4,29 +4,27 @@
 
 #include <cmath>
 
-Val std_mathfn(Env env, bool (*fn)(float)) {
+auto std_mathfn = [](Env env, bool (*fn)(float)) {
     Val v = env->apply("x");
     
     if (isVal<RealVal>(v)) {
         float f = ((RealVal*) v)->get();
-        return new BoolVal(fn(f));
+        return (Val) new BoolVal(fn(f));
     } else
-        return new BoolVal(false);
+        return (Val) new BoolVal(false);
+};
 
-}
+auto std_isinfinite = [](Env env) {
+    return (Val) std_mathfn(env, std::isinf);
+};
 
-Val std_isinfinite(Env env) {
-    return std_mathfn(env, std::isinf);
-}
+auto std_isfinite = [](Env env) {
+    return (Val) std_mathfn(env, std::isfinite);
+};
 
-Val std_isfinite(Env env) {
-    return std_mathfn(env, std::isfinite);
-}
-
-Val std_isnan(Env env) {
-    return std_mathfn(env, std::isnan);
-}
-
+auto std_isnan = [](Env env) {
+    return (Val) std_mathfn(env, std::isnan);
+};
 
 Type* type_stdlib_math() {
     return new DictType {
