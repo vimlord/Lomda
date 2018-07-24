@@ -2,6 +2,9 @@
 #define _INTERP_HPP_
 #include "value.hpp"
 
+/**
+ * Compiles and executes a program.
+ */
 Val run(std::string);
 
 /**

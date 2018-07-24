@@ -28,8 +28,22 @@ struct result {
     }
 };
 
-result<Expression> parse_pemdas(std::string str, int = 13);
-result<Expression> parse_body(std::string, bool = false);
+/**
+ * Extracts an expression complying with the order of operations defined
+ * by PEMDAS.
+ * @param str The program to parse.
+ * @param order The order in the PEMDAS hierarchy to use; used internally.
+ */
+result<Expression> parse_pemdas(std::string str, int order = 13);
+
+/**
+ * Parses a statement denoting a single line of a program.
+ * @param str The program to parse.
+ * @param ends Whether or not the entire string must be consumed.
+ * @return An expression and its length in the string, or an indicator
+ *          of failure if an expression could not be extracted.
+ */
+result<Expression> parse_body(std::string str, bool ends = false);
 
 /**
  * Given a pairing of opening/closing characters, find the index of closure.
@@ -74,14 +88,31 @@ result<Expression> parse_pemdas(std::string str, int order);
  * @return A pointer to an AST on success or NULL on failure.
  */
 Exp parse_statement(std::string program);
-Exp parse_sequence(std::string program, std::list<std::string>);
 
+/**
+ * Processes a sequence of statements and creates a program.
+ * @param program The first line of a program.
+ * @param tail The rest of the program.
+ * @return An expression on success or NULL on failure.
+ */
+Exp parse_sequence(std::string program, std::list<std::string> tail);
+
+/**
+ * Determines whether or not a string qualifies as an identifier.
+ * @param str The string to check.
+ * @return Whether or not the string is an identifier matching (_|[A-Za-z])*
+ */
 inline bool is_identifier(std::string str) {
     int i;
     for (i = 0; str[i] == '_' || (str[i] >= 'a' && str[i] <= 'z') || (str[i] >= 'A' && str[i] <= 'Z'); i++);
     return str.length() == i;
 }
 
+/**
+ * Extracts an identifier from the very beginning of a string.
+ * @param str A string possibly containing an identifier.
+ * @return An identifier from the beginning of a string; matches (_|[A-Za-z])*.*
+ */
 inline std::string extract_identifier(std::string str) {
     int i;
     for (i = 0; str[i] == '_' || (str[i] >= 'a' && str[i] <= 'z') || (str[i] >= 'A' && str[i] <= 'Z'); i++);
@@ -89,6 +120,13 @@ inline std::string extract_identifier(std::string str) {
     return str.substr(0, i);
 }
 
+/**
+ * Generates a "null-terminated" list from an STL list.
+ * @param vals The list of values to store.
+ * @param null The null terminator.
+ * @param <T> The type of the expressions in the list.
+ * @return A plain list containing the values followed by a null terminator.
+ */
 template<typename T>
 inline T* store_in_list(std::list<T> vals, T null) {
     T *lst = new T[vals.size()+1];
@@ -101,6 +139,12 @@ inline T* store_in_list(std::list<T> vals, T null) {
     
     return lst;
 }
+
+/**
+ * Frees all of the elements in a list.
+ * @param vals A list of freeable values.
+ * @param <T> The type of the elements in the list.
+ */
 template<typename T>
 inline void free_all_in_list(std::list<T> vals) {
     for (auto it = vals.begin(); it != vals.end(); it++)
@@ -108,7 +152,9 @@ inline void free_all_in_list(std::list<T> vals) {
 }
 
 /**
- * Trims whitespace from the outer edges of a string
+ * Trims whitespace from the outer edges of a string.
+ * @param str The string to change.
+ * @return The string minus the bounding whitespace.
  */
 inline std::string trim_whitespace(std::string str) {
     int i;
@@ -120,6 +166,11 @@ inline std::string trim_whitespace(std::string str) {
     return str.substr(i, j-i);
 }
 
+/**
+ * Determines whether or not a string contains only whitespace.
+ * @param str A string to check for whitespace.
+ *@return Whether or not the string contains only whitespace.
+ */
 inline bool is_all_whitespace(std::string str) {
     for (int i = str.length()-1; i >= 0; i--)
         if (str[i] != ' ' && str[i] != '\n' && str[i] != '\t')

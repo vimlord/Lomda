@@ -70,11 +70,8 @@ Exp parse_statement(string str) {
         else
             str = str.substr(cond.strlen);
         
-        // Then keyword
-        if ((i = starts_with(str, "then")) < 0) {
-            cond.reset();
-            return NULL;
-        } else
+        // Then keyword (optional)
+        if ((i = starts_with(str, "then")) > 0)
             str = str.substr(i);
         
         // Parse the first body
