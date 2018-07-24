@@ -47,6 +47,9 @@ inline bool val_is_string(Val v) {
     return isVal<StringVal>(v);
 }
 
+/**
+ * Defines an Algebraic Datatype.
+ */
 class AlgebraicDataType : public Type {
     private:
         // The name of the ADT

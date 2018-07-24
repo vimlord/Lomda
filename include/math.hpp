@@ -43,12 +43,50 @@ int is_square_matrix(Val v);
  */
 int is_vector(Val v);
 
-Val add(Val, Val);
-Val sub(Val, Val);
-Val mult(Val, Val);
-Val div(Val, Val);
-Val inv(Val);
+/**
+ * Computes the sum of two values.
+ * @param a The left hand value.
+ * @param b The right hand value.
+ * @return a + b
+ */
+Val add(Val a, Val b);
 
-Val identity_matrix(int);
+/**
+ * Computes the difference between two values.
+ * @param a The left hand value.
+ * @param b The right hand value.
+ * @return a - b
+ */
+Val sub(Val a, Val b);
+
+/**
+ * Computes the product of two values.
+ * @param a The left hand value.
+ * @param b The right hand value.
+ * @return a * b
+ */
+Val mult(Val a, Val b);
+
+/**
+ * Computes the quotient of two values.
+ * @param a The left hand value.
+ * @param b The right hand value.
+ * @return a / b
+ */
+Val div(Val a, Val b);
+
+/**
+ * Computes the inverse of an expression.
+ * @param x A value to compute an inverse of.
+ * @return x^-1 = 1/x
+ */
+Val inv(Val x);
+
+/**
+ * Generates an identity matrix of a given size.
+ * @param n The dimensions of the matrix.
+ * @return An n by n identity matrix.
+ */
+Val identity_matrix(int n);
 
 #endif

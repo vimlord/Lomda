@@ -10,6 +10,12 @@
 
 #include <map>
 
+/**
+ * Determines whether or not an expression is of a specific type.
+ * @param t An expression to type check.
+ * @param <T> The type to check against.
+ * @return Whether or not t has type T.
+ */
 template<typename T>
 inline bool isExp(const Exp t) {
     return t && dynamic_cast<const T*>(t) != nullptr;
