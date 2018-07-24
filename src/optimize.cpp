@@ -1,4 +1,3 @@
-#include "optimize.hpp"
 #include "expression.hpp"
 
 using namespace std;
