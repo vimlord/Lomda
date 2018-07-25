@@ -36,7 +36,8 @@ Type* AlgebraicDataType::clone() {
         ass = new Type**[i+1];
 
         xs[i] = ""; ass[i] = NULL;
-
+        
+        // Generate duplicates of each of the subtypes.
         while (i--) {
             xs[i] = kinds[i];
 
@@ -153,10 +154,13 @@ bool VarType::isConstant(Tenv tenv) {
     auto T = tenv->get_tvar(name);
     if (isType<VarType>(T)) {
         if (T->toString() == name)
+            // It is its own reduction. Therefore it could be anything, and is non-constant.
             return false;
         else
+            // It reduces to another type that can also be checked.
             return T->isConstant(tenv);
     } else
+        // It is reducible, therefore see if that type is reducible.
         return T->isConstant(tenv);
 }
 
@@ -176,38 +180,46 @@ Type* VarType::simplify(Tenv tenv) {
     return T->clone();
 }
 Type* AndExp::typeOf(Tenv tenv) {
+    // Type the left
     auto X = left->typeOf(tenv);
     if (!X) return NULL;
-
+    
+    // Type the right
     auto Y = right->typeOf(tenv);
     if (!Y) {
         delete X;
         return NULL;
     }
-
+    
     auto B = new BoolType;
     
+    // The left side is a boolean.
     auto x = X->unify(B, tenv);
     delete X;
     if (!x) {
         delete Y;
-        show_proof_therefore(type_res_str(tenv, this, NULL));
-        return NULL;
-    }
-
-    auto y = Y->unify(B, tenv);
-    delete Y;
-    if (!y) {
-        delete x;
+        delete B;
         show_proof_therefore(type_res_str(tenv, this, NULL));
         return NULL;
     }
     
+    // The right side is also a boolean
+    auto y = Y->unify(B, tenv);
+    delete Y;
+    if (!y) {
+        delete x;
+        delete B;
+        show_proof_therefore(type_res_str(tenv, this, NULL));
+        return NULL;
+    }
+    
+    // We know the type, thus the types are not needed.
     delete x;
     delete y;
 
     show_proof_therefore(type_res_str(tenv, this, B));
-
+    
+    // And types to a boolean
     return B;
 }
 
@@ -254,10 +266,12 @@ Type* AdtDeclarationExp::typeOf(Tenv tenv) {
             // Assign the argument element
             typess[i][j] = argss[i][j]->clone();
     }
-
+    
+    // We can now generate the ADT.
     Type *adt = new AlgebraicDataType(name, kinds, typess);
-
+    
     for (i = 0; typess[i]; i++) {
+        // Each element of the dictionary is a function that generates a subtype of the ADT.
         Type *fn = i ? adt->clone() : adt;
         if (!typess[i][0])
             fn = new LambdaType("", new VoidType, fn);
@@ -634,9 +648,10 @@ Type* DictExp::typeOf(Tenv tenv) {
 }
 Type* DictAccessExp::typeOf(Tenv tenv) {
     Type *D = list->typeOf(tenv);
-
+    
     Type *E = new DictType(new Trie<Type*>);
-
+    
+    // The left hand side should be a dictionary.
     Type *F = D->unify(E, tenv);
     delete D;
     delete E;
@@ -646,11 +661,14 @@ Type* DictAccessExp::typeOf(Tenv tenv) {
         return NULL;
     }
     
+    // Given the string, that type should be accessible.
     Type *T;
     if (((DictType*) F)->getTypes()->hasKey(idx))
         T = ((DictType*) F)->getTypes()->get(idx)->clone();
     else
-        T = new VoidType;
+        // If it doesn't exist, we imagine that it is possibly being created.
+        T = tenv->make_tvar();
+
     delete F;
 
     show_proof_therefore(type_res_str(tenv, this, T));
@@ -665,13 +683,15 @@ Type* FoldExp::typeOf(Tenv tenv) {
     base : b
     func : b -> a -> b
     */
-
+    
+    // The list should be typable.
     Type *L = list->typeOf(tenv);
     if (!L) {
         show_proof_therefore(type_res_str(tenv, this, NULL));
         return NULL;
     }
-
+    
+    // That type should be some list type.
     Type *a;
     if (isType<ListType>(L))
         a = ((ListType*) L)->subtype()->clone();
@@ -692,14 +712,16 @@ Type* FoldExp::typeOf(Tenv tenv) {
         show_proof_therefore(type_res_str(tenv, this, NULL));
         return NULL;
     }
-
+    
+    // The base case should have some type.
     Type *b = base->typeOf(tenv);
     if (!b) {
         delete a;
         show_proof_therefore(type_res_str(tenv, this, NULL));
         return NULL;
     }
-
+    
+    // The function should have some type.
     Type *F = func->typeOf(tenv);
     if (!F) {
         delete a;
@@ -708,7 +730,7 @@ Type* FoldExp::typeOf(Tenv tenv) {
         return NULL;
     }
 
-    // The function must be properly unifiable
+    // The function should be a function that takes two arguments and returns some type.
     auto c = tenv->make_tvar();
     Type *G = new LambdaType("", b->clone(), new LambdaType("", a, c->clone()));
     Type *H = F->unify(G, tenv);
@@ -728,7 +750,8 @@ Type* FoldExp::typeOf(Tenv tenv) {
         show_proof_therefore(type_res_str(tenv, this, NULL));
         return NULL;
     }
-
+    
+    // The base type and the function's output type should be unifiable.
     H = c->unify(b, tenv);
 
     delete b;
@@ -782,20 +805,24 @@ Type* ForExp::typeOf(Tenv tenv) {
     return S;
 }
 Type* HasExp::typeOf(Tenv tenv) {
+    // The element should be typable.
     auto X = item->typeOf(tenv);
     if (!X) {
         show_proof_therefore(type_res_str(tenv, this, NULL));
         return NULL;
     }
-
+    
+    // The structure should be typable.
     auto Xs = set->typeOf(tenv);
     if (!Xs) {
         delete X;
         show_proof_therefore(type_res_str(tenv, this, NULL));
         return NULL;
     }
-
+    
+    // The structure should be a list.
     if (isType<ListType>(Xs)) {
+        // The type of the list's contents should unify with the element's type.
         auto Y = X->unify(((ListType*) Xs)->subtype(), tenv);
         delete X;
         delete Xs;
@@ -804,27 +831,27 @@ Type* HasExp::typeOf(Tenv tenv) {
             delete Y;
         } else
             X = NULL;
-    } else if (isType<VarType>(Xs)) {
+    } else {
+        // The structure should be known to be a list.
         auto V = (VarType*) X;
         auto L = new ListType(X);
         X = Xs->unify(L, tenv);
         delete L;
         delete V;
         if (X) {
+            // If the unification is possible, we can check membership.
             delete X;
             X = new BoolType;
         } else
+            // If not a list, then it is not possible.
             X = NULL;
-    } else {
-        delete Xs;
-        delete X;
-        X = NULL;
     }
 
     show_proof_therefore(type_res_str(tenv, this, X));
     return X;
 }
 Type* IfExp::typeOf(Tenv tenv) {
+    // The conditional is a boolean
     auto C = cond->typeOf(tenv);
     if (!C) {
         show_proof_therefore(type_res_str(tenv, this, NULL));
@@ -854,7 +881,8 @@ Type* IfExp::typeOf(Tenv tenv) {
         show_proof_therefore(type_res_str(tenv, this, NULL));
         return NULL;
     }
-
+    
+    // The two branches should match types.
     auto Y = T->unify(F, tenv);
     delete T;
     delete F;
@@ -924,6 +952,7 @@ Type* ImportExp::typeOf(Tenv tenv) {
 
 }
 Type* IsaExp::typeOf(Tenv tenv) {
+    // The item should be typable, otherwise we can't verify its type.
     auto T = exp->typeOf(tenv);
     if (!T) {
         show_proof_therefore(type_res_str(tenv, this, NULL));
