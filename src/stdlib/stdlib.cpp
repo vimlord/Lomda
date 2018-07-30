@@ -27,6 +27,8 @@ Type* type_stdlib(string name) {
         return type_stdlib_fs();
     else if (name == "linalg")
         return type_stdlib_linalg();
+    else if (name == "list")
+        return type_stdlib_list();
     else if (name == "math")
         return type_stdlib_math();
     else if (name == "sort")
@@ -46,6 +48,8 @@ Val load_stdlib(string name) {
         return load_stdlib_fs();
     else if (name == "linalg")
         return load_stdlib_linalg();
+    else if (name == "list")
+        return load_stdlib_list();
     else if (name == "math")
         return load_stdlib_math();
     else if (name == "sort")
