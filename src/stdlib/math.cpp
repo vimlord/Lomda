@@ -1,7 +1,6 @@
 #include "stdlib.hpp"
 
 #include "expression.hpp"
-
 #include <cmath>
 
 auto std_mathfn = [](Env env, bool (*fn)(float)) {
