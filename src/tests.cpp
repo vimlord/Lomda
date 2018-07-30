@@ -80,10 +80,11 @@ std::map<Exp,string> load_test_cases(string fname) {
 
 string run_interp(Exp x) {
     Env env = new Environment;
-    Val v = x->evaluate(env);
-    if (!v) return "NULL";
 
+    Val v = x->evaluate(env);
     env->rem_ref();
+
+    if (!v) return "NULL";
     
     string res = v->toString();
     v->rem_ref();
