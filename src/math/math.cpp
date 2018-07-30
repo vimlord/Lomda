@@ -651,15 +651,13 @@ Val mult(Val a, Val b) {
                 auto lst = new ListVal;
                 res = lst;
 
-                
-
                 if (ordB == 1) {
                     //std::cout << "2 by 1\n";
                     // Matrix by vector
-                    auto it = ((ListVal*) a)->iterator();
-
-                    while (res && it->hasNext()) {
-                        Val v = it->next();
+                    auto lstA = (ListVal*) a;
+                    
+                    for (int i = 0; res && i < lstA->size(); i++) {
+                        Val v = lstA->get(i);
                         v = mult(v, b);
                         
                         if (!v) {
@@ -668,36 +666,36 @@ Val mult(Val a, Val b) {
                         } else
                             lst->add(lst->size(), v);
                     }
-                    delete it;
                 } else {
                     // Matrix by matrix
                     //std::cout << "2 by 2\n";
-                    
-                    auto it = ((ListVal*) a)->iterator();
-                    while (res && it->hasNext()) {
-                        Val v = mult(it->next(), b);
+                    auto lstA = (ListVal*) a;
+
+                    for (int i = 0; res && i < lstA->size(); i++) {
+                        Val v = mult(lstA->get(i), b);
                         if (!v) {
                             res->rem_ref();
-                            res = NULL;
+                            return NULL;
                         } else
                             lst->add(lst->size(), v);
                     }
-
-                    delete it;
                 }
 
             } else if (ordB > 1) {
                 //std::cout << "1 by 2\n";
                 // List by matrix
-                auto ait = ((ListVal*) a)->iterator();
-                auto bit = ((ListVal*) b)->iterator();
+                auto lstA = (ListVal*) a;
+                auto lstB = (ListVal*) b;
 
-                res = mult(ait->next(), bit->next());
-                if (res)
-                    //std::cout << "init: " << *res << "\n";
+                if (lstA->size() != lstB->size()) {
+                    throw_err("runtime", "multiplication is not defined on non-matching lists (see: " + a->toString() + " * " + b->toString() + ")");
+                    return NULL;
+                }
+
+                res = mult(lstA->get(0), lstB->get(0));
                 
-                while (res && ait->hasNext() && bit->hasNext()) {
-                    Val u = mult(ait->next(), bit->next());
+                for (int i = 1; res && i < lstA->size(); i++) {
+                    Val u = mult(lstA->get(i), lstB->get(i));
                     if (u) {
                         Val v = add(res, u);
                         u->rem_ref();
@@ -706,35 +704,29 @@ Val mult(Val a, Val b) {
                         res = v;
                     } else {
                         res->rem_ref();
-                        res = NULL;
+                        return NULL;
                     }
                 }
 
-                if (ait->hasNext() || bit->hasNext()) {
-                    if (res) res->rem_ref();
-                    res = NULL;
+            } else {
+                // Dot product
+                auto lstA = (ListVal*) a;
+                auto lstB = (ListVal*) b;
+
+                if (lstA->size() != lstB->size()) {
+                    throw_err("runtime", "multiplication is not defined on non-matching lists (see: " + a->toString() + " * " + b->toString() + ")");
+                    return NULL;
                 }
 
-                delete ait;
-                delete bit;
-
-            } else {
-                //std::cout << "1 by 1\n";
-                // Dot product
                 res = new IntVal;
                 
-                auto ait = ((ListVal*) a)->iterator();
-                auto bit = ((ListVal*) b)->iterator();
-
-                
-                
-                while (res && ait->hasNext() && bit->hasNext()) {
-                    Val A = ait->next();
-                    Val B = bit->next();
+                for (int i = 0; res && i < lstA->size(); i++) {
+                    Val A = lstA->get(i);
+                    Val B = lstB->get(i);
                     Val v = mult(A, B);
                     if (!v) {
                         res->rem_ref();
-                        res = NULL;
+                        return NULL;
                     } else {
                         Val s = add(res, v);
                         v->rem_ref();
@@ -743,19 +735,6 @@ Val mult(Val a, Val b) {
                         res = s;
                     }
                 }
-
-                if (ait->hasNext() || bit->hasNext()) {
-                    if (res) res->rem_ref();
-                    res = NULL;
-                }
-
-                delete ait;
-                delete bit;
-
-            }
-
-            if (!res) {
-                throw_err("runtime", "multiplication is not defined on non-matching lists (see: " + a->toString() + " * " + b->toString() + ")");
             }
 
             return res;
