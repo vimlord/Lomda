@@ -18,19 +18,19 @@ Type* VarExp::typeOf(Tenv tenv) {
     return T;
 }
 
-Type* IntExp::typeOf(Tenv tenv) {
+Type* IntExp::typeOf(Tenv) {
     show_proof_step(toString() + " : Z trivially");
     return new IntType; }
 
-Type* RealExp::typeOf(Tenv tenv) {
+Type* RealExp::typeOf(Tenv) {
     show_proof_step(toString() + " : R trivially");
     return new RealType; }
 
-Type* TrueExp::typeOf(Tenv tenv) {
+Type* TrueExp::typeOf(Tenv) {
     show_proof_step(toString() + " : B trivially");
     return new BoolType; }
 
-Type* FalseExp::typeOf(Tenv tenv) {
+Type* FalseExp::typeOf(Tenv) {
     show_proof_step(toString() + " : B trivially");
     return new BoolType; }
 

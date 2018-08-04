@@ -83,46 +83,36 @@ int BoolVal::set(Val v) {
     } else return 1;
 }
 
-DictVal::DictVal(LinkedList<std::string> *ks, LinkedList<Val> *vs) {
-    while (!ks->isEmpty()) {
-        vals->add(ks->remove(0), vs->remove(0));
+DictVal::DictVal(std::initializer_list<std::pair<std::string, Val>> elems) {
+    // Add each of the elements.
+    for (auto pair : elems) {
+        add(pair.first, pair.second);
     }
-    delete ks;
-    delete vs;
 }
-DictVal::DictVal(std::initializer_list<std::pair<std::string, Val>> es) : DictVal() {
-    for (auto it : es)
-        vals->add(it.first, it.second);
-}
+
 DictVal::~DictVal() {
-    auto it = vals->iterator();
-    while (it->hasNext()) vals->get(it->next())->rem_ref();
+    auto it = iterator();
+    while (it->hasNext()) get(it->next())->rem_ref();
     delete it;
-    delete vals;
 }
 DictVal* DictVal::clone() {
-    
-    auto trie = new Trie<Val>;
+    auto res = new DictVal;
     
     // Keys
-    auto kt = vals->iterator();
+    auto kt = iterator();
     while (kt->hasNext()) {
         string k = kt->next();
+        Val v = get(k);
 
-        Val v = vals->get(k);
         v->add_ref();
-
-        trie->add(k, v);
+        res->add(k, v);
     }
     delete kt;
     
     // Build the result
-    return new DictVal(trie);
+    return res;
 }
 int DictVal::set(Val) { return 1; } // We will not allow setting of fields
-Val DictVal::apply(string s) {
-    return vals->hasKey(s) ? vals->get(s) : NULL;
-}
 
 // Integers
 IntVal::IntVal(int n) { val = n; }
@@ -248,10 +238,8 @@ void LambdaVal::setEnv(Env e) {
 }
 
 ListVal::~ListVal() {
-    while (!isEmpty()) {
-        Val v = remove(0);
-        if (v) v->rem_ref();
-    }
+    for (int i = 0; i < size(); i++)
+        get(i)->rem_ref();
 }
 ListVal* ListVal::clone() {
     // Add a copy of each element of the list

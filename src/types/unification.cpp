@@ -71,7 +71,7 @@ Type* DictType::unify(Type *t, Tenv tenv) {
         return NULL;
     } else if (isType<DictType>(t)) {
         // The result dictionary type
-        DictType *D = new DictType(new Trie<Type*>);
+        DictType *D = new DictType(new HashMap<std::string, Type*>);
 
         DictType *B = (DictType*) t;
         
@@ -469,11 +469,12 @@ Type* SumType::unify(Type* t, Tenv tenv) {
             delete T;
             
             return new SumType(z, z->clone());
-        } else
+        } else {
             show_proof_therefore("under " + tenv->toString() + ", " + toString() + " = " + t->toString() + " is not unifiable");
             // There does not exist a unification
             delete T;
             return NULL;
+        }
     } else if (isType<RealType>(T)) {
         show_proof_step("We seek to unify " + toString() + " = " + T->toString() + " to the fundamental form.");
 

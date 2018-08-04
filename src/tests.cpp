@@ -49,7 +49,7 @@ std::map<Exp,string> load_test_cases(string fname) {
 
         if (exp) {
             // Verify the legality of the case
-            Trie<bool> *vardta = new Trie<bool>;
+            HashMap<std::string,bool> *vardta = new HashMap<std::string,bool>;
             bool valid = exp->postprocessor(vardta);
             delete vardta;
 

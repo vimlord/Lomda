@@ -17,7 +17,7 @@ class UnaryOperatorExp : public Expression {
         virtual Val op(Val) = 0;
 
         virtual Exp optimize() { exp = exp->optimize(); return this; }
-        bool postprocessor(Trie<bool> *vars);
+        bool postprocessor(HashMap<std::string,bool> *vars);
 };
 
 class OperatorExp : public Expression {
@@ -31,7 +31,7 @@ class OperatorExp : public Expression {
         
         virtual Val op(Val, Val) = 0;
 
-        bool postprocessor(Trie<bool> *vars)
+        bool postprocessor(HashMap<std::string,bool> *vars)
                 { return left->postprocessor(vars) && right->postprocessor(vars); }
 
         Exp getLeft() { return left; }

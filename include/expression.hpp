@@ -8,6 +8,8 @@
 #include "expressions/list.hpp"
 #include "expressions/stdlib.hpp"
 
+#include "structures/hashmap.hpp"
+
 #include <map>
 
 /**
@@ -42,7 +44,7 @@ class AdtDeclarationExp : public Expression {
         Val evaluate(Env);
         Type* typeOf(Tenv);
 
-        bool postprocessor(Trie<bool>*);
+        bool postprocessor(HashMap<std::string,bool>*);
 
         Exp clone();
         std::string toString();
@@ -74,7 +76,7 @@ class SwitchExp : public Expression {
         Val derivativeOf(std::string, Env, Env);
         Type* typeOf(Tenv);
 
-        bool postprocessor(Trie<bool>*);
+        bool postprocessor(HashMap<std::string,bool>*);
 
         Exp clone();
         std::string toString();
@@ -97,7 +99,7 @@ class ApplyExp : public Expression {
         Val derivativeOf(std::string, Env, Env);
         Type* typeOf(Tenv);
 
-        bool postprocessor(Trie<bool> *vars);
+        bool postprocessor(HashMap<std::string,bool> *vars);
         
         Exp clone();
         std::string toString();
@@ -140,7 +142,7 @@ class DerivativeExp : public Expression {
 
         Type* typeOf(Tenv);
 
-        bool postprocessor(Trie<bool> *vars) {
+        bool postprocessor(HashMap<std::string,bool> *vars) {
             return func->postprocessor(vars);
         }
 
@@ -168,7 +170,7 @@ class FoldExp : public Expression {
         Exp clone() { return new FoldExp(list->clone(), func->clone(), base->clone()); }
         std::string toString();
         
-        bool postprocessor(Trie<bool> *vars);
+        bool postprocessor(HashMap<std::string,bool> *vars);
 
         Exp optimize();
 };
@@ -192,7 +194,7 @@ class ForExp : public Expression {
         Exp clone() { return new ForExp(id, set->clone(), body->clone()); }
         std::string toString();
 
-        bool postprocessor(Trie<bool> *vars);
+        bool postprocessor(HashMap<std::string,bool> *vars);
 
         Exp optimize();
 };
@@ -213,7 +215,7 @@ class HasExp : public Expression {
 
         std::string toString();
 
-        bool postprocessor(Trie<bool> *vars);
+        bool postprocessor(HashMap<std::string,bool> *vars);
 
         Exp optimize() {
             item = item->optimize();
@@ -270,7 +272,7 @@ class ImportExp : public Expression {
         }
         ~ImportExp() { delete exp; }
 
-        bool postprocessor(Trie<bool> *vars) {
+        bool postprocessor(HashMap<std::string,bool> *vars) {
             if (vars->hasKey(name)) {
                 throw_err("error", "redefinition of variable " + name + " is not permitted");
                 return NULL;
@@ -324,7 +326,7 @@ class IsaExp : public Expression {
         Exp clone() { return new IsaExp(exp->clone(), type->clone()); }
         std::string toString();
 
-        bool postprocessor(Trie<bool> *vars);
+        bool postprocessor(HashMap<std::string,bool> *vars);
 
         Exp optimize() { exp = exp->optimize(); return this; }
 };
@@ -357,7 +359,7 @@ class LetExp : public Expression {
         Exp clone();
         std::string toString();
 
-        bool postprocessor(Trie<bool> *vars);
+        bool postprocessor(HashMap<std::string,bool> *vars);
 
         Exp optimize();
 };
@@ -397,7 +399,7 @@ class MapExp : public Expression {
         
         std::string toString();
 
-        bool postprocessor(Trie<bool> *vars) { return func->postprocessor(vars) && list->postprocessor(vars); }
+        bool postprocessor(HashMap<std::string,bool> *vars) { return func->postprocessor(vars) && list->postprocessor(vars); }
 
         Exp optimize() { func = func->optimize(); list = list->optimize(); return this; }
 };
@@ -454,7 +456,7 @@ class SequenceExp : public Expression {
         Exp clone();
         std::string toString();
 
-        bool postprocessor(Trie<bool> *vars);
+        bool postprocessor(HashMap<std::string,bool> *vars);
 
         Exp optimize();
 };
@@ -479,7 +481,7 @@ class SetExp : public Expression {
         Exp clone();
         std::string toString();
 
-        bool postprocessor(Trie<bool> *vars);
+        bool postprocessor(HashMap<std::string,bool> *vars);
 
         Exp optimize();
 };
@@ -501,7 +503,7 @@ class ThunkExp : public Expression {
 
         Type* typeOf(Tenv tenv) { return exp->typeOf(tenv); }
 
-        bool postprocessor(Trie<bool> *vars);
+        bool postprocessor(HashMap<std::string,bool> *vars);
 
         Exp optimize() { exp = exp->optimize(); return this; }
         Exp clone() { return new ThunkExp(exp->clone()); }
@@ -544,7 +546,7 @@ class WhileExp : public Expression {
         Exp clone() { return new WhileExp(cond->clone(), body->clone(), alwaysEnter); }
         std::string toString();
 
-        bool postprocessor(Trie<bool> *vars);
+        bool postprocessor(HashMap<std::string,bool> *vars);
 
         Exp optimize();
 };

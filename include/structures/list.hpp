@@ -59,8 +59,8 @@ template<typename T>
 class ArrayList : public List<T> {
     private:
         T *arr;
-        int N = 0;
-        int alen = 1;
+        int N;
+        int alen;
 
         class ALiterator : public Iterator<T> {
             private:
@@ -74,9 +74,34 @@ class ArrayList : public List<T> {
                 T next() { return list->arr[idx++]; }
         };
     public:
+
+        /**
+         * Creates the default, empty arraylist.
+         */
         ArrayList() {
+            // The array is initalized as empty.
             arr = new T[1];
+
+            // The array is empty.
+            N = 0;
+            
+            // There is one slot allocated at the start.
+            alen = 1;
         }
+        
+        /**
+         * Allocates the arraylist with a given data.
+         * @param array The data block to store.
+         * @param n The length of the block (preferably > 0, lest fate be tempted)
+         */
+        ArrayList(T *array, int n) {
+            // Use the new array
+            arr = array;
+
+            // The array is considered to be full.
+            N = alen = n;
+        }
+
         ~ArrayList() {
             delete[] arr;
         }
@@ -256,8 +281,15 @@ void ArrayList<T>::add(int idx, T t) {
         arr[0] = t;
     } else {
         if (N == alen) {
-            // We must extend the memory
-            T *dta = new T[(alen *= 2)];
+            // We must extend the memory.
+            T *dta;
+            if (alen) {
+                // We must extend the memory.
+                dta = new T[(alen *= 2)];
+            } else {
+                // Initialize a slot.
+                dta = new T[(alen = 1)];
+            }
             
             for (int i = 0; i < N; i++)
                 dta[i] = arr[i];

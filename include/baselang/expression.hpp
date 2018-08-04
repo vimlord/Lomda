@@ -6,7 +6,7 @@
 #include "baselang/types.hpp"
 #include "stringable.hpp"
 
-#include "structures/trie.hpp"
+#include "structures/hashmap.hpp"
 
 // Error functions
 void throw_warning(std::string form, std::string mssg);
@@ -32,12 +32,12 @@ class Expression : public Stringable {
          * @return The outcome of the computation, or NULL if the expression
                     is non-computable under the given environment.
          */
-        virtual Val evaluate(Env env) {
+        virtual Val evaluate(Env) {
             throw_err("implementation", "expression '" + toString() + "' cannot be computed because it is not implemented");
             return NULL;
         }
 
-        virtual Type* typeOf(Tenv tenv) {
+        virtual Type* typeOf(Tenv) {
             throw_err("type", "type of expression '" + toString() + "' cannot be computed because it is not implemented");
             return NULL;
         }
@@ -50,7 +50,7 @@ class Expression : public Stringable {
          * @param env The environment under which to compute.
          * @param denv The derivative of the expressions in the environment, assuming they exist.
          */
-        virtual Val derivativeOf(std::string x, Env env, Env denv) {
+        virtual Val derivativeOf(std::string, Env, Env) {
             throw_err("calculus", "expression '" + toString() + "' is non-differentiable");
             return NULL;
         }
@@ -61,7 +61,7 @@ class Expression : public Stringable {
          * @param vars The set of already defined variables.
          * @return Whether or not the expression is valid (ex: no re-declarations of vars)
          */
-        virtual bool postprocessor(Trie<bool> *vars = new Trie<bool>) { return true; };
+        virtual bool postprocessor(HashMap<std::string, bool>* = new HashMap<std::string, bool>) { return true; };
         
         /**
          * Creates a deep copy of the expression.

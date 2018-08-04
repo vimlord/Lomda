@@ -123,7 +123,7 @@ Exp DerivativeExp::symb_diff(string x) {
     auto dy = func->symb_diff(var);
     if (!dy) return NULL;
     // Derive this layer.
-    auto dx = dy->symb_diff(var);
+    auto dx = dy->symb_diff(x);
 
     // GC
     delete dy;

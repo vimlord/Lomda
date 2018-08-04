@@ -408,7 +408,6 @@ result<Expression> parse_pemdas(string str, int order) {
             auto vals = new LinkedList<Exp>;
             base.value = new DictExp(keys, vals);
 
-            int i = 0;
             while (argv.size()) {
                 // Attempt to extract the item
                 string pair = argv.back();
@@ -459,7 +458,7 @@ result<Expression> parse_pemdas(string str, int order) {
             str = str.substr(base.strlen);
 
             vector<char> strbin;
-            for (int i = 0; i < literal.length(); i++) {
+            for (unsigned int i = 0; i < literal.length(); i++) {
                 if (literal[i] == '\\') {
                     i++;
                     switch (literal[i]) {
@@ -725,18 +724,18 @@ result<Expression> parse_pemdas(string str, int order) {
                 // Scratch space for parsing numbers
                 string::size_type Zlen = -1;
                 string::size_type Rlen = -1;
-                int Z;
-                float R;
+                int Z = 0;
+                float R = 0;
 
                 // Attempt to extract a real
                 try { R = stof(str, &Rlen); }
-                catch (std::out_of_range oor) { Rlen = -1; }
-                catch (std::invalid_argument ia) { Rlen = -1; }
+                catch (std::out_of_range &oor) { Rlen = -1; }
+                catch (std::invalid_argument &ia) { Rlen = -1; }
 
                 // Attempt to extract an integer
                 try { Z = stoi(str, &Zlen, 10); }
-                catch (std::out_of_range oor) { Zlen = -1; }
-                catch (std::invalid_argument ia) { Zlen = -1; }
+                catch (std::out_of_range &oor) { Zlen = -1; }
+                catch (std::invalid_argument &ia) { Zlen = -1; }
 
                 // If one of them prevails, choose it.
                 if (Rlen > Zlen) {
@@ -1082,8 +1081,6 @@ result<Expression> parse_pemdas(string str, int order) {
         // AND gate
         while (base.value) {
             // Check for a symbol
-            int op;
-
             int i;
             if ((i = starts_with(str, "and")) == -1)
                 break;
@@ -1110,8 +1107,6 @@ result<Expression> parse_pemdas(string str, int order) {
         // OR gate
         while (base.value) {
             // Check for a symbol
-            int op;
-
             int i;
             if ((i = starts_with(str, "or")) == -1)
                 break;

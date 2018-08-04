@@ -13,7 +13,7 @@ using namespace std;
  * @return The uncommented program on success or an empty string on failure.
  */
 string preprocess_program(string str) {
-    for (int i = 0; i < str.length(); i++) {
+    for (unsigned int i = 0; i < str.length(); i++) {
         if (str[i] == '"') {
             int j = index_of_closure(str.substr(i), '"', '"');
             if (j == -1) return "";

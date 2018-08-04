@@ -1,7 +1,7 @@
 #include "expression.hpp"
 
-bool AdtExp::postprocessor(Trie<bool> *vars) { return true; }
-bool AdtDeclarationExp::postprocessor(Trie<bool> *vars) {
+bool AdtExp::postprocessor(HashMap<std::string,bool>*) { return true; }
+bool AdtDeclarationExp::postprocessor(HashMap<std::string,bool> *vars) {
     // We forbid repetition of kind names.
     for (int i = 0; argss[i]; i++)
         for (int j = i+1; argss[j]; j++)
@@ -23,7 +23,7 @@ bool AdtDeclarationExp::postprocessor(Trie<bool> *vars) {
 
     return res;
 }
-bool SwitchExp::postprocessor(Trie<bool> *vars) {
+bool SwitchExp::postprocessor(HashMap<std::string,bool> *vars) {
     // Process the ADT
     if (!adt->postprocessor(vars)) return false;
     
@@ -58,7 +58,7 @@ bool SwitchExp::postprocessor(Trie<bool> *vars) {
     return true;
 }
 
-bool ApplyExp::postprocessor(Trie<bool> *vars) {
+bool ApplyExp::postprocessor(HashMap<std::string,bool> *vars) {
     if (!op->postprocessor(vars)) return false;
 
     auto res = true;
@@ -68,14 +68,14 @@ bool ApplyExp::postprocessor(Trie<bool> *vars) {
     return res;
 }
 
-bool FoldExp::postprocessor(Trie<bool> *vars) {
+bool FoldExp::postprocessor(HashMap<std::string,bool> *vars) {
     return list->postprocessor(vars)
         && func->postprocessor(vars)
         && base->postprocessor(vars);}
 
-bool LambdaExp::postprocessor(Trie<bool> *vars) {
+bool LambdaExp::postprocessor(HashMap<std::string,bool> *vars) {
 
-    auto trie = new Trie<bool>;
+    auto trie = new HashMap<std::string,bool>;
     for (int i = 0; xs[i] != ""; i++)
         trie->add(xs[i], true);
     
@@ -94,7 +94,7 @@ bool LambdaExp::postprocessor(Trie<bool> *vars) {
     return res;
 }
 
-bool LetExp::postprocessor(Trie<bool> *vars) {
+bool LetExp::postprocessor(HashMap<std::string,bool> *vars) {
     bool res = true;
 
     // Evaluate the processing of the non-recursive variables
@@ -141,7 +141,7 @@ bool LetExp::postprocessor(Trie<bool> *vars) {
     return res;
 }
 
-bool SequenceExp::postprocessor(Trie<bool> *vars) {
+bool SequenceExp::postprocessor(HashMap<std::string,bool> *vars) {
     auto it = seq->iterator();
     auto res = true;
     while (res && it->hasNext())
@@ -151,7 +151,7 @@ bool SequenceExp::postprocessor(Trie<bool> *vars) {
     return res;
 }
 
-bool ForExp::postprocessor(Trie<bool> *vars) {
+bool ForExp::postprocessor(HashMap<std::string,bool> *vars) {
     if(!set->postprocessor(vars)) return false;
     if (vars->hasKey(id)) {
         throw_err("", "redefinition of variable " + id + " is not permitted");
@@ -163,9 +163,9 @@ bool ForExp::postprocessor(Trie<bool> *vars) {
 
     return res;
 }
-bool HasExp::postprocessor(Trie<bool> *vars) { return item->postprocessor(vars) && set->postprocessor(vars); }
-bool IsaExp::postprocessor(Trie<bool> *vars) { return exp->postprocessor(vars); }
-bool UnaryOperatorExp::postprocessor(Trie<bool> *vars) { return exp->postprocessor(vars); }
-bool SetExp::postprocessor(Trie<bool> *vars) { return tgt->postprocessor(vars) && exp->postprocessor(vars); }
-bool ThunkExp::postprocessor(Trie<bool> *vars) { return exp->postprocessor(vars); }
-bool WhileExp::postprocessor(Trie<bool> *vars) { return cond->postprocessor(vars) && body->postprocessor(vars); }
+bool HasExp::postprocessor(HashMap<std::string,bool> *vars) { return item->postprocessor(vars) && set->postprocessor(vars); }
+bool IsaExp::postprocessor(HashMap<std::string,bool> *vars) { return exp->postprocessor(vars); }
+bool UnaryOperatorExp::postprocessor(HashMap<std::string,bool> *vars) { return exp->postprocessor(vars); }
+bool SetExp::postprocessor(HashMap<std::string,bool> *vars) { return tgt->postprocessor(vars) && exp->postprocessor(vars); }
+bool ThunkExp::postprocessor(HashMap<std::string,bool> *vars) { return exp->postprocessor(vars); }
+bool WhileExp::postprocessor(HashMap<std::string,bool> *vars) { return cond->postprocessor(vars) && body->postprocessor(vars); }
