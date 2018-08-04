@@ -5,6 +5,8 @@
 
 class Stringable {
     public:
+        virtual ~Stringable() {}
+
         /**
          * Constructs a string representation of the object.
          *

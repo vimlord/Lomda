@@ -22,7 +22,7 @@ AlgebraicDataType::~AlgebraicDataType() {
         delete[] argss;
     }
 }
-bool AlgebraicDataType::isConstant(Tenv tenv) { return true; }
+bool AlgebraicDataType::isConstant(Tenv) { return true; }
 Type* AlgebraicDataType::clone() {
     string *xs;
     Type ***ass;
@@ -71,7 +71,7 @@ Type* AlgebraicDataType::simplify(Tenv tenv) {
 }
 
 DictType::DictType(initializer_list<pair<string, Type*>> ts) {
-    types = new Trie<Type*>;
+    types = new HashMap<std::string, Type*>;
 
     // Add each of the items
     for (auto it : ts)
@@ -79,7 +79,7 @@ DictType::DictType(initializer_list<pair<string, Type*>> ts) {
 }
 
 Type* DictType::clone() {
-    auto ts = new Trie<Type*>;
+    auto ts = new HashMap<std::string, Type*>;
 
     auto tt = types->iterator();
     while (tt->hasNext()) {
@@ -91,7 +91,7 @@ Type* DictType::clone() {
     return new DictType(ts);
 }
 Type* DictType::simplify(Tenv tenv) {
-    auto ts = new Trie<Type*>;
+    auto ts = new HashMap<std::string, Type*>;
     auto T = new DictType(ts);
 
     auto tt = types->iterator();
@@ -621,7 +621,7 @@ Type* DerivativeExp::typeOf(Tenv tenv) {
 
 }
 Type* DictExp::typeOf(Tenv tenv) {
-    auto trie = new Trie<Type*>;
+    auto trie = new HashMap<std::string, Type*>;
 
     auto T = new DictType(trie);
     auto kt = keys->iterator();
@@ -649,7 +649,7 @@ Type* DictExp::typeOf(Tenv tenv) {
 Type* DictAccessExp::typeOf(Tenv tenv) {
     Type *D = list->typeOf(tenv);
     
-    Type *E = new DictType(new Trie<Type*>);
+    Type *E = new DictType(new HashMap<std::string, Type*>);
     
     // The left hand side should be a dictionary.
     Type *F = D->unify(E, tenv);
@@ -1384,7 +1384,7 @@ Type* NormExp::typeOf(Tenv tenv) {
             R = ((ListType*) R)->subtype();
         
         // Ban normalization of 3D or higher lists. We also verify sums.
-        if (d > 2 || !isType<RealType>(R) && !isType<IntType>(R))
+        if (d > 2 || (!isType<RealType>(R) && !isType<IntType>(R)))
             R = NULL;
         else
             R = new RealType;

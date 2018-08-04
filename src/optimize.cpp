@@ -492,6 +492,8 @@ Exp StdMathExp::optimize() {
                     return optimize_with_catch(this, exp);
                 }
                 break;
+            default:
+                break;
         }
     } else if (fn == LOG && isExp<ExponentExp>(e)) {
         // ln(a^b) = b ln a

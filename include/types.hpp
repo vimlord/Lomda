@@ -250,10 +250,10 @@ class VoidType : public PrimitiveType {
 // Dictionary type (records)
 class DictType : public Type {
     private:
-        Trie<Type*> *types;
+        HashMap<std::string, Type*> *types;
     public:
-        DictType() { types = new Trie<Type*>; }
-        DictType(Trie<Type*> *ts) : types(ts) {}
+        DictType() { types = new HashMap<std::string, Type*>; }
+        DictType(HashMap<std::string, Type*> *ts) : types(ts) {}
         DictType(std::initializer_list<std::pair<std::string, Type*>>);
         ~DictType() {
             auto it = types->iterator();
@@ -262,7 +262,7 @@ class DictType : public Type {
             delete types;
         }
 
-        Trie<Type*>* getTypes() { return types; }
+        HashMap<std::string, Type*>* getTypes() { return types; }
 
         Type* clone();
         Type* unify(Type*, Tenv);

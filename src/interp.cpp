@@ -32,7 +32,7 @@ Val run(string program) {
     if (exp) { 
 
         throw_debug("postprocessor", "performing verification of '" + exp->toString() + "'");
-        Trie<bool> *vardta = new Trie<bool>;
+        HashMap<std::string,bool> *vardta = new HashMap<std::string,bool>;
         bool valid = exp->postprocessor(vardta);
         delete vardta;
 
@@ -133,9 +133,7 @@ Val AdtExp::evaluate(Env env) {
     return new AdtVal(name, kind, xs);
 }
 Val AdtDeclarationExp::evaluate(Env env) {
-    auto subtypes = new Trie<Val>;
-    
-    auto adt = new DictVal(subtypes);
+    auto adt = new DictVal;
 
     for (int i = 0; argss[i]; i++) {
         auto kind = ids[i];
@@ -156,7 +154,7 @@ Val AdtDeclarationExp::evaluate(Env env) {
         }
         
         // Add the declaration
-        subtypes->add(kind, new LambdaVal(xs, new AdtExp(name, kind, zs)));
+        adt->add(kind, new LambdaVal(xs, new AdtExp(name, kind, zs)));
     }
     
     // Store the dictionary. This holds all of the constructors.
@@ -310,8 +308,8 @@ Val CastExp::evaluate(Env env) {
             string::size_type Zlen = -1;
             int Z;
             try { Z = stoi(s, &Zlen, 10); }
-            catch (std::out_of_range oor) { Zlen = -1; }
-            catch (std::invalid_argument ia) { Zlen = -1; }
+            catch (std::out_of_range &oor) { Zlen = -1; }
+            catch (std::invalid_argument &ia) { Zlen = -1; }
             
             if ((int) Zlen > 0)
                 res = new IntVal(Z);
@@ -335,8 +333,8 @@ Val CastExp::evaluate(Env env) {
             string::size_type len = -1;
             int R;
             try { R = stol(s, &len); }
-            catch (std::out_of_range oor) { len = -1; }
-            catch (std::invalid_argument ia) { len = -1; }
+            catch (std::out_of_range &oor) { len = -1; }
+            catch (std::invalid_argument &ia) { len = -1; }
             
             if ((int) len > 0)
                 res = new RealVal(R);
@@ -510,9 +508,7 @@ Val DictExp::evaluate(Env env) {
 
     delete it;
     
-    Trie<Val> *vs = new Trie<Val>;
-
-    DictVal *res = new DictVal(vs);
+    auto res = new DictVal;
     
     auto kt = keys->iterator();
     auto vt = vals->iterator();
@@ -528,7 +524,7 @@ Val DictExp::evaluate(Env env) {
 
         string k = kt->next();
 
-        vs->add(k, v);
+        res->add(k, v);
     }
 
     delete kt;
@@ -538,7 +534,7 @@ Val DictExp::evaluate(Env env) {
 
 }
 
-Val FalseExp::evaluate(Env env) { return new BoolVal(false); }
+Val FalseExp::evaluate(Env) { return new BoolVal(false); }
 
 Val FoldExp::evaluate(Env env) {
     Val lst = list->evaluate(env);
@@ -670,7 +666,7 @@ Val HasExp::evaluate(Env env) {
         if (val_is_string(x)) {
             string key = x->toString();
             
-            auto it = ((DictVal*) xs)->getVals()->iterator();
+            auto it = ((DictVal*) xs)->iterator();
 
             while (!res && it->hasNext())
                 if (it->next() == key)
@@ -784,15 +780,13 @@ Val ImportExp::evaluate(Env env) {
 
 }
 
-Val InputExp::evaluate(Env env) {
+Val InputExp::evaluate(Env) {
     string s;
     getline(cin, s);
     return new StringVal(s);
 }
 
-Val IntExp::evaluate(Env env) {
-    return new IntVal(val);
-}
+Val IntExp::evaluate(Env) { return new IntVal(val); }
 
 bool static_typecheck(Val val, Type *type) {
     if (isVal<IntVal>(val))
@@ -907,24 +901,23 @@ Val LetExp::evaluate(Env env) {
 
 Val ListExp::evaluate(Env env) {
     // Generate a blank list
-    ListVal *val = new ListVal;
+    Val *vals = new Val[size()];
     
     // Add each item
     for(int i = 0; i < size(); i++) {
         // Compute the value of each item
-        Val v = get(i)->evaluate(env);
+        vals[i] = get(i)->evaluate(env);
 
-        if (!v) {
+        if (!vals[i]) {
             // Garbage collection on the iterator and the value
-            delete val;
+            while (i--) vals[i]->rem_ref();
+            delete[] vals;
 
             return NULL;
-        } else {
-            val->add(i, v);
         }
     }
 
-    return val;
+    return new ListVal(vals, size());
 }
 
 Val ListAccessExp::evaluate(Env env) {
@@ -987,8 +980,8 @@ Val DictAccessExp::evaluate(Env env) {
         DictVal *d = (DictVal*) f;
         Val v;
 
-        if (d->getVals()->hasKey(idx)) {
-            v = d->getVals()->get(idx);
+        if (d->hasKey(idx)) {
+            v = d->get(idx);
             v->add_ref();
         } else
             v = new VoidVal;
@@ -1126,26 +1119,19 @@ Val ListSliceExp::evaluate(Env env) {
     }
 
     // Get the item
-    auto vs = new ArrayList<Val>;
+    Val *vs = new Val[j - i];
     
-    auto it = vals->iterator();
-
-    int x;
-    for (x = 0; x < i; x++) it->next();
-    for (;x < j && it->hasNext(); x++) {
+    for (int x = i; x < j; x++) {
         // Add the value and a reference to it
-        Val v = it->next();
-        vs->add(vs->size(), v);
-        v->add_ref();
+        vs[x-i] = vals->get(x);
+        vs[x-i]->add_ref();
     }
     
     // Garbage collection
     lst->rem_ref();
-    delete it;
-
-    Val res = new ListVal(vs);
-
-    return res;
+    
+    // Generate and return the list.
+    return new ListVal(vs, j-i);
 }
 
 Val MagnitudeExp::op(Val v) {
@@ -1195,9 +1181,6 @@ Val MapExp::evaluate(Env env) {
         fn->rem_ref();
         return NULL;
     }
-
-    // Get the arguments
-    Exp map = fn->getBody();
 
     if (isVal<ListVal>(vs)) {
         // Given a list, map each element of the list
@@ -1261,12 +1244,12 @@ Val sqnorm(Val v) {
         return new RealVal(val * val);
     } else if (isVal<ListVal>(v)) {
         // Magnitude of list is its length
-        auto it = ((ListVal*) v)->iterator();
+        auto lst = (ListVal*) v;
 
         float sum = 0;
         
-        while (it->hasNext()) {
-            Val v = sqnorm(it->next());
+        for (int i = 0; i < lst->size(); i++) {
+            Val v = sqnorm(lst->get(i));
 
             if (!v) return NULL;
 
@@ -1350,9 +1333,7 @@ Val PrintExp::evaluate(Env env) {
     return new VoidVal;
 }
 
-Val RealExp::evaluate(Env env) {
-    return new RealVal(val);
-}
+Val RealExp::evaluate(Env) { return new RealVal(val); }
 
 Val SequenceExp::evaluate(Env env) {
     Val v = NULL;
@@ -1434,8 +1415,7 @@ Val SetExp::evaluate(Env env) {
 
             auto idx = acc->getIdx();
 
-            auto vals = lst->getVals();
-            auto vt = vals->iterator();
+            auto vt = lst->iterator();
 
             bool done = false;
             if (!(v = exp->evaluate(env))) {
@@ -1448,8 +1428,8 @@ Val SetExp::evaluate(Env env) {
                 string k = vt->next();
                 if (k == idx) {
                     // Reassign
-                    vals->remove(k)->rem_ref();
-                    vals->add(k, v);
+                    lst->remove(k)->rem_ref();
+                    lst->add(k, v);
                     done = true;
                 }
             }
@@ -1459,7 +1439,7 @@ Val SetExp::evaluate(Env env) {
             
             // On failure, new element
             if (!done)
-                vals->add(idx, v);
+                lst->add(idx, v);
 
         } else {
             throw_err("type", "cannot perform dictionary assignment to non-dictionary");
@@ -1515,10 +1495,8 @@ Val StdMathExp::evaluate(Env env) {
     // Is the value a list of numbers
     bool islst = val_is_list(v);
     if (islst) {
-        auto it = ((ListVal*) v)->iterator();
-        while (islst && it->hasNext())
-            islst = val_is_number(it->next());
-        delete it;
+        for (int i = 0; islst && i < ((ListVal*) v)->size(); i++)
+            islst = val_is_number(((ListVal*) v)->get(i));
     }
 
     Val y = NULL;
@@ -1537,18 +1515,16 @@ Val StdMathExp::evaluate(Env env) {
                 CompareExp gt(NULL, NULL, GT);
                 
                 // Iterator and initial condition.
-                auto it = lst->iterator();
-                y = it->next();
-
-                while (it->hasNext()) {
-                    Val val = it->next();
+                y = lst->get(0);
+                
+                for (int i = 1; i < lst->size(); i++) {
+                    Val val = lst->get(i);
 
                     BoolVal *b = (BoolVal*) gt.op(val, y);
                     if (b->get() == (fn == MAX))
                         y = val;
                     b->rem_ref();
                 }
-                delete it;
 
                 y->add_ref();
 
@@ -1687,7 +1663,7 @@ Val StdMathExp::evaluate(Env env) {
 
 }
 
-Val TrueExp::evaluate(Env env) { return new BoolVal(true); }
+Val TrueExp::evaluate(Env) { return new BoolVal(true); }
 
 Val TupleExp::evaluate(Env env) {
     Val l = left->evaluate(env);

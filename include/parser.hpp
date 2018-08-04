@@ -103,7 +103,7 @@ Exp parse_sequence(std::string program, std::list<std::string> tail);
  * @return Whether or not the string is an identifier matching (_|[A-Za-z])*
  */
 inline bool is_identifier(std::string str) {
-    int i;
+    unsigned int i;
     for (i = 0; str[i] == '_' || (str[i] >= 'a' && str[i] <= 'z') || (str[i] >= 'A' && str[i] <= 'Z'); i++);
     return str.length() == i;
 }
@@ -161,7 +161,7 @@ inline std::string trim_whitespace(std::string str) {
     for (i = 0; str[i] == ' ' || str[i] == '\n' || str[i] == '\t'; i++);
 
     int j;
-    for (j = str.length(); j > i && str[j-1] == ' ' || str[j-1] == '\n' || str[j-1] == '\t'; j--);
+    for (j = str.length(); j > i && (str[j-1] == ' ' || str[j-1] == '\n' || str[j-1] == '\t'); j--);
     
     return str.substr(i, j-i);
 }
