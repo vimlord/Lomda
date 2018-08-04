@@ -387,8 +387,8 @@ Val log(Val v) {
 Val identity_matrix(int n) {
     auto B = new ListVal;
     for (int i = 0; i < n; i++) {
-        auto L = new ArrayList<Val>;
-        B->add(i, new ListVal(L));
+        auto L = new ListVal;
+        B->add(i, L);
         for (int j = 0; j < n; j++)
             L->add(j, new IntVal(i == j ? 1 : 0));
     }
@@ -426,7 +426,7 @@ Val pow(Val b, Val p) {
             // Identity
             return b->clone();
         } else if (n > 0) {
-            Val v;
+            Val v = NULL;
             
             // We may need to generate an identity matrix
             if (isVal<ListVal>(b)) {

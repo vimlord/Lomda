@@ -3,7 +3,7 @@
 using namespace std;
 
 int index_of_char(string str, char c) {
-    for (int i = 0; i < str.length(); i++) {
+    for (unsigned int i = 0; i < str.length(); i++) {
         if (str[i] == c)
             return i;
         
@@ -31,8 +31,7 @@ int index_of_char(string str, char c) {
 }
 
 int index_of_closure(string str, char a, char b) {
-    int i;
-    for (i = 1; i < str.length(); i++) {
+    for (unsigned int i = 1; i < str.length(); i++) {
         // Ignore escaped characters.
         if (str[i] == b) {
             // We have found closure; return the index of b.
@@ -63,7 +62,7 @@ int index_of_closure(string str, char a, char b) {
     }
     
     // Trim the string for the error message
-    if (str.find('\n') >= 0)
+    if (str.find('\n') == string::npos)
         str = str.substr(0, str.find('\n'));
 
     return -1;
@@ -101,7 +100,7 @@ list<string> extract_statements(string str, char delim, bool trim_empty) {
 
     // We seek to find the next semicolon or evidence that there is
     // exactly one statement in our program.
-    int i;
+    unsigned int i;
     for (i = 0; i < str.length(); i++) {
 
         if(str[i] == delim) { // Semicolon implies that we found our result.

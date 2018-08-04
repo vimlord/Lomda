@@ -37,7 +37,7 @@ class AdtExp : public Expression {
         Exp clone();
         std::string toString();
 
-        bool postprocessor(Trie<bool> *vars);
+        bool postprocessor(HashMap<std::string,bool> *vars);
 };
 
 /**
@@ -65,7 +65,7 @@ class DictExp : public Expression {
         Exp clone();
         std::string toString();
 
-        bool postprocessor(Trie<bool> *vars) {
+        bool postprocessor(HashMap<std::string,bool> *vars) {
             auto it = vals->iterator();
             auto res = true;
             while (res && it->hasNext())
@@ -128,7 +128,7 @@ class LambdaExp : public Expression {
         Exp clone();
         std::string toString();
 
-        bool postprocessor(Trie<bool> *vars);
+        bool postprocessor(HashMap<std::string,bool> *vars);
 
         Exp optimize() { exp = exp->optimize(); return this; }
 };
@@ -151,7 +151,7 @@ class ListExp : public Expression, public ArrayList<Exp> {
         Exp clone();
         std::string toString();
 
-        bool postprocessor(Trie<bool> *vars) {
+        bool postprocessor(HashMap<std::string,bool> *vars) {
             auto res = true;
             for (int i = 0; i < size(); i++) {
                 res = get(i)->postprocessor(vars);
@@ -228,7 +228,7 @@ class TupleExp : public Expression {
 
         Exp clone() { return new TupleExp(left->clone(), right->clone()); }
 
-        bool postprocessor(Trie<bool> *vars) {
+        bool postprocessor(HashMap<std::string,bool> *vars) {
             return left->postprocessor(vars) && right->postprocessor(vars);
         }
 
@@ -250,7 +250,7 @@ class VarExp : public Expression {
 
         Val derivativeOf(std::string, Env, Env);
 
-        bool postprocessor(Trie<bool> *vars) {
+        bool postprocessor(HashMap<std::string,bool> *vars) {
             if (vars->hasKey(id)) return true;
             throw_err("", "undefined reference to variable " + id);
             return false;

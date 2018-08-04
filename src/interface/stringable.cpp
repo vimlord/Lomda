@@ -77,12 +77,12 @@ string DerivativeExp::toString() {
 string DictVal::toString() {
     string s = "{";
 
-    auto vt = vals->iterator();
+    auto vt = iterator();
 
     for (bool b = false; vt->hasNext(); b = true) {
         if (b) s += ", ";
         auto k = vt->next();
-        auto v = vals->get(k);
+        auto v = get(k);
         s += k + " : " + v->toString();
     }
 

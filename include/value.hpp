@@ -5,7 +5,7 @@
 #include "baselang/expression.hpp"
 #include "baselang/environment.hpp"
 
-#include "structures/trie.hpp"
+#include "structures/hashmap.hpp"
 
 bool is_zero_val(Val e);
 
@@ -57,26 +57,18 @@ class BoolVal : public Value {
 /**
  * Defines a dictionary of values.
  */
-class DictVal : public Value {
-    private: 
-        Trie<Val> *vals;
+class DictVal : public Value, public HashMap<std::string, Val> {
     public:
-        DictVal() {
-            vals = new Trie<Val>;
-        }
-        DictVal(Trie<Val> *vs) : vals(vs) {}
-        DictVal(LinkedList<std::string> *ks, LinkedList<Val> *vs);
+        using HashMap::HashMap;
         DictVal(std::initializer_list<std::pair<std::string, Val>>);
 
         ~DictVal();
 
-        Trie<Val>* getVals() { return vals; }
-
-        Val apply(std::string);
-
-        std::string toString();
         DictVal* clone();
         int set(Val);
+        using HashMap::set;
+
+        std::string toString();
 };
 
 class IntVal : public Value {
@@ -119,11 +111,7 @@ class LambdaVal : public Value {
  */
 class ListVal : public Value, public ArrayList<Val> {
     public:
-        ListVal() { }
-        ListVal(ArrayList<Val> *l) {
-            for (int i = 0; i < l->size(); i++)
-                add(i, l->get(i));
-        }
+        using ArrayList::ArrayList;
         ~ListVal();
 
         ListVal* clone();

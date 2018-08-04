@@ -128,7 +128,7 @@ bool quicksort(Val *vs, int i, int j) {
     }
 
     return true;
-};
+}
 
 auto std_sort = [](Env env, bool (*sort)(Val*, int, int)) {
     Val A = env->apply("L");

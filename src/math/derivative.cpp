@@ -35,11 +35,11 @@ void resolveIdentity(Val val, List<int> *idx = NULL) {
         
         DictVal *dct = (DictVal*) val;
 
-        auto vit = dct->getVals()->iterator();
+        auto vit = dct->iterator();
         for (int i = 0; vit->hasNext(); i++) {
             string k = vit->next();
             idx->add(0, i);
-            resolveIdentity(dct->getVals()->get(k), idx);
+            resolveIdentity(dct->get(k), idx);
             idx->remove(0);
         }
 
@@ -83,34 +83,32 @@ Val deriveConstVal(string id, Val v, int c) {
         // Certain types are non-differentiable
         return NULL;
     else if (isVal<ListVal>(v)) {
-        auto it = ((ListVal*) v)->iterator();
+        auto lst = (ListVal*) v;
 
-        auto lst = new ListVal;
+        auto vals = new Val[lst->size()];
 
-        while (it->hasNext()) {
-            Val x = deriveConstVal(id, it->next(), c);
+        for (int i = 0; i < lst->size(); i++) {
+            Val x = deriveConstVal(id, lst->get(i), c);
 
             if (!x) {
-                lst->rem_ref();
-                delete it;
+                while (i--) vals[i]->rem_ref();
+                delete[] vals;
                 return NULL;
             }
-
-            lst->add(lst->size(), x);
+            
+            vals[i] = x;
         }
-        delete it;
-        return lst; 
-    } else if (isVal<DictVal>(v)) {
-        auto vit = ((DictVal*) v)->getVals()->iterator();
+        return new ListVal(vals, lst->size());
 
-        auto vals = new Trie<Val>;
-        
-        Val res = new DictVal(vals);
+    } else if (isVal<DictVal>(v)) {
+        auto vit = ((DictVal*) v)->iterator();
+
+        auto res = new DictVal;
 
         while (vit->hasNext()) {
             auto k = vit->next();
             
-            vals->add(k, deriveConstVal(id, ((DictVal*) v)->getVals()->get(k), c));
+            res->add(k, deriveConstVal(id, ((DictVal*) v)->get(k), c));
         }
 
         delete vit;
@@ -165,49 +163,48 @@ Val deriveConstVal(string id, Val y, Val x, int c) {
         // Certain types are non-differentiable
         return NULL;
     else if (isVal<ListVal>(x)) {
-        auto it = ((ListVal*) x)->iterator();
+        auto X = (ListVal*) x;
         
         // Resulting derivative
-        auto lst = new ListVal;
+        auto lst = new Val[X->size()];
         
         // Build the subderivatives
-        while (it->hasNext()) {
-            Val u = it->next();
+        for (int i = 0; i < X->size(); i++) {
+            Val u = X->get(i);
             Val dy = deriveConstVal(id, y, u, 0);
 
             if (!dy) {
-                lst->rem_ref();
-                delete it;
+                while (i--) lst[i]->rem_ref();
+                delete[] lst;
                 return NULL;
             }
-
-            lst->add(lst->size(), dy);
+            
+            lst[i] = dy;
         }
-        delete it;
+
+        Val res = new ListVal(lst, X->size());
 
         // This is to ensure an initial condition for data structures:
         // to ensure that an identity is met.
-        if (c == 1) resolveIdentity(lst);
+        if (c == 1) resolveIdentity(res);
 
-        return lst;
+        return res;
     } else if (isVal<DictVal>(x)) {
-        auto vit = ((DictVal*) x)->getVals()->iterator();
+        auto vit = ((DictVal*) x)->iterator();
 
-        auto vals = new Trie<Val>;
-        
-        Val res = new DictVal(vals);
+        auto res = new DictVal;
 
         while (vit->hasNext()) {
             auto k = vit->next();
 
-            auto V = deriveConstVal(id, y, ((DictVal*) x)->getVals()->get(k), 0);
+            auto V = deriveConstVal(id, y, ((DictVal*) x)->get(k), 0);
             if (!V) {
                 delete vit;
                 delete res;
                 return NULL;
             }
 
-            vals->add(k, V);
+            res->add(k, V);
         }
         
         // GC
@@ -316,17 +313,17 @@ Val chain_product(Val dzdy, Val dydx, Val z) {
         auto Z = (DictVal*) z;
         auto dzdx = new DictVal;
         
-        auto it = Z->getVals()->iterator();
+        auto it = Z->iterator();
         while (it->hasNext()) {
             string i = it->next();
-            Val v = chain_product(dct->getVals()->get(i), dydx, Z->getVals()->get(i));
+            Val v = chain_product(dct->get(i), dydx, Z->get(i));
 
             if (!v) {
                 dzdx->rem_ref();
                 return NULL;
             }
 
-            dzdx->getVals()->add(i, v);
+            dzdx->add(i, v);
         }
 
         return dzdx;
@@ -358,11 +355,11 @@ Val chain_product(Val dzdy, Val dydx, Val z) {
     }
 }
 
-Val AndExp::derivativeOf(string x, Env env, Env denv) {
+Val AndExp::derivativeOf(string, Env, Env) {
     throw_calc_err(this);
     return NULL;
 }
-Val OrExp::derivativeOf(string x, Env env, Env denv) {
+Val OrExp::derivativeOf(string, Env, Env) {
     throw_calc_err(this);
     return NULL;
 }
@@ -642,7 +639,7 @@ Val DictExp::derivativeOf(string x, Env env, Env denv) {
             return NULL;
         } else {
             string k = kit->next();
-            val->getVals()->add(k, v);
+            val->add(k, v);
         }
     }
 
@@ -810,20 +807,16 @@ Val ForExp::derivativeOf(string x, Env env, Env denv) {
     Val dlistExp = set->derivativeOf(x, env, denv);
     if (!dlistExp) return NULL;
 
-    List<Val> *list = ((ListVal*) listExp);
-    List<Val> *dlist = ((ListVal*) dlistExp);
+    auto list = (ListVal*) listExp;
+    auto dlist = (ListVal*) dlistExp;
     
-    // Gather an iterator
-    auto it = list->iterator();
-    auto dit = dlist->iterator();
-
     // Value to be return
     Val v = new VoidVal;
-
-    while (it->hasNext()) {
+    
+    for (int i = 0; i < list->size(); i++) {
         // Get the next item from the list
-        Val v = it->next();
-        Val dv = dit->next();
+        Val v = list->get(i);
+        Val dv = dlist->get(i);
         
         Val t = env->apply(id);
         Val dt = denv->apply(id);
@@ -850,13 +843,10 @@ Val ForExp::derivativeOf(string x, Env env, Env denv) {
         }
 
         if (!v) {
-            delete it, dit;
             return NULL;
         }
 
     }
-
-    delete it, dit;
 
     return v;
 
@@ -875,7 +865,7 @@ Val IfExp::derivativeOf(string x, Env env, Env denv) {
     return (bRes ? tExp : fExp)->derivativeOf(x, env, denv);
 }
 
-Val LambdaExp::derivativeOf(string x, Env env, Env denv) {
+Val LambdaExp::derivativeOf(string x, Env env, Env) {
     int argc;
     for (argc = 0; xs[argc] != ""; argc++);
     
@@ -970,11 +960,11 @@ Val DictAccessExp::derivativeOf(string x, Env env, Env denv) {
         return NULL;
     }
 
-    auto trie = ((DictVal*) lst)->getVals();
+    auto dict = (DictVal*) lst;
     
     Val v;
-    if (trie->hasKey(idx)) {
-        v = trie->get(idx);
+    if (dict->hasKey(idx)) {
+        v = dict->get(idx);
         v->add_ref();
     } else
         v = NULL;
@@ -1432,10 +1422,10 @@ Val StdMathExp::derivativeOf(string x, Env env, Env denv) {
     // Is the value a list of numbers
     bool islst = val_is_list(v);
     if (islst) {
-        auto it = ((ListVal*) v)->iterator();
-        while (islst && it->hasNext())
-            islst = val_is_number(it->next());
-        delete it;
+        auto lst = (ListVal*) v;
+
+        for (int i = 0; islst && i < lst->size(); i++)
+            islst = val_is_number(lst->get(i));
     }
 
     Val dv = e->derivativeOf(x, env, denv);
@@ -1461,12 +1451,11 @@ Val StdMathExp::derivativeOf(string x, Env env, Env denv) {
                 CompareExp gt(NULL, NULL, GT);
                 
                 // Iterator and initial condition.
-                auto it = lst->iterator();
-                y = it->next();
+                y = lst->get(0);
                 int idx = 0;
 
-                for (int i = 1; it->hasNext(); i++) {
-                    Val val = it->next();
+                for (int i = 1; i < lst->size(); i++) {
+                    Val val = lst->get(i);
 
                     BoolVal *b = (BoolVal*) gt.op(val, y);
                     if (b->get() == (fn == MAX)) {
@@ -1475,13 +1464,12 @@ Val StdMathExp::derivativeOf(string x, Env env, Env denv) {
                     }
                     b->rem_ref();
                 }
-                delete it;
                 
                 y = ((ListVal*) dv)->get(idx);
                 y->add_ref();
-
             } else
                 throw_err("type", "max is undefined for inputs outside of [R]");
+            break;
         case SIN:
             if (isnum) {
                 auto z = isVal<IntVal>(v)
@@ -1493,6 +1481,7 @@ Val StdMathExp::derivativeOf(string x, Env env, Env denv) {
                 y = new RealVal(dz*cos(z));
             } else
                 throw_err("type", "sin is undefined for inputs outside of R");
+            break;
         case COS:
             if (isnum) {
                 auto z = isVal<IntVal>(v)
@@ -1504,6 +1493,7 @@ Val StdMathExp::derivativeOf(string x, Env env, Env denv) {
                 y = new RealVal(-dz*sin(z));
             } else
                 throw_err("type", "cos is undefined for inputs outside of R");
+            break;
         case TAN:
             if (isnum) {
                 auto z = isVal<IntVal>(v)
@@ -1517,6 +1507,7 @@ Val StdMathExp::derivativeOf(string x, Env env, Env denv) {
                 y = new RealVal(dz / (cos(z) * cos(z)));
             } else
                 throw_err("type", "tan is undefined for inputs outside of R");
+            break;
         case ASIN:
             if (isnum) {
                 // x^2
@@ -1539,9 +1530,9 @@ Val StdMathExp::derivativeOf(string x, Env env, Env denv) {
                 dz = div(dv, y);
                 y->rem_ref();
                 y = dz;
-
             } else
                 throw_err("type", "arcsin is undefined for inputs outside of R");
+            break;
         case ACOS:
             if (isnum) {
                 // x^2
@@ -1574,6 +1565,7 @@ Val StdMathExp::derivativeOf(string x, Env env, Env denv) {
 
             } else
                 throw_err("type", "arccos is undefined for inputs outside of R");
+            break;
         case ATAN:
             if (isnum) {
                 // x^2
@@ -1592,6 +1584,7 @@ Val StdMathExp::derivativeOf(string x, Env env, Env denv) {
                 y = dz;
             } else
                 throw_err("type", "arctan is undefined for inputs outside of R");
+            break;
         case SINH:
             if (isnum) {
                 auto z = isVal<IntVal>(v)
@@ -1603,6 +1596,7 @@ Val StdMathExp::derivativeOf(string x, Env env, Env denv) {
                 y = new RealVal(dz*cos(z));
             } else
                 throw_err("type", "sinh is undefined for inputs outside of R");
+            break;
         case COSH:
             if (isnum) {
                 auto z = isVal<IntVal>(v)
@@ -1614,6 +1608,7 @@ Val StdMathExp::derivativeOf(string x, Env env, Env denv) {
                 y = new RealVal(dz*sin(z));
             } else
                 throw_err("type", "cosh is undefined for inputs outside of R");
+            break;
         case TANH:
             if (isnum) {
                 auto z = isVal<IntVal>(v)
@@ -1627,6 +1622,7 @@ Val StdMathExp::derivativeOf(string x, Env env, Env denv) {
                 y = new RealVal(dz / (cosh(z) * cosh(z)));
             } else
                 throw_err("type", "tanh is undefined for inputs outside of R");
+            break;
         case ASINH:
             if (isnum) {
                 // x^2
@@ -1652,6 +1648,7 @@ Val StdMathExp::derivativeOf(string x, Env env, Env denv) {
 
             } else
                 throw_err("type", "arcsinh is undefined for inputs outside of R");
+            break;
         case ACOSH:
             if (isnum) {
                 // x^2
@@ -1677,6 +1674,7 @@ Val StdMathExp::derivativeOf(string x, Env env, Env denv) {
 
             } else
                 throw_err("type", "arccosh is undefined for inputs outside of R");
+            break;
         case ATANH:
             if (isnum) {
                 // x^2
@@ -1695,8 +1693,10 @@ Val StdMathExp::derivativeOf(string x, Env env, Env denv) {
                 y = dz;
             } else
                 throw_err("type", "arctanh is undefined for inputs outside of R");
+            break;
         case LOG:
             y = div(dv, v);
+            break;
         case SQRT:
             y = pow(v, &half);
             if (!y) break;
@@ -1705,8 +1705,10 @@ Val StdMathExp::derivativeOf(string x, Env env, Env denv) {
             y->rem_ref();
 
             y = div(dv, v);
+            break;
         case EXP:
             y = mult(v, dv);
+            break;
     }
 
     v->rem_ref();
@@ -1768,7 +1770,7 @@ Val TupleAccessExp::derivativeOf(string x, Env env, Env denv) {
 
 }
 
-Val VarExp::derivativeOf(string x, Env env, Env denv) {
+Val VarExp::derivativeOf(string, Env, Env denv) {
     // We have a list of derivatives, from which we can easily perform
     // a lookup.
     Val dv = denv->apply(id);
@@ -1805,10 +1807,10 @@ Val WhileExp::derivativeOf(string x, Env env, Env denv) {
 }
 
 // d/dx c = 0
-Val IntExp::derivativeOf(string x, Env env, Env denv) {
+Val IntExp::derivativeOf(string x, Env env, Env) {
     return deriveConstVal(x, env->apply(x), 0);
 }
-Val RealExp::derivativeOf(string x, Env env, Env denv) {
+Val RealExp::derivativeOf(string x, Env env, Env) {
     return deriveConstVal(x, env->apply(x), 0);
 }
 

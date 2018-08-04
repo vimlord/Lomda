@@ -76,7 +76,7 @@ let x = (1,2); (right of x, left of x)
 
 # Dictionary with elements
 {x:1,y:2}
-{x : 1, y : 2}
+{y : 2, x : 1}
 
 # Empty dictionary
 {}
@@ -84,7 +84,7 @@ let x = (1,2); (right of x, left of x)
 
 # Dictionary reassignment
 let A = {x:1, y:2}; A.x = A.y; A
-{x : 2, y : 2}
+{y : 2, x : 2}
 
 
 # For loop

@@ -177,7 +177,7 @@ Exp parse_sequence(string str, list<string> future) {
 
         list<string> ids = extract_statements(str, ',', false);
 
-        for (i = 0; i < ids.size(); i++) {
+        for (unsigned int i = 0; i < ids.size(); i++) {
             // Get the next value to check
             auto id = ids.front();
             ids.pop_front();
@@ -217,7 +217,7 @@ Exp parse_sequence(string str, list<string> future) {
         Exp *ys = new Exp[ids.size()+1];
 
         ys[ids.size()] = NULL;
-        for (int i = ids.size()-1; i >= 0; i--) {
+        for (unsigned int i = ids.size()-1; !ids.empty(); i--) {
             // Our expression will import the module and then grab the value.
             // I may come back to this and implement an expression specifically
             // for this functionality, as this is inefficient even with caching.

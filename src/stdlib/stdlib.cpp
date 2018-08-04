@@ -19,7 +19,7 @@ LambdaVal* make_mono_fn(string x, std::string name, Val (*f)(Env), Type *t, Val 
 
 // Adds a binding to a library
 void add_to_lib(DictVal *lib, string x, Val val) {
-    lib->getVals()->add(x, val);
+    lib->add(x, val);
 }
 
 Type* type_stdlib(string name) {
