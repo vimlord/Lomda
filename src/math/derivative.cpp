@@ -487,8 +487,6 @@ Val ApplyExp::derivativeOf(string x, Env env, Env denv) {
         return NULL;
     }
     
-    if (o) throw_debug("calc", "Given " + env->toString() + ", " + op->toString() + " = " + o->toString());
-
     int argc;
     for (argc = 0; args[argc]; argc++);
 
@@ -505,8 +503,7 @@ Val ApplyExp::derivativeOf(string x, Env env, Env denv) {
             delete[] vals;
             func->rem_ref();
             return NULL;
-        } else
-            throw_debug("calc", func->getArgs()[i] + " = " + vals[i]->toString());
+        }
     }
     vals[argc] = NULL;
 
@@ -603,8 +600,6 @@ Val ApplyExp::derivativeOf(string x, Env env, Env denv) {
         } else {
             deriv = dydx;
         }
-
-        
     }
      
     if (deriv) throw_debug("calculus", "d/d" + x + " " + toString() + " = " + deriv->toString());
@@ -1369,15 +1364,6 @@ Val MultExp::derivativeOf(string x, Env env, Env denv) {
     Val r = right->evaluate(env);
     if (!r) { dl->rem_ref(); dr->rem_ref(); l->rem_ref(); return NULL; }
     
-    throw_debug("calculus", "l = " + l->toString());
-    throw_debug("calculus", "r = " + r->toString());
-    throw_debug("calculus", "d/d" + x + " l = " + dl->toString());
-    throw_debug("calculus", "d/d" + x + " r = " + dr->toString());
-    
-    // Utility object
-    
-    
-
     Val a = mult(l, dr);
     l->rem_ref();
     dr->rem_ref();
@@ -1388,8 +1374,6 @@ Val MultExp::derivativeOf(string x, Env env, Env denv) {
         return NULL;
     }
 
-    throw_debug("calculus", "l r' = " + a->toString());
-
     Val b = mult(r, dl);/*(dl, r)*/;
     r->rem_ref();
     dl->rem_ref();
@@ -1399,17 +1383,11 @@ Val MultExp::derivativeOf(string x, Env env, Env denv) {
         return NULL;
     }
 
-
-    throw_debug("calculus", "r l' = " + b->toString());
-    
     Val c = add(a, b);
 
     a->rem_ref();
     b->rem_ref();
     
-    if (c) throw_debug("calculus", "l r' + r l' = " + c->toString());
-    else throw_debug("calc\x1b[37m_\x1b[31merror", "l r' + r l' is non-computable");
-
     return c;
 }
 
@@ -1776,9 +1754,9 @@ Val VarExp::derivativeOf(string, Env, Env denv) {
     Val dv = denv->apply(id);
     if (!dv) {
         throw_err("calculus", "derivative of variable '" + id + "' is not known within this context");
-        if (configuration.verbosity) throw_debug("runtime error", "error ocurred w/ scope:\n" + denv->toString());
-    } else
+    } else {
         dv->add_ref();
+    }
 
     return dv;
 }
