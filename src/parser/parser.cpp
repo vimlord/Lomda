@@ -42,6 +42,7 @@ Exp parse_program(string str) {
     
     // If statements cannot be extracted, we cannot build an expression.
     if (statements.empty()) {
+        throw_err("parser", "the given program could not be converted to an AST via BNF parsing");
         return NULL;
     } else
         throw_debug("parser", "extracted " + to_string(statements.size()) + " lines from '" + str + "'");

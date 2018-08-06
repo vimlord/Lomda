@@ -30,14 +30,18 @@ Val run(string program) {
     Exp exp = parse_program(program);
 
     if (exp) { 
-
         throw_debug("postprocessor", "performing verification of '" + exp->toString() + "'");
+        
+        // Perform postprocessing on the program.
         HashMap<std::string,bool> *vardta = new HashMap<std::string,bool>;
         bool valid = exp->postprocessor(vardta);
         delete vardta;
-
-        if (!valid)
+        
+        // If it fails, then stop.
+        if (!valid) {
+            delete exp;
             return NULL;
+        }
         
         if (configuration.types) {
             // Use the type system.
@@ -161,9 +165,6 @@ Val AdtDeclarationExp::evaluate(Env env) {
     env->set(name, adt);
     adt->rem_ref();
 
-    // Display the env if necessary
-    throw_debug("env", "original env Γ extended to env Γ' := " + env->toString());
-    
     // Now, we can evaluate.
     Val res = body->evaluate(env);
     
@@ -386,7 +387,6 @@ Val DerivativeExp::evaluate(Env env) {
 
     Exp symb = func->symb_diff(var);
     if (symb && !isExp<DerivativeExp>(symb)) {
-        throw_debug("calc_init", toString() + " = " + symb->toString());
         // Put off the evaluation until a later time.
         Val v = symb->evaluate(env);
         delete symb;
@@ -467,14 +467,9 @@ Val DerivativeExp::evaluate(Env env) {
                 // The value is of a differentiable type
                 denv->set(id, v);
                 v->rem_ref(); // The derivative exists only within the environment
-                throw_debug("calc_init", "d/d" + var + " " + id + " = " + v->toString());
             }
         }
     }
-
-    throw_debug("calc_init", "computing " + toString() + " under:\n"
-               +"           Γ := " + env->toString() + "\n"
-               +"           dΓ/d" + var + " := " + denv->toString());
 
     // Now, we have the variable, the environment, and the differentiable
     // environment. So, we can simply derive and return the result.
@@ -846,7 +841,6 @@ Val LambdaExp::evaluate(Env env) {
 Val LetExp::evaluate(Env env) {
     int argc = 0;
     for (; exps[argc]; argc++);
-    throw_debug("env", "adding " + to_string(argc) + " vars to env Γ := " + env->toString());
 
     // I want to make all of the lambdas recursive.
     // So, I will track my lambdas for now
@@ -882,9 +876,6 @@ Val LetExp::evaluate(Env env) {
         LambdaVal *v = lambdas.remove(0);
         v->setEnv(env);
     }
-
-    // Display the env if necessary
-    throw_debug("env", "original env Γ extended to env Γ' := " + env->toString());
 
     // Compute the result
     Val y = body->evaluate(env);
@@ -1700,7 +1691,6 @@ Val VarExp::evaluate(Env env) {
     Val res = env->apply(id);
     if (!res) {
         throw_err("runtime", "variable '" + id + "' was not recognized");
-        if (configuration.verbosity) throw_debug("runtime error", "error ocurred w/ scope:\n" + env->toString());
         return NULL;
     } else {
         res->add_ref(); // This necessarily creates a new reference. So, we must track it.
