@@ -303,7 +303,7 @@ Val Thunk::get(Env e) {
         throw_debug("thunk ", "" + exp->toString() + " | " + e->toString() + " ↓ " + val->toString());
         return val;
     } else {
-        throw_debug("thunk", "" + exp->toString() + " | " + e->toString() + " cannot be computed");
+        throw_err("thunk", "" + exp->toString() + " | " + e->toString() + " cannot be computed");
         return NULL;
     }
 }
