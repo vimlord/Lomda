@@ -107,6 +107,15 @@ int main(int, char *argv[]) {
             int n = test();
             ImportExp::clear_cache();
             return n;
+        } else if (!strcmp(argv[i], "-c")) {
+            // Attempt to use the interactive mode.
+            if (!argv[++i]) {
+                cerr << argv[0] << ": expected program after '-c', but none was given\n";
+                return 1;
+            } else {
+                execute(argv[i]);
+                return 0;
+            }
         } else {
             filename = argv[i];
             break;
