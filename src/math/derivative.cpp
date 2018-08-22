@@ -1324,9 +1324,6 @@ Val MultExp::derivativeOf(string x, Env env, Env denv) {
     Val r = right->evaluate(env);
     if (!r) { dl->rem_ref(); dr->rem_ref(); l->rem_ref(); return NULL; }
 
-    std::cout << "l = " << *l << "\n";
-    std::cout << "r = " << *r << "\n";
-    
     Val a = mult(l, dr);
     l->rem_ref();
     dr->rem_ref();
