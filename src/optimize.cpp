@@ -270,6 +270,58 @@ Exp MultExp::optimize() {
     return this;
 }
 
+Exp DotProdExp::optimize() {
+    // First, we'll attempt to reduce the load using
+    // reduction properties.
+    if (isExp<StdMathExp>(left) && isExp<StdMathExp>(right)) {
+        // Try reducing mathematical expressions.
+        auto A = (StdMathExp*) left;
+        auto B = (StdMathExp*) right;
+        if (A->getFn() == StdMathExp::MathFn::EXP && B->getFn() == StdMathExp::MathFn::EXP) {
+            // e^a * e^b = e^(a+b)
+            Exp exp = new StdMathExp(
+                    StdMathExp::MathFn::EXP,
+                    new SumExp(A->getArg()->clone(), B->getArg()->clone())
+            );
+            
+            return optimize_with_catch(this, exp);
+        }
+    }
+
+    left = left->optimize();
+    right = right->optimize();
+
+    if (isExp<ValExp>(left) && isExp<ValExp>(right)) {
+        // If the left and right hand side are constants, then we
+        // can perform constant folding on the operation.
+        Val v = evaluate(NULL);
+        
+        if (!v)
+            throw "type mismatch";
+        else {
+            Exp e = new ValExp(v);
+            v->rem_ref();
+            return e;
+        }
+    } else if (isExp<StdMathExp>(left) && isExp<StdMathExp>(right)) {
+        // Try reducing mathematical expressions.
+        auto A = (StdMathExp*) left;
+        auto B = (StdMathExp*) right;
+        if (A->getFn() == StdMathExp::MathFn::EXP && B->getFn() == StdMathExp::MathFn::EXP) {
+            // e^a * e^b = e^(a+b)
+            Exp exp = new StdMathExp(
+                    StdMathExp::MathFn::EXP,
+                    new SumExp(A->getArg()->clone(), B->getArg()->clone())
+            );
+
+            return optimize_with_catch(this, exp);
+
+        }
+    }
+
+    return this;
+}
+
 Exp NotExp::optimize() {
     exp = exp->optimize();
 
