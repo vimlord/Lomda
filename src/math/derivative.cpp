@@ -238,46 +238,6 @@ Val deriveConstVal(string id, Val y, Val x, int c) {
         return NULL;
 }
 
-Val dot(Val A, Val B) {
-    if ((isVal<IntVal>(A) || isVal<RealVal>(A)) || (isVal<IntVal>(B) || isVal<RealVal>(B))) {
-        return mult(A, B);
-    } else if (isVal<ListVal>(A) || isVal<ListVal>(B)) {
-        ListVal *lA = (ListVal*) A;
-        ListVal *lB = (ListVal*) B;
-        if (lA->size() != lB->size()) {
-            throw_err("runtime", "cannot compute arbitrary dot product of " + A->toString() + " and " + B->toString());
-            return NULL;
-        }
-
-        Val v = NULL;
-        for (int i = 0; i < lA->size(); i++) {
-            Val d = dot(lA->get(i), lB->get(i));
-            if (!d) {
-                throw_err("runtime", "cannot compute arbitrary dot product of " + A->toString() + " and " + B->toString());
-                v->rem_ref();
-            }
-
-            if (v) {
-                Val s = add(v, d);
-                d->rem_ref();
-                d = s;
-                v->rem_ref();
-            }
-
-            v = d;
-        }
-
-        if (!v) {
-            throw_err("runtime", "cannot compute arbitrary dot product of " + A->toString() + " and " + B->toString());
-        }
-
-        return v;
-    } else {
-        throw_err("runtime", "cannot compute arbitrary dot product of " + A->toString() + " and " + B->toString());
-        return NULL;
-    }
-}
-
 /**
  * Computes chain rule; f'(g(x))g'(x)
  * @param dzdy f'(g(x))
@@ -1363,6 +1323,9 @@ Val MultExp::derivativeOf(string x, Env env, Env denv) {
     if (!l) { dl->rem_ref(); dr->rem_ref(); return NULL; }
     Val r = right->evaluate(env);
     if (!r) { dl->rem_ref(); dr->rem_ref(); l->rem_ref(); return NULL; }
+
+    std::cout << "l = " << *l << "\n";
+    std::cout << "r = " << *r << "\n";
     
     Val a = mult(l, dr);
     l->rem_ref();
