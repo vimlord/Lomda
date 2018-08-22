@@ -142,6 +142,18 @@ class ExponentExp : public OperatorExp {
         std::string toString();
 };
 
+class DotProdExp : public OperatorExp {
+    public:
+        using OperatorExp::OperatorExp;
+
+        Val op(Val, Val);
+        
+        Exp clone() { return new DotProdExp(left->clone(), right->clone()); }
+        std::string toString();
+
+        Exp optimize();
+};
+
 /**
  * Expression for multiplying numbers.
  */

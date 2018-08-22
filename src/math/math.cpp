@@ -162,6 +162,46 @@ bool is_negligible_mtrx(ListVal *mtrx, double eps = 1e-4) {
     return true;
 }
 
+Val dot(Val A, Val B) {
+    if ((isVal<IntVal>(A) || isVal<RealVal>(A)) || (isVal<IntVal>(B) || isVal<RealVal>(B))) {
+        return mult(A, B);
+    } else if (isVal<ListVal>(A) || isVal<ListVal>(B)) {
+        ListVal *lA = (ListVal*) A;
+        ListVal *lB = (ListVal*) B;
+        if (lA->size() != lB->size()) {
+            throw_err("runtime", "cannot compute arbitrary dot product of " + A->toString() + " and " + B->toString());
+            return NULL;
+        }
+
+        Val v = NULL;
+        for (int i = 0; i < lA->size(); i++) {
+            Val d = dot(lA->get(i), lB->get(i));
+            if (!d) {
+                throw_err("runtime", "cannot compute arbitrary dot product of " + A->toString() + " and " + B->toString());
+                v->rem_ref();
+            }
+
+            if (v) {
+                Val s = add(v, d);
+                d->rem_ref();
+                d = s;
+                v->rem_ref();
+            }
+
+            v = d;
+        }
+
+        if (!v) {
+            throw_err("runtime", "cannot compute arbitrary dot product of " + A->toString() + " and " + B->toString());
+        }
+
+        return v;
+    } else {
+        throw_err("runtime", "cannot compute arbitrary dot product of " + A->toString() + " and " + B->toString());
+        return NULL;
+    }
+}
+
 Val exp(Val v) {
     if (!v) return NULL;
     else if (isVal<RealVal>(v))

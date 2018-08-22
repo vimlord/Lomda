@@ -142,6 +142,10 @@ Val SumExp::op(Val a, Val b) {
     return add(a, b);
 }
 
+Val DotProdExp::op(Val a, Val b) {
+    return dot(a,b);
+}
+
 Val ModulusExp::op(Val a, Val b) {
     if (val_is_integer(a) && val_is_integer(b)) {
         auto x = ((IntVal*) a)->get();

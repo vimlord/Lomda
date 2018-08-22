@@ -98,6 +98,9 @@ string DiffExp::toString() {
 string DivExp::toString() {
     return left->toString() + " / " + right->toString();
 }
+string DotProdExp::toString() {
+    return left->toString() + " dot " + right->toString();
+}
 string CompareExp::toString() {
     string s = left->toString();
     

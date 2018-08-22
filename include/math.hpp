@@ -3,6 +3,11 @@
 #include "value.hpp"
 
 /**
+ * Computes a deep dot product between two tensors.
+ */
+Val dot(Val, Val);
+
+/**
  * Computes the natural log of an expression, as ln(x) would.
  * For matrices, this is done using a Taylor approximation combined
  * with a scaling of the matrix to permit the usage of this method.
