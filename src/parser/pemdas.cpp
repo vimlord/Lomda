@@ -443,7 +443,6 @@ result<Expression> parse_pemdas(string str, int order) {
                 }
 
             }
-
         } else if ((len = starts_with(str, "\"")) > 0) {
             len = index_of_char(str, '"');
             int j = index_of_closure(str.substr(len), '"', '"');
@@ -483,7 +482,38 @@ result<Expression> parse_pemdas(string str, int order) {
             strbin.push_back('\0');
             
             base.value = new StringExp(string(&strbin[0]));
+        } else if ((len = starts_with(str, "|")) > 0) {
+            // Magnitude
+            len = index_of_char(str, '|');
 
+            int j = index_of_closure(str.substr(len), '|', '|');
+            if (j == -1) {
+                base.reset();
+                return base;
+            }
+
+            string seg = str.substr(len+1, j-1);
+
+            bool norm = false;
+            if (seg[0] == '|' && seg[seg.length()-1] == '|') {
+                seg = seg.substr(1, seg.length()-2);
+                norm = true;
+            }
+            
+            // Extract a statement from the contents.
+            base = parse_pemdas(seg);
+
+            if (base.strlen == -1) {
+                base.reset();
+                return base;
+            }
+            
+            base.value = norm 
+                    ? (Exp) new NormExp(base.value) 
+                    : (Exp) new MagnitudeExp(base.value);
+
+            base.strlen = len + j + 1;
+            str = str.substr(base.strlen);
         } else {
             // Parse an absolute primitive
             len = 0;
