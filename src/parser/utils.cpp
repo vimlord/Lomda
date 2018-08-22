@@ -30,7 +30,43 @@ int index_of_char(string str, char c) {
     return c ? -1 : str.length();
 }
 
+int index_of_mag_closure(string str) {
+    unsigned int ct = 0;
+    while (str[ct] == '|' && ++ct < 2);
+
+    for (unsigned int i = ct; i < str.length(); i++) {
+        int j = 0;
+        switch (str[i]) {
+            case '(': // Parentheses
+                j = index_of_closure(str.substr(i), '(', ')'); break;
+            case '{': // Brackets
+                j = index_of_closure(str.substr(i), '{', '}'); break;
+            case '"': // String literals
+                j = index_of_closure(str.substr(i), '"', '"'); break;
+            case '[': // Braces
+                j = index_of_closure(str.substr(i), '[', ']'); break;
+            case '|':
+                if (ct == 1 || str[i+1] == '|') {
+                    return i + ct - 1;
+                } else {
+                    j = index_of_closure(str.substr(i), '|', '|');
+                }
+                break;
+        }
+
+        if (j == -1)
+            return -1;
+        else
+            i += j;
+    }
+
+    return -1;
+}
+
 int index_of_closure(string str, char a, char b) {
+    if (a == '|' && b == '|')
+        return index_of_mag_closure(str);
+
     for (unsigned int i = 1; i < str.length(); i++) {
         // Ignore escaped characters.
         if (str[i] == b) {
@@ -38,7 +74,7 @@ int index_of_closure(string str, char a, char b) {
             return i;
         } else if (a == b && a == '"') {
             if (str[i] == '\\') {
-                i++;
+                ++i;
                 continue;
             }
         } else {
