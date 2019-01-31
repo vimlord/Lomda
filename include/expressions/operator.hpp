@@ -163,7 +163,6 @@ class MultExp : public OperatorExp {
 
         Val op(Val, Val);
         Val derivativeOf(std::string, Env, Env);
-        Exp symb_diff(std::string);
 
         Type* typeOf(Tenv);
         
