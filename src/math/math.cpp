@@ -165,11 +165,11 @@ bool is_negligible_mtrx(ListVal *mtrx, double eps = 1e-4) {
 Val dot(Val A, Val B) {
     if ((isVal<IntVal>(A) || isVal<RealVal>(A)) || (isVal<IntVal>(B) || isVal<RealVal>(B))) {
         return mult(A, B);
-    } else if (isVal<ListVal>(A) || isVal<ListVal>(B)) {
+    } else if (isVal<ListVal>(A) && isVal<ListVal>(B)) {
         ListVal *lA = (ListVal*) A;
         ListVal *lB = (ListVal*) B;
         if (lA->size() != lB->size()) {
-            throw_err("runtime", "cannot compute arbitrary dot product of " + A->toString() + " and " + B->toString());
+            throw_err("runtime", "cannot compute arbitrary dot product of " + A->toString() + " and " + B->toString() + " because size mismatch");
             return NULL;
         }
 
