@@ -1,6 +1,9 @@
+#include "main.hpp"
+
 #include "interp.hpp"
 #include "expression.hpp"
 #include "config.hpp"
+#include "argparse.hpp"
 
 #include "tests.hpp"
 
@@ -83,44 +86,10 @@ int interpret() {
 int main(int, char *argv[]) { 
     configuration.argv = argv;
 
-    string filename = "";
-
-    int i;
-    for (i = 1; argv[i]; i++) {
-        if (!strcmp(argv[i], "--use-types"))
-            configuration.types = configuration.werror ? 2 : 1;
-        else if (!strcmp(argv[i], "--use-module-caching"))
-            configuration.module_caching = true;
-        else if (!strcmp(argv[i], "--version")) {
-            print_version(); return 0;
-        } else if (!strcmp(argv[i], "-v") || !strcmp(argv[i], "--verbose")) {
-            configuration.verbosity = true;
-        } else if (!strcmp(argv[i], "--werror")) {
-            configuration.werror = true;
-            // If we treat warnings as errors, then we will require typing to pass
-            if (configuration.types)
-                configuration.types = 2;
-        } else if (!strcmp(argv[i], "-O") || !strcmp(argv[i], "--optimize")) {
-            configuration.optimization = true;
-        } else if (!strcmp(argv[i], "-t")) {
-            // Run the lang tests
-            int n = test();
-            ImportExp::clear_cache();
-            return n;
-        } else if (!strcmp(argv[i], "-c")) {
-            // Attempt to use the interactive mode.
-            if (!argv[++i]) {
-                cerr << argv[0] << ": expected program after '-c', but none was given\n";
-                return 1;
-            } else {
-                execute(argv[i]);
-                return 0;
-            }
-        } else {
-            filename = argv[i];
-            break;
-        }
-    }
+    
+    // Initialize a command line argument parser
+    init_cmdline_args();
+    string filename = parse_cmdline_args(argv);
 
     if (filename[0] == '\0')
         // Run the interpreter
@@ -141,7 +110,7 @@ int main(int, char *argv[]) {
         }
         
         // Read the program from the input file
-        i = 0;
+        int i = 0;
         string program = "";
         do {
             string s;
