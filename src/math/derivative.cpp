@@ -15,6 +15,15 @@ void throw_calc_err(Exp exp) {
     throw_err("calculus", "expression '" + exp->toString() + "' is non-differentiable\n");
 }
 
+void print_size(Val v) {
+    if (isVal<ListVal>(v)) {
+        std::cout << ((ListVal*) v)->size() << " ";
+        print_size(((ListVal*) v)->get(0));
+    } else {
+        std::cout << "\n";
+    }
+}
+
 void resolveIdentity(Val val, List<int> *idx = NULL) {
     if (!val) return;
 
@@ -154,7 +163,7 @@ Val deriveConstVal(string id, Val v, int c) {
 /**
  * Computes dy/dx ~= c
  */
-Val deriveConstVal(string id, Val y, Val x, int c) {
+Val deriveConstVal(string id, Val x, Val y, int c) {
 
     //return deriveConstVal(id, y, c);
 
@@ -171,7 +180,7 @@ Val deriveConstVal(string id, Val y, Val x, int c) {
         // Build the subderivatives
         for (int i = 0; i < X->size(); i++) {
             Val u = X->get(i);
-            Val dy = deriveConstVal(id, y, u, 0);
+            Val dy = deriveConstVal(id, u, y, 0);
 
             if (!dy) {
                 while (i--) lst[i]->rem_ref();
@@ -197,7 +206,7 @@ Val deriveConstVal(string id, Val y, Val x, int c) {
         while (vit->hasNext()) {
             auto k = vit->next();
 
-            auto V = deriveConstVal(id, y, ((DictVal*) x)->get(k), 0);
+            auto V = deriveConstVal(id, ((DictVal*) x)->get(k), y, 0);
             if (!V) {
                 delete vit;
                 delete res;
@@ -217,10 +226,10 @@ Val deriveConstVal(string id, Val y, Val x, int c) {
         return res;
 
     } else if (isVal<TupleVal>(x)) {
-        Val L = deriveConstVal(id, y, ((TupleVal*) x)->getLeft(), 0);
+        Val L = deriveConstVal(id, ((TupleVal*) x)->getLeft(), y, 0);
         if (!L) return NULL;
 
-        Val R = deriveConstVal(id, y, ((TupleVal*) x)->getRight(), 0);
+        Val R = deriveConstVal(id, ((TupleVal*) x)->getRight(), y, 0);
         if (!R) { L->rem_ref(); return NULL; }
 
         L->add_ref();
@@ -242,7 +251,7 @@ Val deriveConstVal(string id, Val y, Val x, int c) {
  * Computes chain rule; f'(g(x))g'(x)
  * @param dzdy f'(g(x))
  * @param dydx g'(x)
- * @param z
+ * @param z g(x)
  * @return (f(g(x)))' = f'(g(x))g'(x)
  */
 Val chain_product(Val dzdy, Val dydx, Val z) {
@@ -314,6 +323,60 @@ Val chain_product(Val dzdy, Val dydx, Val z) {
         return NULL;
     }
 }
+
+int order(Val x) {
+    int i;
+    for (i = 0; isVal<ListVal>(x); x = ((ListVal*) x)->get(0), i++);
+    return i;
+}
+
+/**
+ * a b'
+ */
+Val semidifferential(Val drdx, Val l, int depth, bool is_left) {
+    if (!depth) {
+        // Thus, dB/dx is now the derivative wrt a single value of
+        // x, and is thus the shape of B. So, A*dB/dx is same shape
+        // as A*B
+        return is_left ? mult(l, drdx) : mult(drdx, l);
+    } else {
+        ListVal *B = (ListVal*) drdx;
+        ListVal *dlst = new ListVal;
+        for (int i = 0; i < B->size(); i++) {
+            Val b = B->get(i);
+            Val v = semidifferential(b, l, depth-1, is_left);
+            if (!v) {
+                dlst->rem_ref();
+                return NULL;
+            } else {
+                dlst->add(i, v);
+            }
+        }
+
+        return dlst;
+    }
+}
+
+/**
+ * a b'
+ */
+Val semidifferential(Val drdx, Val l, bool is_left) {
+    // Compute the difference between orders
+    int ordA = order(l);
+    int ordB = order(drdx);
+    
+    /*
+    if (ordA <= 2 && ordB <= 2)
+        return is_left ? mult(l, drdx) : mult(drdx, l);
+    */
+
+    int i = ordB - ordA;
+
+    Val y = semidifferential(drdx, l, i, is_left);
+    
+    return y;
+}
+
 
 Val AndExp::derivativeOf(string, Env, Env) {
     throw_calc_err(this);
@@ -482,16 +545,11 @@ Val ApplyExp::derivativeOf(string x, Env env, Env denv) {
         if (func->getEnv()->apply(x)) {
             // Compute the initial derivative
             LambdaVal *df = derive(func, x);
-            
+ 
             // df/dx
-            Val dy = df->apply(vals);
+            //Val dy = df->apply(vals);
+            Val deriv = df->apply(vals);
             df->rem_ref();
-
-            // dx/dx
-            Val dx = denv->apply(x);
-            
-            deriv = chain_product(dy, dx, y);
-            dy->rem_ref();
 
             if (!deriv) {
                 func->rem_ref();
@@ -503,7 +561,7 @@ Val ApplyExp::derivativeOf(string x, Env env, Env denv) {
             Val dy = func->apply(vals);
             
             // Generate zero.
-            deriv = deriveConstVal(x, env->apply(x), y, 0);
+            deriv = deriveConstVal(x, y, env->apply(x), 0);
             
             // GC
             dy->rem_ref();
@@ -536,8 +594,9 @@ Val ApplyExp::derivativeOf(string x, Env env, Env denv) {
             break;
         }
         
-        // Compute f'(g(x)) * g'(x)
+        // Compute f'(g(x)) * g'(x); dy/dz * dz/dx
         Val dydx = chain_product(dy, dx, y);
+        //Val dydx = mult(dy, dx);
         dy->rem_ref();
         dx->rem_ref();
         if (!dydx) {
@@ -1324,7 +1383,8 @@ Val MultExp::derivativeOf(string x, Env env, Env denv) {
     Val r = right->evaluate(env);
     if (!r) { dl->rem_ref(); dr->rem_ref(); l->rem_ref(); return NULL; }
 
-    Val a = mult(l, dr);
+    Val a = semidifferential(dr, l, false);
+    //Val a = mult(l, dr);
     l->rem_ref();
     dr->rem_ref();
 
@@ -1334,7 +1394,8 @@ Val MultExp::derivativeOf(string x, Env env, Env denv) {
         return NULL;
     }
 
-    Val b = mult(r, dl);/*(dl, r)*/;
+    //Val b = semidifferential(dl, r, true);
+    Val b = mult(dl, r);
     r->rem_ref();
     dl->rem_ref();
 

@@ -46,15 +46,6 @@ Exp ModulusExp::symb_diff(string x) {
     );
 }
 
-Exp MultExp::symb_diff(string x) {
-    auto L = left->symb_diff(x);
-    if (!L) return NULL;
-    auto R = right->symb_diff(x);
-    if (!R) { delete L; return NULL; }
-
-    return new SumExp(new MultExp(left->clone(), R), new MultExp(right->clone(), L));
-}
-
 Exp DivExp::symb_diff(string x) {
     auto L = left->symb_diff(x);
     if (!L) return NULL;
