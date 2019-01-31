@@ -729,6 +729,7 @@ result<Expression> parse_pemdas(string str, int order) {
                     // Create the end result
                     base.value = new LambdaExp(args, body.value);
                     base.strlen += body.strlen;
+                    str = str.substr(body.strlen);
 
                 } else if (var == "thunk") {
                     result<Expression> next = parse_body(str, false);
