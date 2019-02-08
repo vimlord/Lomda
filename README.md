@@ -33,7 +33,7 @@ program or an exit command. The interpreter will look something like this:
 
 ```
 $ ./lomda
-Lomda 0.1.0
+Lomda 1.0.1
 Compiled May  9 2018 @ 20:11:11
 Enter a program and press <enter> to execute, or one of the following:
 'exit' - exit the interpreter
