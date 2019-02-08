@@ -11,34 +11,45 @@ operator enables simple gradient descent.
 
 ## Installation
 As Lomda runs on a C++ backend, you will require g++11 to compile the source.
-On a Unix-based system, the source can be built using `make`. Simply run it in
-the main directory to generate the `lomda` executable.
+You will also require `cmake` to build the files. Installation can be
+performed as follows:
 
+```
+# Create a build directory
+mkdir build
+cd build
+# Generate a makefile
+cmake ..
+# Run the makefile to build Lomda.
+make install
+```
+
+This will install the Lomda executable in /usr/local/bin/. To create the
+executable in the current directory, run `make` instead of `make install`.
 To test Lomda, you can run the interpreter with the test flag. That is,
 
 ```
-$ ./lomda -t
+$ lomda -t
 ```
 
 ## Usage
 Lomda offers the ability to run either as a line-by-line interpreter or as an executor. The following are supported usages of the executable:
 
 ```
-$ ./lomda
-$ ./lomda source.lom
+$ lomda
+$ lomda source.lom
 ```
 
 Without a source file, Lomda will initialize the interpreter and prompt for a
 program or an exit command. The interpreter will look something like this:
 
 ```
-$ ./lomda
-Lomda 1.0.1
-Compiled May  9 2018 @ 20:11:11
+$ lomda
+Lomda v1.0.1
+Compiled Feb  8 2019 @ 16:02:01
 Enter a program and press <enter> to execute, or one of the following:
 'exit' - exit the interpreter
 'q/quit' - exit the interpreter
->
 ```
 
 If you see the prompt, then you can begin typing in programs to execute. If you
