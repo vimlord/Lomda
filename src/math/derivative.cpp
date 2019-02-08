@@ -548,7 +548,7 @@ Val ApplyExp::derivativeOf(string x, Env env, Env denv) {
  
             // df/dx
             //Val dy = df->apply(vals);
-            Val deriv = df->apply(vals);
+            deriv = df->apply(vals);
             df->rem_ref();
 
             if (!deriv) {
