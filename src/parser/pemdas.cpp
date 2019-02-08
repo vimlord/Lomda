@@ -537,6 +537,8 @@ result<Expression> parse_pemdas(string str, int order) {
                     base.value = new TrueExp;
                 else if (var == "false")
                     base.value = new FalseExp;
+                else if (var == "input")
+                    base.value = new InputExp;
                 else if (var == "void")
                     base.value = new VoidExp;
                 else if (var == "sin") {
