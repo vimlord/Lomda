@@ -123,7 +123,7 @@ int main(int, char *argv[]) {
         throw_debug("IO", "program: '" + program + "'\n");
         file.close();
 
-        display_config();
+        //display_config();
         
         // Parse and execute the program.
         execute(program);
