@@ -1067,6 +1067,7 @@ Val FoldExp::derivativeOf(string x, Env env, Env denv) {
     // f' = g'(g(...(c, L[0]), L[1]), ...), L[N-1])
     //      = g'(g(...(c, L[0]),...), L[N-2]) * g_a(...(c,L[0])...,L[N-1])
     //      + L'[N-1] * g_b(...(c,L[0])...,L[N-1])
+
     Val lst = list->evaluate(env);
     if (!lst) return NULL;
     else if (!isVal<ListVal>(lst)) {
@@ -1141,12 +1142,17 @@ Val FoldExp::derivativeOf(string x, Env env, Env denv) {
         xs[1] = v;
         
         // Perform the fold (and then do GC)
-        v = fn->apply(xs);
+        Val y = fn->apply(xs);
+        if (!y) {
+            c->rem_ref(); v->rem_ref(); fn->rem_ref(); lst->rem_ref();
+            dlst->rem_ref(); df_a->rem_ref(); df_b->rem_ref();
+        }
         
         // Same on derivatives
         Val fa = df_a->apply(xs);
         
         if (!fa) {
+            y->rem_ref();
             c->rem_ref(); v->rem_ref(); fn->rem_ref(); lst->rem_ref();
             dlst->rem_ref(); df_a->rem_ref(); df_b->rem_ref();
             return NULL;
@@ -1154,6 +1160,7 @@ Val FoldExp::derivativeOf(string x, Env env, Env denv) {
 
         Val fb = df_b->apply(xs);
         if (!fb) {
+            y->rem_ref();
             fa->rem_ref();
             c->rem_ref(); v->rem_ref(); fn->rem_ref(); lst->rem_ref();
             dlst->rem_ref(); df_a->rem_ref(); df_b->rem_ref();
@@ -1162,29 +1169,39 @@ Val FoldExp::derivativeOf(string x, Env env, Env denv) {
 
         // Apply the fold
         c->rem_ref();
-        c = v;
+        c = y;
 
         // Derivative of the list index
-        v = ((ListVal*) dlst)->get(i);
+        Val v = ((ListVal*) dlst)->get(i);
+
+        Val dfa = chain_product(fa, dc, y);
+        fa->rem_ref();
+        if (!dfa) {
+            fb->rem_ref();
+            c->rem_ref(); v->rem_ref(); fn->rem_ref(); lst->rem_ref();
+            dlst->rem_ref(); df_a->rem_ref(); df_b->rem_ref();
+            y->rem_ref();
+            return NULL;
+        }
         
-        // We will construct an expression to handle the ordeal
-        Expression *cell = new SumExp(
-            new MultExp(new ValExp(fa), new ValExp(dc)),
-            new MultExp(new ValExp(fb), new ValExp(v))
-        );
-
-        //std::cout << "must compute " << *cell << "\n";
-
-        v = cell->evaluate(env);
+        Val dfb = chain_product(fb, v, y);
+        fb->rem_ref();
+        if (!dfb) {
+            c->rem_ref(); v->rem_ref(); fn->rem_ref(); lst->rem_ref();
+            dlst->rem_ref(); df_a->rem_ref(); df_b->rem_ref();
+            y->rem_ref();
+            dfa->rem_ref();
+            return NULL;
+        }
+        
+        v = add(dfa, dfb);
 
         // Large amount of GC
+        dfb->rem_ref();
+        dfa->rem_ref();
         dc->rem_ref();
-        fa->rem_ref();
-        fb->rem_ref();
 
         dc = v;
-
-        delete cell;
     }
     
     // Metric fuckton of GC
