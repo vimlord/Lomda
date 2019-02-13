@@ -833,7 +833,7 @@ Val ForExp::derivativeOf(string x, Env env, Env denv) {
         Val dv = dlist->get(i);
         
         Val t = env->apply(id);
-        Val dt = denv->apply(id);
+        Val dt = VarExp(id).derivativeOf(x, env, denv);
         if (t) t->add_ref();
         if (dt) dt->add_ref();
         
@@ -1786,17 +1786,64 @@ Val TupleAccessExp::derivativeOf(string x, Env env, Env denv) {
 
 }
 
-Val VarExp::derivativeOf(string, Env, Env denv) {
+Val VarExp::derivativeOf(string x, Env env, Env denv) {
     // We have a list of derivatives, from which we can easily perform
     // a lookup.
-    Val dv = denv->apply(id);
-    if (!dv) {
-        throw_err("calculus", "derivative of variable '" + id + "' is not known within this context");
+    Val dydx = denv->apply(id);
+
+    if (!dydx) {
+        // Get the input and output variables. We will need to build the derivative.
+        Val X = env->apply(x);
+        Val Y = env->apply(id);
+        
+        // Check that the variable exists.
+        if (!Y) {
+            throw_err("runtime", "derivative of undefined variable '" + id + "' is not computable");
+        }
+
+        if (isVal<LambdaVal>(Y)) {
+            // The base function derivative will be provided.
+            LambdaVal *F = (LambdaVal*) Y;
+
+            // Argument count
+            int argc;
+            for (argc = 0; F->getArgs()[argc] != ""; argc++);
+
+            // Argument list
+            string *ids = new string[argc+1];
+            ids[argc] = "";
+            while (argc--) ids[argc] = F->getArgs()[argc];
+            
+            // Environment
+            env = F->getEnv();
+            env->add_ref();
+            
+            // Body of the base derivative
+            auto exp = F->getBody()->symb_diff(x);
+            
+            // Construct the derivative
+            dydx = new LambdaVal(ids, exp, env);
+
+        } else {
+            int c = id == x ? 1 : 0;
+            dydx = deriveConstVal(x, Y, X, c);
+        } 
+
+        if (!dydx) {
+            // The derivative was not computable. Because it is necessary, it is a problem.
+            throw_err("calculus", "derivative of variable '" + id + "' is not computable");
+            return NULL;
+        }
+        
+        // Save the result
+        denv->set(id, dydx);
+
     } else {
-        dv->add_ref();
+        // All we need to do is track the acquire from the environment.
+        dydx->add_ref();
     }
 
-    return dv;
+    return dydx;
 }
 
 Val WhileExp::derivativeOf(string x, Env env, Env denv) {

@@ -230,7 +230,7 @@ auto std_d_transpose = [](std::string x, Env env, Env denv) {
     delete[] dims;
 
     // Compute the derivative.
-    ListVal *dx = (ListVal*) denv->apply(x);
+    ListVal *dx = (ListVal*) VarExp(x).derivativeOf(x, env, denv);
 
     ListVal *dT = new ListVal;
     for (int i = 0; i < cs; i++)
@@ -241,6 +241,8 @@ auto std_d_transpose = [](std::string x, Env env, Env denv) {
         Val v = ((ListVal*) dx->get(i))->get(j)->clone();
         ((ListVal*) dT->get(j))->add(i, v);
     }
+
+    dx->rem_ref();
 
     return (Val) dT;
 };
@@ -442,7 +444,7 @@ auto std_d_trace = [](std::string x, Env env, Env denv) {
 
     int n = is_square_matrix(A);
     if (n > 0) {
-        Val dx = denv->apply(x);
+        Val dx = VarExp(x).derivativeOf(x, env, denv);
         IntVal zero;
 
         if (x == "x") {
