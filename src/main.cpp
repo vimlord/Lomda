@@ -31,7 +31,7 @@ void execute(string program) {
 
 void print_version() {
     // Version number
-    cout << "Lomda v1.0.1\n";
+    cout << "Lomda v0.1.0\n";
 
     // Compilation time
     cout << "Compiled " << __DATE__ << " @ " << __TIME__ << "\n";
