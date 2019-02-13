@@ -75,6 +75,10 @@ void init_cmdline_args() {
         (void) a;
         configuration.types = configuration.werror ? 2 : 1;
     }, "Enables the type system."));
+    add(cmdline_arg("verbose", 0, [](char *a) {
+        (void) a;
+        configuration.verbosity = true;
+    }, "Displays the version of the interpreter."));
     add(cmdline_arg("version", 'v', [](char *a) {
         (void) a;
         print_version();
