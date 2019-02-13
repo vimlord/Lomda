@@ -36,7 +36,7 @@ IF (NOT CMAKE_BUILD_TYPE)
 ENDIF (NOT CMAKE_BUILD_TYPE)
 
 # Required flags
-set(CMAKE_CXX_FLAGS "-Wall -Wextra -Werror -pedantic -std=c++11 -lreadline")
+set(CMAKE_CXX_FLAGS "-Wall -Wextra -Werror -pedantic -lreadline")
 
 message("Generated Makefile for '${CMAKE_BUILD_TYPE}' mode")
 
