@@ -429,47 +429,9 @@ Val DerivativeExp::evaluate(Env env) {
         }
     }
 
-    // Base case: we know of nothing
+    // Base case: we know of nothing. If a variable's derivative is requested,
+    // it will be computed and saved on demand.
     Env denv = new Environment;
-    
-    // Compute the base case derivative for each variable.
-    for (auto x_v : env->get_store()) {
-        string id = x_v.first;
-        Val v = x_v.second;
-        
-        if (isVal<LambdaVal>(v)) {
-            LambdaVal *lv = (LambdaVal*) v;
-            int i;
-            for (i = 0; lv->getArgs()[i] != ""; i++);
-
-            string *ids = new string[i+1];
-            ids[i] = "";
-            while (i--) ids[i] = lv->getArgs()[i];
-            
-            LambdaVal *dv = new LambdaVal(ids, 
-                            lv->getBody()->symb_diff(var)
-                            , lv->getEnv());
-
-            lv->getEnv()->add_ref();
-
-            // Lambda derivative: d/dx lambda (x) f(x) = lambda (x) d/dx f(x)
-            // We will need the derivative for this
-            denv->set(id, dv);
-            dv->rem_ref(); // The derivative exists only within the environment
-        } else {
-            // Trivial derivative: d/dx c = 0, d/dx x = x
-            int c = id == var ? 1 : 0;
-            
-            Val X = env->apply(var);
-            v = X ? deriveConstVal(var, v, X, c) : NULL;
-
-            if (v) {
-                // The value is of a differentiable type
-                denv->set(id, v);
-                v->rem_ref(); // The derivative exists only within the environment
-            }
-        }
-    }
 
     // Now, we have the variable, the environment, and the differentiable
     // environment. So, we can simply derive and return the result.
